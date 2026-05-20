@@ -49,29 +49,6 @@ async function showWindow(): Promise<void> {
   }
 }
 
-/** Warm the DB connection — opens SQLite pool in the background. */
-async function warmDb(): Promise<void> {
-  if (!APP_CONFIG.isTauri) return;
-  try {
-    const { dbService } = await import('@/db/services');
-    await dbService.init();
-    log('db warmed');
-  } catch (e) {
-    if (import.meta.env.DEV) console.warn('[startup] warmDb failed:', e);
-  }
-}
-
-/** Initialise the backup service — loads backup list and restarts scheduler. */
-async function initBackup(): Promise<void> {
-  try {
-    const { backupService } = await import('./backup.service');
-    await backupService.init();
-    log('backup service ready');
-  } catch (e) {
-    if (import.meta.env.DEV) console.warn('[startup] initBackup failed:', e);
-  }
-}
-
 /** Preload the most-visited chunk (dashboard) during idle time. */
 function schedulePreloads(): void {
   if (typeof requestIdleCallback === 'undefined') return;
@@ -105,10 +82,6 @@ export const startup = {
    */
   async run(): Promise<void> {
     log('starting');
-
-    // DB warm-up is launched in background and does not block first render.
-    void warmDb();
-
     log('parallel tasks launched');
   },
 
@@ -117,7 +90,12 @@ export const startup = {
      * Backup init is deferred until here so the pool is ready.
      */
     async afterLogin(): Promise<void> {
-      void initBackup();
+      try {
+        const { backupService } = await import('./backup.service');
+        await backupService.init();
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn('[startup] afterLogin failed:', e);
+      }
       log('post-login tasks launched');
     },
 

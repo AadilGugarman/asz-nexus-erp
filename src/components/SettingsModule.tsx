@@ -155,6 +155,10 @@ export const SettingsModule: React.FC = () => {
     );
   }, [autoBackup, backupFreq]);
 
+  const handleBackupFreqChange = (value: string) => {
+    setBackupFreq(value as BackupFrequency);
+  };
+
   const lastBackup = backupHistory.length > 0 ? backupHistory[0] : null;
 
   const handleCreateManualBackup = () => {
@@ -991,7 +995,7 @@ export const SettingsModule: React.FC = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">Backup Frequency</label>
-                          <select value={backupFreq} onChange={e => setBackupFreq(e.target.value)} className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs font-bold outline-none cursor-pointer focus:border-cyan-500">
+                          <select value={backupFreq} onChange={e => handleBackupFreqChange(e.target.value)} className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs font-bold outline-none cursor-pointer focus:border-cyan-500">
                             <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
                           </select>
                         </div>

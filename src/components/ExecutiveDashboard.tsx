@@ -18,6 +18,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
   const { t } = useAppTranslation('dashboard');
   const toast = useToast();
 
+  const dashboardCardClass = 'dark:bg-slate-900/92 bg-white/96 rounded-xl border dark:border-slate-800/90 border-slate-200/90 shadow-[0_16px_40px_rgba(15,23,42,0.08)] dark:shadow-[0_20px_48px_rgba(2,6,23,0.36)]';
+  const dashboardButtonClass = 'rounded-xl border shadow-[0_12px_28px_rgba(15,23,42,0.12)] transition-all cursor-pointer';
+  const premiumIconShell = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_10px_24px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_14px_30px_rgba(2,6,23,0.28)]';
+
   const savedVehicles = vehicles.filter(v => v.status === 'SAVED');
   const commRate = settings.financial.commissionRate / 100;
 
@@ -84,12 +88,19 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
   // ── Quick Action Cards ──────────────────────
   const quickActions = [
-    { label: t('quickActions.arrival.label'), desc: t('quickActions.arrival.desc'), icon: <Truck className="w-6 h-6" />, tab: 'arrival', color: 'from-emerald-500 to-teal-500', textColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', key: 'F1' },
-    { label: t('quickActions.purchase.label'), desc: t('quickActions.purchase.desc'), icon: <ShoppingBag className="w-6 h-6" />, tab: 'purchase', color: 'from-teal-500 to-cyan-500', textColor: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-500/10', key: 'Alt+2' },
-    { label: t('quickActions.sales.label'), desc: t('quickActions.sales.desc'), icon: <ShoppingCart className="w-6 h-6" />, tab: 'sales', color: 'from-indigo-500 to-violet-500', textColor: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-500/10', key: 'F2' },
-    { label: t('quickActions.payment.label'), desc: t('quickActions.payment.desc'), icon: <Wallet className="w-6 h-6" />, tab: 'payments', color: 'from-amber-500 to-orange-500', textColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', key: 'Alt+5' },
-    { label: t('quickActions.reports.label'), desc: t('quickActions.reports.desc'), icon: <FileBarChart2 className="w-6 h-6" />, tab: 'reports', color: 'from-cyan-500 to-blue-500', textColor: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500/10', key: 'Alt+6' },
-    { label: t('quickActions.settings.label'), desc: t('quickActions.settings.desc'), icon: <Settings className="w-6 h-6" />, tab: 'settings', color: 'from-slate-500 to-slate-600', textColor: 'dark:text-slate-300 text-slate-600', bg: 'dark:bg-slate-800 bg-slate-100', key: 'Alt+9' },
+    { label: t('quickActions.arrival.label'), desc: t('quickActions.arrival.desc'), Icon: Truck, tab: 'arrival', iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(224,242,254,0.98),rgba(219,234,254,0.92))] border-sky-200/80 text-sky-700 dark:bg-[linear-gradient(145deg,rgba(8,47,73,0.96),rgba(12,74,110,0.92))] dark:border-sky-800/80 dark:text-sky-300`, iconClass: 'h-5 w-5 stroke-[2.35]', key: 'F1' },
+    { label: t('quickActions.purchase.label'), desc: t('quickActions.purchase.desc'), Icon: ShoppingBag, tab: 'purchase', iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(220,252,231,0.98),rgba(204,251,241,0.9))] border-emerald-200/80 text-emerald-700 dark:bg-[linear-gradient(145deg,rgba(6,78,59,0.96),rgba(17,94,89,0.92))] dark:border-emerald-800/75 dark:text-emerald-300`, iconClass: 'h-5 w-5 stroke-[2.35]', key: 'Alt+2' },
+    { label: t('quickActions.sales.label'), desc: t('quickActions.sales.desc'), Icon: ShoppingCart, tab: 'sales', iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(224,231,255,0.98),rgba(238,242,255,0.92))] border-indigo-200/85 text-indigo-700 dark:bg-[linear-gradient(145deg,rgba(49,46,129,0.96),rgba(67,56,202,0.9))] dark:border-indigo-800/80 dark:text-indigo-200`, iconClass: 'h-5 w-5 stroke-[2.35]', key: 'F2' },
+    { label: t('quickActions.payment.label'), desc: t('quickActions.payment.desc'), Icon: Wallet, tab: 'payments', iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(255,247,237,0.98),rgba(254,243,199,0.92))] border-amber-200/85 text-amber-700 dark:bg-[linear-gradient(145deg,rgba(120,53,15,0.95),rgba(146,64,14,0.9))] dark:border-amber-800/80 dark:text-amber-200`, iconClass: 'h-5 w-5 stroke-[2.35]', key: 'Alt+5' },
+    { label: t('quickActions.reports.label'), desc: t('quickActions.reports.desc'), Icon: FileBarChart2, tab: 'reports', iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(224,242,254,0.98),rgba(219,234,254,0.92))] border-cyan-200/85 text-cyan-700 dark:bg-[linear-gradient(145deg,rgba(22,78,99,0.96),rgba(14,116,144,0.9))] dark:border-cyan-800/80 dark:text-cyan-200`, iconClass: 'h-5 w-5 stroke-[2.35]', key: 'Alt+6' },
+    { label: t('quickActions.settings.label'), desc: t('quickActions.settings.desc'), Icon: Settings, tab: 'settings', iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(241,245,249,0.98),rgba(226,232,240,0.92))] border-slate-200/90 text-slate-700 dark:bg-[linear-gradient(145deg,rgba(30,41,59,0.98),rgba(51,65,85,0.92))] dark:border-slate-700/90 dark:text-slate-200`, iconClass: 'h-5 w-5 stroke-[2.3]', key: 'Alt+9' },
+  ];
+
+  const kpiCards = [
+    { label: t('kpi.totalPurchase'), value: totalPurchase, sub: `${savedVehicles.length + purchaseInvoices.length} ${t('kpi.loadsBills')}`, valueClass: 'text-rose-600 dark:text-rose-300', Icon: DollarSign, iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(255,241,242,0.98),rgba(254,226,226,0.92))] border-rose-200/80 text-rose-700 dark:bg-[linear-gradient(145deg,rgba(76,5,25,0.98),rgba(136,19,55,0.9))] dark:border-rose-900/70 dark:text-rose-200` },
+    { label: t('kpi.totalSales'), value: totalSales, sub: `${invoices.length} ${t('kpi.invoices')}`, valueClass: 'text-emerald-600 dark:text-emerald-300', Icon: TrendingUp, iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(236,253,245,0.98),rgba(209,250,229,0.92))] border-emerald-200/80 text-emerald-700 dark:bg-[linear-gradient(145deg,rgba(2,44,34,0.98),rgba(6,78,59,0.92))] dark:border-emerald-900/70 dark:text-emerald-200` },
+    { label: `${t('kpi.commission')} (${settings.financial.commissionRate}%)`, value: commission, sub: t('kpi.apmcFee'), valueClass: 'text-indigo-700 dark:text-indigo-200', Icon: BarChart3, iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(238,242,255,0.98),rgba(224,231,255,0.92))] border-indigo-200/85 text-indigo-700 dark:bg-[linear-gradient(145deg,rgba(30,27,75,0.98),rgba(49,46,129,0.92))] dark:border-indigo-900/70 dark:text-indigo-200` },
+    { label: t('kpi.stockValuation'), value: stockValuation, sub: `${totalStockKg.toLocaleString()} KG · ${totalStockCrt} CRT`, valueClass: 'text-slate-900 dark:text-slate-50', Icon: Package, iconWrapClass: `${premiumIconShell} bg-[linear-gradient(145deg,rgba(239,246,255,0.98),rgba(224,242,254,0.92))] border-blue-200/85 text-blue-700 dark:bg-[linear-gradient(145deg,rgba(30,58,138,0.98),rgba(30,64,175,0.9))] dark:border-blue-900/75 dark:text-blue-200` },
   ];
 
   const greeting = (() => {
@@ -108,69 +119,70 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
       {/* ══════════════════════════════════════════════
           HERO SECTION
          ══════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden rounded-3xl border dark:border-slate-800 border-slate-200 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl border dark:border-slate-800/90 border-slate-200/80 shadow-[0_24px_80px_rgba(15,23,42,0.16)] dark:shadow-[0_28px_80px_rgba(2,6,23,0.5)]">
         {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br dark:from-slate-900 dark:via-emerald-950/80 dark:to-slate-900 from-emerald-600 via-teal-600 to-cyan-600"></div>
-        <div className="absolute -right-20 -bottom-20 w-[500px] h-[500px] bg-white/5 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -left-20 -top-20 w-[400px] h-[400px] bg-black/5 dark:bg-teal-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgMGg2MHY2MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0zMCAwdjYwTTYwIDMwSDAiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI2cpIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+')] opacity-30 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.18),transparent_32%),linear-gradient(135deg,#020617_0%,#0f172a_24%,#1e1b4b_58%,#0f172a_100%)]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.06),rgba(2,6,23,0.32))]"></div>
+        <div className="absolute -right-16 -bottom-24 w-[420px] h-[420px] bg-indigo-400/10 dark:bg-indigo-400/12 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute -left-20 top-0 w-[340px] h-[340px] bg-sky-400/8 dark:bg-sky-400/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgMGg2MHY2MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0zMCAwdjYwTTYwIDMwSDAiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAyNSkiIHN0cm9rZS13aWR0aD0iMSIiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IGZpbGw9InVybCgjZykiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiLz48L3N2Zz4=')] opacity-40 pointer-events-none"></div>
 
         <div className="relative z-10 p-8 md:p-10">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             {/* Left: Greeting & Company */}
             <div className="space-y-3 text-white max-w-2xl">
               <div className="flex flex-wrap items-center gap-3">
-                <div className="inline-flex items-center space-x-2 bg-white/15 dark:bg-emerald-500/15 backdrop-blur-sm border border-white/20 dark:border-emerald-500/25 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                <div className="inline-flex items-center space-x-2 bg-white/8 dark:bg-indigo-400/12 backdrop-blur-[8px] border border-white/12 dark:border-indigo-300/18 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                   <Sparkles className="w-3.5 h-3.5 animate-pulse-soft" />
                   <span>{t('hero.brandBadge')}</span>
                 </div>
-                <div className="flex items-center space-x-2 text-white/70 dark:text-slate-400 text-xs font-mono">
+                <div className="flex items-center space-x-2 text-slate-200/78 dark:text-slate-300/72 text-xs font-mono">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{currentTime}</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm text-white/70 dark:text-emerald-300/60 font-semibold">{greeting}!</p>
+                <p className="text-sm text-slate-200/76 dark:text-slate-300/70 font-semibold">{greeting}!</p>
                 <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight mt-1">
                   {settings.company.name}
                 </h1>
               </div>
 
-              <p className="text-sm text-white/80 dark:text-slate-300 font-medium max-w-xl leading-relaxed">
+              <p className="text-sm text-slate-100/86 dark:text-slate-200/88 font-medium max-w-xl leading-relaxed">
                 {currentDate} — {t('hero.summary')}
               </p>
 
               {/* Hero Action Buttons */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button onClick={() => setActiveTab('arrival')}
-                  className="px-5 py-2.5 bg-white dark:bg-gradient-to-r dark:from-emerald-500 dark:to-teal-500 text-emerald-950 dark:text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-lg transition-all flex items-center space-x-2 cursor-pointer hover:shadow-xl hover:scale-[1.02]">
+                  className={`${dashboardButtonClass} px-5 py-2.5 bg-white/96 dark:bg-white text-slate-950 font-black text-xs sm:text-sm border-white/80 dark:border-white/85 flex items-center space-x-2 hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(15,23,42,0.2)]`}>
                   <Truck className="w-4 h-4 stroke-[2.5]" /><span>{t('hero.newInward')}</span>
                 </button>
                 <button onClick={() => setActiveTab('sales')}
-                  className="px-5 py-2.5 bg-white/15 dark:bg-indigo-600 backdrop-blur-sm text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg border border-white/20 dark:border-indigo-500 transition-all flex items-center space-x-2 cursor-pointer hover:bg-white/25 dark:hover:bg-indigo-500">
+                  className={`${dashboardButtonClass} px-5 py-2.5 bg-slate-900/28 dark:bg-indigo-500/90 backdrop-blur-[8px] text-white font-bold text-xs sm:text-sm border-white/12 dark:border-indigo-300/18 flex items-center space-x-2 hover:-translate-y-0.5 hover:bg-slate-900/38 dark:hover:bg-indigo-400/90`}>
                   <ShoppingCart className="w-4 h-4 stroke-[2.5]" /><span>{t('hero.newSales')}</span>
                 </button>
                 <button onClick={handleExport}
-                  className="px-4 py-2.5 bg-white/10 dark:bg-slate-800/80 backdrop-blur-sm text-white font-semibold rounded-xl text-xs border border-white/15 dark:border-slate-700 transition-all flex items-center space-x-2 cursor-pointer hover:bg-white/20">
+                  className={`${dashboardButtonClass} px-4 py-2.5 bg-white/6 dark:bg-slate-900/74 backdrop-blur-[6px] text-slate-100 font-semibold text-xs border-white/10 dark:border-slate-700/80 flex items-center space-x-2 hover:-translate-y-0.5 hover:bg-white/10 dark:hover:bg-slate-900/88`}>
                   <Download className="w-4 h-4" /><span className="hidden sm:inline">{t('hero.backup')}</span>
                 </button>
               </div>
             </div>
 
             {/* Right: Today's Live Snapshot */}
-            <div className="dark:bg-slate-950/70 bg-white/15 backdrop-blur-xl rounded-2xl border dark:border-slate-800 border-white/20 p-5 min-w-[260px] shadow-xl">
+            <div className="bg-slate-950/38 dark:bg-slate-950/56 backdrop-blur-[12px] rounded-2xl border border-white/10 dark:border-slate-700/70 p-5 min-w-[260px] shadow-[0_24px_50px_rgba(2,6,23,0.3)]">
               <div className="flex items-center space-x-2 mb-4">
-                <Calendar className="w-4 h-4 text-white dark:text-emerald-400" />
-                <span className="text-xs font-bold uppercase tracking-wider text-white/80 dark:text-emerald-400">{t('hero.snapshotTitle')}</span>
+                <Calendar className="w-4 h-4 text-slate-100 dark:text-sky-300" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-100/84 dark:text-sky-200">{t('hero.snapshotTitle')}</span>
               </div>
               <div className="space-y-3 text-white">
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.inwardLoads')}</span><span className="font-black font-mono">{todayStats.loads}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.purchaseValue')}</span><span className="font-black font-mono text-rose-300">₹{todayStats.purchaseAmt.toLocaleString('en-IN')}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.salesBills')}</span><span className="font-black font-mono">{todayStats.salesCount}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.salesValue')}</span><span className="font-black font-mono text-emerald-300">₹{todayStats.salesAmt.toLocaleString('en-IN')}</span></div>
-                <div className="border-t border-white/10 dark:border-slate-800 pt-2 flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.weightIn')}</span><span className="font-bold font-mono">{todayStats.weightIn.toLocaleString()} KG</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.cashInOut')}</span><span className="font-bold font-mono text-xs">+₹{todayStats.cashIn.toLocaleString()} / -₹{todayStats.cashOut.toLocaleString()}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.inwardLoads')}</span><span className="font-black font-mono text-slate-50">{todayStats.loads}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.purchaseValue')}</span><span className="font-black font-mono text-rose-200">₹{todayStats.purchaseAmt.toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.salesBills')}</span><span className="font-black font-mono text-slate-50">{todayStats.salesCount}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.salesValue')}</span><span className="font-black font-mono text-emerald-200">₹{todayStats.salesAmt.toLocaleString('en-IN')}</span></div>
+                <div className="border-t border-white/10 dark:border-slate-700/80 pt-2 flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.weightIn')}</span><span className="font-bold font-mono text-slate-100">{todayStats.weightIn.toLocaleString()} KG</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.cashInOut')}</span><span className="font-bold font-mono text-xs text-slate-100">+₹{todayStats.cashIn.toLocaleString()} / -₹{todayStats.cashOut.toLocaleString()}</span></div>
               </div>
             </div>
           </div>
@@ -188,13 +200,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {quickActions.map(qa => (
             <button key={qa.tab} onClick={() => setActiveTab(qa.tab)}
-              className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm dark:hover:border-slate-700 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group text-left">
-              <div className={`p-2.5 rounded-xl ${qa.bg} ${qa.textColor} w-max mb-3 group-hover:scale-110 transition-transform`}>
-                {qa.icon}
+              className={`${dashboardCardClass} p-4 dark:hover:border-slate-700/90 hover:border-slate-300 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(15,23,42,0.12)] group text-left`}>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className={`${qa.iconWrapClass} group-hover:-translate-y-0.5 group-hover:scale-[1.03] transition-transform`}>
+                  <qa.Icon className={qa.iconClass} />
+                </div>
+                <div className="w-max rounded-md border border-slate-200/80 bg-slate-100/90 px-1.5 py-0.5 text-[9px] font-mono font-bold text-slate-400 dark:border-slate-700/80 dark:bg-slate-800/90 dark:text-slate-500">{qa.key}</div>
               </div>
-              <div className="text-xs font-bold dark:text-white text-slate-900">{qa.label}</div>
-              <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-0.5 leading-relaxed">{qa.desc}</div>
-              <div className="text-[9px] font-mono font-bold dark:text-slate-600 text-slate-300 mt-2 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded w-max">{qa.key}</div>
+              <div className="text-xs font-bold tracking-[0.01em] text-slate-900 dark:text-white">{qa.label}</div>
+              <div className="mt-1 max-w-[16ch] text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">{qa.desc}</div>
             </button>
           ))}
         </div>
@@ -204,19 +218,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
           KPI CARDS
          ══════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        {[
-          { label: t('kpi.totalPurchase'), value: totalPurchase, sub: `${savedVehicles.length + purchaseInvoices.length} ${t('kpi.loadsBills')}`, color: 'text-rose-500', icon: <DollarSign className="w-5 h-5" />, iconBg: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
-          { label: t('kpi.totalSales'), value: totalSales, sub: `${invoices.length} ${t('kpi.invoices')}`, color: 'text-emerald-500', icon: <TrendingUp className="w-5 h-5" />, iconBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-          { label: `${t('kpi.commission')} (${settings.financial.commissionRate}%)`, value: commission, sub: t('kpi.apmcFee'), color: 'text-emerald-600 dark:text-emerald-400', icon: <BarChart3 className="w-5 h-5" />, iconBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-          { label: t('kpi.stockValuation'), value: stockValuation, sub: `${totalStockKg.toLocaleString()} KG · ${totalStockCrt} CRT`, color: 'dark:text-white text-slate-900', icon: <Package className="w-5 h-5" />, iconBg: 'bg-teal-500/10 text-teal-500 border-teal-500/20' },
-        ].map((kpi, i) => (
-          <div key={i} className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">{kpi.label}</span>
-              <div className={`p-2 rounded-xl border ${kpi.iconBg}`}>{kpi.icon}</div>
+        {kpiCards.map((kpi, i) => (
+          <div key={i} className={`${dashboardCardClass} p-5 hover:-translate-y-0.5 hover:border-slate-300/90 dark:hover:border-slate-700 hover:shadow-[0_22px_48px_rgba(15,23,42,0.14)]`}>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 leading-relaxed">{kpi.label}</span>
+              <div className={kpi.iconWrapClass}>
+                <kpi.Icon className="h-5 w-5 stroke-[2.3]" />
+              </div>
             </div>
-            <div className={`text-2xl font-black font-mono ${kpi.color}`}>₹ {kpi.value.toLocaleString('en-IN')}</div>
-            <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-semibold">{kpi.sub}</div>
+            <div className={`${kpi.valueClass} text-[1.9rem] leading-none font-black font-mono tracking-[-0.03em]`}>₹ {kpi.value.toLocaleString('en-IN')}</div>
+            <div className="mt-2 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">{kpi.sub}</div>
           </div>
         ))}
       </div>
@@ -226,17 +237,24 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
          ══════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Customer Receivable */}
-        <button onClick={() => setActiveTab('customers')} className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:border-indigo-500 transition-all cursor-pointer text-left">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider"><UserCheck className="w-4 h-4" /><span>{t('sections.outstanding.customerReceivable')}</span></div>
-            <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold">{customers.length} {t('sections.outstanding.buyers')}</span>
+        <button onClick={() => setActiveTab('customers')} className={`${dashboardCardClass} p-5 hover:border-indigo-400/70 dark:hover:border-indigo-500/60 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_rgba(15,23,42,0.14)] text-left`}>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className={`${premiumIconShell} h-10 w-10 rounded-xl bg-[linear-gradient(145deg,rgba(238,242,255,0.98),rgba(224,231,255,0.92))] border-indigo-200/80 text-indigo-700 dark:bg-[linear-gradient(145deg,rgba(30,27,75,0.98),rgba(49,46,129,0.92))] dark:border-indigo-900/70 dark:text-indigo-200`}>
+                <UserCheck className="h-[18px] w-[18px] stroke-[2.3]" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-indigo-700 dark:text-indigo-300 leading-relaxed">{t('sections.outstanding.customerReceivable')}</div>
+                <div className="truncate text-[11px] font-medium text-slate-500 dark:text-slate-400">{t('sections.outstanding.customerHint')}</div>
+              </div>
+            </div>
+            <span className="rounded-md border border-indigo-200/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-mono font-bold text-indigo-700 dark:border-indigo-900/70 dark:bg-indigo-950/40 dark:text-indigo-300">{customers.length} {t('sections.outstanding.buyers')}</span>
           </div>
-          <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-300">₹ {totalCustomerReceivable.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">{t('sections.outstanding.customerHint')}</div>
+          <div className="text-[1.95rem] leading-none font-black font-mono tracking-[-0.03em] text-indigo-700 dark:text-indigo-200">₹ {totalCustomerReceivable.toLocaleString('en-IN')}</div>
         </button>
 
         {/* Supplier Payable */}
-        <button onClick={() => setActiveTab('suppliers')} className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:border-emerald-500 transition-all cursor-pointer text-left">
+        <button onClick={() => setActiveTab('suppliers')} className={`${dashboardCardClass} p-5 hover:border-emerald-400/70 dark:hover:border-emerald-500/60 hover:-translate-y-0.5 text-left`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider"><Users className="w-4 h-4" /><span>{t('sections.outstanding.supplierPayable')}</span></div>
             <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">{suppliers.length} {t('sections.outstanding.suppliers')}</span>
@@ -246,7 +264,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
         </button>
 
         {/* Net Position */}
-        <div className={`p-5 rounded-xl border shadow-sm ${netPosition >= 0 ? 'dark:bg-emerald-950/30 bg-emerald-50 dark:border-emerald-500/30 border-emerald-200' : 'dark:bg-rose-950/30 bg-rose-50 dark:border-rose-500/30 border-rose-200'}`}>
+        <div className={`p-5 rounded-xl border shadow-[0_16px_34px_rgba(15,23,42,0.08)] dark:shadow-[0_18px_38px_rgba(2,6,23,0.3)] ${netPosition >= 0 ? 'dark:bg-emerald-950/26 bg-emerald-50/90 dark:border-emerald-500/22 border-emerald-200/90' : 'dark:bg-rose-950/26 bg-rose-50/90 dark:border-rose-500/22 border-rose-200/90'}`}>
           <div className="flex items-center space-x-2 mb-2">
             {netPosition >= 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertTriangle className="w-4 h-4 text-rose-500" />}
             <span className="text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">{t('sections.netPosition.title')}</span>
@@ -266,7 +284,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* Top Varieties */}
-        <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
+        <div className={`${dashboardCardClass} p-5`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2 text-teal-600 dark:text-teal-400 font-bold text-xs uppercase tracking-wider"><Layers className="w-4 h-4" /><span>{t('sections.topVarieties.title')}</span></div>
             <button onClick={() => setActiveTab('inventory')} className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold cursor-pointer hover:underline">{t('sections.topVarieties.viewAll')}</button>
@@ -289,14 +307,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
         </div>
 
         {/* Low Stock Alerts */}
-        <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
+        <div className={`${dashboardCardClass} p-5`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider"><AlertTriangle className="w-4 h-4" /><span>{t('sections.lowStock.title')}</span></div>
             <span className="text-[10px] font-mono dark:bg-amber-500/10 bg-amber-50 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-500/20 font-bold">{lowStock.length} {t('sections.lowStock.items')}</span>
           </div>
           <div className="space-y-2.5 max-h-48 overflow-y-auto">
             {lowStock.map(item => (
-              <div key={item.key} className="flex items-center justify-between p-2.5 dark:bg-amber-950/20 bg-amber-50 rounded-lg border dark:border-amber-500/10 border-amber-200">
+              <div key={item.key} className="flex items-center justify-between p-2.5 dark:bg-amber-950/18 bg-amber-50/80 rounded-lg border dark:border-amber-500/10 border-amber-200/80">
                 <div className="flex items-center space-x-2">
                   <Box className="w-3.5 h-3.5 text-amber-500" />
                   <div>
@@ -312,7 +330,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
         </div>
 
         {/* Gross Profit Quick View */}
-        <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
+        <div className={`${dashboardCardClass} p-5`}>
           <div className="flex items-center space-x-2 mb-4 text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500"><BarChart3 className="w-4 h-4 text-cyan-500" /><span>{t('sections.profitQuick.title')}</span></div>
           <div className="space-y-3">
             <div className="flex justify-between items-center"><span className="text-xs dark:text-slate-400 text-slate-600">{t('sections.profitQuick.totalSales')}</span><span className="font-mono font-bold text-xs text-emerald-500">₹ {totalSales.toLocaleString('en-IN')}</span></div>
@@ -326,15 +344,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               <span className={`font-mono font-bold text-xs ${grossProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{totalSales > 0 ? ((grossProfit / totalSales) * 100).toFixed(1) : '0.0'}%</span>
             </div>
           </div>
-          <button onClick={() => setActiveTab('reports')} className="w-full mt-4 py-2 text-center text-xs font-bold text-cyan-600 dark:text-cyan-400 dark:bg-slate-800 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{t('sections.profitQuick.viewReport')}</button>
+          <button onClick={() => setActiveTab('reports')} className="w-full mt-4 py-2 text-center text-xs font-bold text-cyan-700 dark:text-cyan-300 dark:bg-slate-800/88 bg-slate-100/90 rounded-lg border dark:border-slate-700/80 border-slate-200/80 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{t('sections.profitQuick.viewReport')}</button>
         </div>
       </div>
 
       {/* ══════════════════════════════════════════════
           RECENT TRANSACTIONS FEED
          ══════════════════════════════════════════════ */}
-      <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3.5 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
+      <div className={`${dashboardCardClass} overflow-hidden`}>
+        <div className="px-5 py-3.5 dark:bg-slate-950/90 bg-slate-50/90 border-b dark:border-slate-800/90 border-slate-200/80 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
             <span className="text-xs font-bold dark:text-white text-slate-900 uppercase tracking-wider">{t('sections.recent.title')}</span>

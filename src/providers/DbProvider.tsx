@@ -12,26 +12,12 @@
  * Use the `useDb()` hook to wait for `ready === true` before querying.
  */
 
-import React, { useEffect } from 'react';
-import { dbService } from '@/db/services';
+import React from 'react';
 
 interface DbProviderProps {
   children: React.ReactNode;
 }
 
 export const DbProvider: React.FC<DbProviderProps> = ({ children }) => {
-  useEffect(() => {
-    // Fire-and-forget — useDb() hook handles the ready state per-component
-    dbService.init()
-      .then((ok) => {
-        if (import.meta.env.DEV) {
-          console.info(`[DbProvider] init ${ok ? 'succeeded' : 'skipped (no Tauri)'}`);
-        }
-      })
-      .catch((err) => {
-        console.error('[DbProvider] init failed:', err);
-      });
-  }, []);
-
   return <>{children}</>;
 };

@@ -30,7 +30,6 @@ initI18nLanguageSync();
 void applyDesktopLanguagePreference();
 
 // Launch background tasks immediately — they run while React is mounting
-startup.run();
 void useStartupStore.getState().initialize();
 
 const root = document.getElementById('root');

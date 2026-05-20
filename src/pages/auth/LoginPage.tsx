@@ -33,7 +33,6 @@ export const LoginPage: React.FC = () => {
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
 
   const startupReady = useStartupStore((s) => s.phase === 'ready');
-  const bootstrapCompany = useCompanyStore((s) => s.bootstrap);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
 
@@ -42,19 +41,18 @@ export const LoginPage: React.FC = () => {
   // Redirect once authenticated � check company setup first
   useEffect(() => {
     if (!isAuth || !startupReady) return;
-    bootstrapCompany();
 
     const target = decidePostStartupRoute({
       startupReady,
       isSetupDone,
       isAuthenticated: true,
-      hasCompany: useCompanyStore.getState().hasCompany,
+      hasCompany,
       isLocked,
     });
 
     if (!target) return;
     navigate(target === ROUTES.dashboard ? from : target, { replace: true });
-  }, [isAuth, startupReady, isSetupDone, isLocked, from, navigate, bootstrapCompany, hasCompany]);
+  }, [isAuth, startupReady, isSetupDone, isLocked, from, navigate, hasCompany]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

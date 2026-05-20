@@ -8,12 +8,12 @@
 
 import React from 'react';
 import { Toaster } from 'sonner';
-import { useAppStore } from '@/store';
+import { useAppearanceStore } from '@/store';
 
 export const SonnerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const theme = useAppStore((s) => s.theme);
+  const theme = useAppearanceStore((s) => s.resolvedTheme);
 
   return (
     <>

@@ -1,7 +1,6 @@
 import { create } from 'zustand';
+import { useSettingsStore } from './settings.store';
 
-const COMPANIES_KEY = 'apex_companies';
-const ACTIVE_COMPANY_KEY = 'apex_active_company';
 const COMPANY_READY_KEY = 'apex_setup_done';
 
 interface CompanyState {
@@ -21,10 +20,8 @@ interface CompanyState {
 
 function readCompaniesCount(): number {
   try {
-    const raw = localStorage.getItem(COMPANIES_KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.length : 0;
+    const settings = useSettingsStore.getState();
+    return settings.companies.length;
   } catch {
     return 0;
   }
@@ -39,25 +36,17 @@ function readCompanyReadyFlag(): boolean {
   }
 }
 
-function readActiveCompanyId(): string | null {
-  try {
-    return localStorage.getItem(ACTIVE_COMPANY_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export const useCompanyStore = create<CompanyState>()((set) => ({
+export const useCompanyStore = create<CompanyState>()((set, get) => ({
   hasCompany: false,
   activeCompanyId: null,
   initialized: false,
 
   bootstrap: () => {
-    // Fix: was `> 1`, should be `> 0` — one company is enough
-    const hasCompany = readCompanyReadyFlag() || readCompaniesCount() > 0;
+    const settings = useSettingsStore.getState();
+    const hasCompany = readCompanyReadyFlag() || readCompaniesCount() > 0 || !!settings.settings.company.name;
     set({
       hasCompany,
-      activeCompanyId: readActiveCompanyId(),
+      activeCompanyId: settings.activeCompanyId ?? settings.companies[0]?.id ?? null,
       initialized: true,
     });
   },
@@ -80,9 +69,10 @@ export const useCompanyStore = create<CompanyState>()((set) => ({
         !!appSettings?.company?.name;
 
       if (hasDbCompany) {
-        // DB confirms company exists — update localStorage cache and state
-        try { localStorage.setItem(COMPANY_READY_KEY, '1'); } catch { /* ignore */ }
-        set({ hasCompany: true });
+        set({
+          hasCompany: true,
+          activeCompanyId: useSettingsStore.getState().activeCompanyId ?? get().activeCompanyId,
+        });
       }
     } catch {
       // Non-fatal — localStorage state already applied by bootstrap()
@@ -90,23 +80,10 @@ export const useCompanyStore = create<CompanyState>()((set) => ({
   },
 
   markCompanyCreated: (companyId) => {
-    try {
-      localStorage.setItem(COMPANY_READY_KEY, '1');
-    } catch {
-      // no-op if storage unavailable
-    }
-
-    if (companyId) {
-      try {
-        localStorage.setItem(ACTIVE_COMPANY_KEY, companyId);
-      } catch {
-        // no-op if storage unavailable
-      }
-    }
-
+    const activeCompanyId = companyId ?? useSettingsStore.getState().activeCompanyId ?? get().activeCompanyId;
     set({
       hasCompany: true,
-      activeCompanyId: companyId ?? readActiveCompanyId(),
+      activeCompanyId,
       initialized: true,
     });
   },
