@@ -17,11 +17,17 @@ import { StrictMode }  from 'react';
 import App             from './App';
 import { startup }     from './services/startup';
 import { perf }        from './lib/perf';
+import { initAppearanceSystem } from './store/appearance.store';
+import { useStartupStore } from './store/startup.store';
 
 perf.mark('script-start');
 
+// Apply persisted/system appearance settings before first render.
+initAppearanceSystem();
+
 // Launch background tasks immediately — they run while React is mounting
 startup.run();
+void useStartupStore.getState().initialize();
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Root element #root not found');

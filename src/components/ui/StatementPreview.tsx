@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Printer, Download, Share2, FileText } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from './Toast';
+import { useAppearance } from '@/hooks';
 
 interface StatementPreviewProps {
   isOpen: boolean;
@@ -15,9 +16,10 @@ interface StatementPreviewProps {
 
 export const StatementPreview: React.FC<StatementPreviewProps> = ({ isOpen, onClose, title, subtitle, children, accentColor }) => {
   const { settings } = useApp();
+  const { accentColor: globalAccent } = useAppearance();
   const toast = useToast();
   const cs = settings.company;
-  const color = accentColor || settings.invoice.brandColor || '#4f46e5';
+  const color = accentColor || globalAccent || settings.invoice.brandColor || '#4f46e5';
 
   if (!isOpen) return null;
 

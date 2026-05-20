@@ -1,9 +1,9 @@
-/**
+﻿/**
  * app/AppShell.tsx
- * The main application shell — layout, keyboard shortcuts, module routing.
+ * The main application shell â€” layout, keyboard shortcuts, module routing.
  *
  * Performance optimisations applied here:
- *  1. Every ERP module tab is lazy-loaded with React.lazy — each becomes its
+ *  1. Every ERP module tab is lazy-loaded with React.lazy â€” each becomes its
  *     own Rollup chunk and is only downloaded when first visited.
  *  2. A per-tab <Suspense> shows a lightweight skeleton while the chunk loads,
  *     so the shell chrome (navbar, titlebar) stays visible during navigation.
@@ -16,7 +16,6 @@
 import React, { lazy, Suspense, useEffect, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { useApp } from '@/context/AppContext';
 import { useUIStore } from '@/store';
 import { ROUTES } from '@/config';
 import { usePreload } from '@/hooks/usePreload';
@@ -25,7 +24,7 @@ import { TitleBar }   from '@/components/window/TitleBar';
 import { Navbar }     from '@/components/Navbar';
 import { TopFilterBar } from '@/components/TopFilterBar';
 
-// ── Lazy module imports ───────────────────────────────────────────────────────
+// â”€â”€ Lazy module imports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Each import() call becomes a separate Rollup chunk.
 // The chunk is only fetched when the user first visits that tab.
 
@@ -41,9 +40,8 @@ const SupplierModule       = lazy(() => import('@/components/SupplierModule').th
 const CustomerModule       = lazy(() => import('@/components/CustomerModule').then(m => ({ default: m.CustomerModule })));
 const SettingsModule       = lazy(() => import('@/components/SettingsModule').then(m => ({ default: m.SettingsModule })));
 const ShortcutsModal       = lazy(() => import('@/components/ShortcutsModal').then(m => ({ default: m.ShortcutsModal })));
-const SetupWizard          = lazy(() => import('@/components/SetupWizard').then(m => ({ default: m.SetupWizard })));
 
-// ── Tab skeleton (shown while a module chunk is loading) ──────────────────────
+// â”€â”€ Tab skeleton (shown while a module chunk is loading) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TabSkeleton: React.FC = () => (
   <div className="animate-pulse space-y-4 pt-2" aria-hidden="true">
@@ -57,7 +55,7 @@ const TabSkeleton: React.FC = () => (
   </div>
 );
 
-// ── Path ↔ tab maps ───────────────────────────────────────────────────────────
+// â”€â”€ Path â†” tab maps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PATH_TO_TAB: Record<string, string> = {
   [ROUTES.dashboard]: 'dashboard',
@@ -77,7 +75,7 @@ const TAB_TO_PATH: Record<string, string> = Object.fromEntries(
   Object.entries(PATH_TO_TAB).map(([k, v]) => [v, k]),
 );
 
-// ── Memoised tab content ──────────────────────────────────────────────────────
+// â”€â”€ Memoised tab content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Wrapping in memo means the component only re-renders when its own props
 // change, not when a sibling tab's state changes.
 
@@ -108,10 +106,9 @@ const TabContent = memo<TabContentProps>(({ activeTab, setActiveTab }) => (
 ));
 TabContent.displayName = 'TabContent';
 
-// ── Shell ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Shell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const AppShell: React.FC = () => {
-  const { theme } = useApp();
   const navigate  = useNavigate();
   const location  = useLocation();
 
@@ -128,7 +125,7 @@ export const AppShell: React.FC = () => {
   // Preload adjacent tabs during idle time
   usePreload(activeTab);
 
-  // ── Sync URL → store ───────────────────────────────────────────────────────
+  // â”€â”€ Sync URL â†’ store â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const tab = PATH_TO_TAB[location.pathname];
     if (tab && tab !== activeTab) {
@@ -136,17 +133,13 @@ export const AppShell: React.FC = () => {
     }
   }, [location.pathname, activeTab, setActiveTab]);
 
-  // ── Sync store → URL ───────────────────────────────────────────────────────
+  // â”€â”€ Sync store â†’ URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSetActiveTab = (tab: string) => {
     setActiveTab(tab as Parameters<typeof setActiveTab>[0]);
     const path = TAB_TO_PATH[tab];
     if (path && location.pathname !== path) navigate(path);
   };
 
-  // ── Setup wizard ───────────────────────────────────────────────────────────
-  const [showWizard, setShowWizard] = React.useState(
-    () => !localStorage.getItem('apex_setup_done'),
-  );
 
   // ── Global keyboard shortcuts ──────────────────────────────────────────────
   useEffect(() => {
@@ -174,56 +167,40 @@ export const AppShell: React.FC = () => {
 
   return (
     <div
-      className={`flex flex-col min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950 transition-colors duration-200 pt-8 ${
-        theme === 'dark'
-          ? 'bg-slate-950 text-slate-100'
-          : 'bg-[#f8f9fb] text-slate-900'
-      }`}
+      className="flex flex-col min-h-screen font-sans transition-colors duration-200 pt-8"
+      style={{ backgroundColor: 'var(--page-bg)', color: 'var(--text-primary)' }}
     >
       {/* Custom titlebar — 32 px, always visible */}
       <TitleBar pageTitle={activeTab} />
 
-      {showWizard ? (
-        <Suspense fallback={null}>
-          <SetupWizard
-            onComplete={() => {
-              localStorage.setItem('apex_setup_done', '1');
-              setShowWizard(false);
-            }}
-          />
-        </Suspense>
-      ) : (
-        <>
-          <Navbar
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={handleSetActiveTab}
+        onOpenShortcuts={openShortcuts}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+      />
+
+      <div
+        className={`transition-all duration-300 ${
+          sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[240px]'
+        }`}
+      >
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <TabContent
             activeTab={activeTab}
             setActiveTab={handleSetActiveTab}
-            onOpenShortcuts={openShortcuts}
-            collapsed={sidebarCollapsed}
-            setCollapsed={setSidebarCollapsed}
           />
+        </main>
+      </div>
 
-          <div
-            className={`transition-all duration-300 ${
-              sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[240px]'
-            }`}
-          >
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-              <TabContent
-                activeTab={activeTab}
-                setActiveTab={handleSetActiveTab}
-              />
-            </main>
-          </div>
-
-          {isShortcutsOpen && (
-            <Suspense fallback={null}>
-              <ShortcutsModal
-                isOpen={isShortcutsOpen}
-                onClose={closeShortcuts}
-              />
-            </Suspense>
-          )}
-        </>
+      {isShortcutsOpen && (
+        <Suspense fallback={null}>
+          <ShortcutsModal
+            isOpen={isShortcutsOpen}
+            onClose={closeShortcuts}
+          />
+        </Suspense>
       )}
     </div>
   );

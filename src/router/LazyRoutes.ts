@@ -38,3 +38,12 @@ export const LazySetupPage = lazy(() =>
 export const LazyNotFoundPage = lazy(() =>
   import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
+
+// ── Onboarding pages (authenticated) ────────────────────────────────────────
+export const LazyCompanySetupPage = lazy(() =>
+  import('@/pages/CompanySetupPage').then((m) => ({ default: m.CompanySetupPage })),
+);
+
+export const LazyLockScreenPage = lazy(() =>
+  import('@/pages/LockScreenPage').then((m) => ({ default: m.LockScreenPage })),
+);

@@ -89,6 +89,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     : isFocused ? 'text-slate-800' : 'text-slate-400';
 
   const subtitleColor = isDark ? 'text-slate-500' : 'text-slate-400';
+  const pageLabel = pageTitle ? (TAB_LABELS[pageTitle] ?? pageTitle) : '';
 
   const iconBtnBase = [
     'flex items-center justify-center',
@@ -147,6 +148,16 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             draggable={false}
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
+        </div>
+
+        <div className="min-w-0 flex items-center gap-1.5">
+          <span className={`text-[11px] font-semibold truncate ${titleColor}`}>{appName}</span>
+          {pageLabel ? (
+            <>
+              <span className={`text-[11px] ${subtitleColor}`}>/</span>
+              <span className={`text-[11px] truncate ${subtitleColor}`}>{pageLabel}</span>
+            </>
+          ) : null}
         </div>
       </div>
 

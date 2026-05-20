@@ -209,15 +209,26 @@ export interface InvoiceSettings {
   showUPI: boolean;
   showBankDetails: boolean;
   // Extended fields
-  templateStyle: 'modern' | 'classic' | 'minimal' | 'professional';
+  templateStyle: 'modern' | 'classic' | 'minimal' | 'professional' | 'thermal' | 'pos' | 'receipt';
   brandColor: string;
   enableQR: boolean;
   autoInvoiceNo: boolean;
+  invoiceNumberMode: 'sequential' | 'date_based' | 'business_prefix';
+  businessPrefix: string;
   defaultTaxRate: number;
   paymentDueDays: number;
   showCompanyDetails: boolean;
   showPaymentDetails: boolean;
+  watermarkType: 'none' | 'text' | 'image' | 'logo';
+  watermarkText: string;
+  watermarkImage: string; // base64
+  watermarkOpacity: number; // 0..1
+  watermarkSize: number; // percentage-like scalar, 40..220 recommended
+  watermarkPosition: 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  watermarkRepeat: boolean;
   signatureImage: string; // base64
+  invoiceLogo: string; // base64 — overrides company logo on printed invoices
+  enableInvoiceLogo: boolean; // when false, falls back to company master logo
 }
 
 export interface SecuritySettings {

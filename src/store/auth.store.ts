@@ -4,13 +4,13 @@
  *
  * Responsibilities:
  *   - Hold access token + claims in memory (never persisted to localStorage)
- *   - Persist refresh token to sessionStorage (cleared on tab/window close)
+ *   - Persist refresh token to localStorage for app restart recovery
  *   - Drive login / logout / refresh flows
  *   - Expose reactive auth state to components and route guards
  *
  * Token storage strategy (desktop Tauri app):
  *   - Access token  → Zustand memory only (lost on app restart → triggers refresh)
- *   - Refresh token → sessionStorage (survives hot-reload, cleared on app close)
+ *   - Refresh token → localStorage (persistent login between app restarts)
  *   - Password hash → Rust auth.json in app data dir (never touches frontend)
  *   - JWT secret    → Rust auth.json in app data dir (never touches frontend)
  *
@@ -20,6 +20,7 @@
 
 import { create } from 'zustand';
 import { ipc } from '@/ipc';
+import { useLockStore } from './lock.store';
 import type {
   AuthTokenResponse,
   SessionStatus,
@@ -47,6 +48,7 @@ interface AuthState {
   user:            AuthUser | null;
   isAuthenticated: boolean;
   isSetupDone:     boolean;
+  sessionExpiresAt: number | null; // refresh token expiry (unix timestamp)
   isLoading:       boolean;
   error:           string | null;
 
@@ -63,25 +65,27 @@ interface AuthState {
   logout:          () => Promise<void>;
   /** Change password (requires active session). */
   changePassword:  (req: ChangePasswordRequest) => Promise<void>;
+  /** Clears client-side auth/session state without backend IPC. */
+  invalidateSession: () => void;
   /** Clear any displayed error. */
   clearError:      () => void;
 }
 
-// ── Refresh token helpers (sessionStorage) ────────────────────────────────────
+// ── Refresh token helpers (localStorage) ─────────────────────────────────────
 
 function saveRefreshToken(token: string, expiresAt: number): void {
   try {
-    sessionStorage.setItem(REFRESH_TOKEN_KEY, token);
-    sessionStorage.setItem(REFRESH_EXPIRY_KEY, String(expiresAt));
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    localStorage.setItem(REFRESH_EXPIRY_KEY, String(expiresAt));
   } catch {
-    // sessionStorage unavailable (e.g. private mode edge cases) — silent fail
+    // localStorage unavailable — silent fail
   }
 }
 
 function loadRefreshToken(): { token: string; expiresAt: number } | null {
   try {
-    const token     = sessionStorage.getItem(REFRESH_TOKEN_KEY);
-    const expiresAt = sessionStorage.getItem(REFRESH_EXPIRY_KEY);
+    const token     = localStorage.getItem(REFRESH_TOKEN_KEY);
+    const expiresAt = localStorage.getItem(REFRESH_EXPIRY_KEY);
     if (!token || !expiresAt) return null;
     const exp = Number(expiresAt);
     // Discard if already expired
@@ -97,8 +101,8 @@ function loadRefreshToken(): { token: string; expiresAt: number } | null {
 
 function clearRefreshToken(): void {
   try {
-    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
-    sessionStorage.removeItem(REFRESH_EXPIRY_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_EXPIRY_KEY);
   } catch { /* ignore */ }
 }
 
@@ -110,6 +114,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   user:            null,
   isAuthenticated: false,
   isSetupDone:     false,
+  sessionExpiresAt: null,
   isLoading:       true,   // true until initialize() completes
   error:           null,
 
@@ -123,17 +128,19 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       set({ isSetupDone: status.setup_done });
 
       if (!status.setup_done) {
-        set({ isLoading: false });
+        set({ isLoading: false, sessionExpiresAt: null });
         return;
       }
 
       // 2. If Rust session is still valid (access token in memory), we're done
       if (status.authenticated && status.expires_in > 30) {
+        const stored = loadRefreshToken();
         set({
           isAuthenticated: true,
           user: status.user_id
             ? { userId: status.user_id, role: (status.role ?? 'admin') as AuthUser['role'] }
             : null,
+          sessionExpiresAt: stored?.expiresAt ?? null,
           isLoading: false,
         });
         return;
@@ -150,9 +157,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       }
 
       // 4. No valid session — user must log in
-      set({ isAuthenticated: false, isLoading: false });
+      set({ isAuthenticated: false, sessionExpiresAt: null, isLoading: false });
     } catch {
-      set({ isAuthenticated: false, isLoading: false });
+      set({ isAuthenticated: false, sessionExpiresAt: null, isLoading: false });
     }
   },
 
@@ -195,7 +202,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     } catch {
       // Refresh failed — clear stale token, force re-login
       clearRefreshToken();
-      set({ isAuthenticated: false, accessToken: null, user: null });
+      set({ isAuthenticated: false, accessToken: null, sessionExpiresAt: null, user: null });
       return false;
     }
   },
@@ -206,9 +213,24 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       await ipc.auth.logout();
     } catch { /* best-effort */ }
     clearRefreshToken();
+    useLockStore.getState().clearSessionLock();
     set({
       accessToken:     null,
       accessExpiresAt: null,
+      sessionExpiresAt: null,
+      user:            null,
+      isAuthenticated: false,
+      error:           null,
+    });
+  },
+
+  invalidateSession: () => {
+    clearRefreshToken();
+    useLockStore.getState().clearSessionLock();
+    set({
+      accessToken:     null,
+      accessExpiresAt: null,
+      sessionExpiresAt: null,
       user:            null,
       isAuthenticated: false,
       error:           null,
@@ -225,6 +247,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       set({
         accessToken:     null,
         accessExpiresAt: null,
+        sessionExpiresAt: null,
         user:            null,
         isAuthenticated: false,
         isLoading:       false,
@@ -249,6 +272,7 @@ function _applyTokens(set: SetFn, resp: AuthTokenResponse): void {
   set({
     accessToken:     resp.access_token,
     accessExpiresAt: resp.access_expires_at,
+    sessionExpiresAt: resp.refresh_expires_at,
     user:            { userId: resp.user_id, role: resp.role as AuthUser['role'] },
     isAuthenticated: true,
     isLoading:       false,

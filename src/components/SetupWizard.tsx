@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Building2, MapPin, Phone, Mail, FileText, Hash, CalendarRange,
@@ -9,6 +9,48 @@ import {
 interface SetupWizardProps {
   onComplete: () => void;
 }
+
+type StepStatus = 'completed' | 'incomplete' | 'not_started' | 'validation_errors';
+
+interface SetupWizardDraft {
+  step: number;
+  lang: Lang;
+  logoPreview: string | null;
+  companyName: string;
+  legalName: string;
+  gstin: string;
+  pan: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  phone: string;
+  email: string;
+  fyStart: string;
+  fyEnd: string;
+  currency: string;
+  invPrefix: string;
+  invStartNo: number;
+  taxType: 'GST' | 'NO_TAX' | 'CUSTOM';
+  roundOff: boolean;
+  touched: Record<string, boolean>;
+  visitedSteps: number[];
+}
+
+const ONBOARDING_DRAFT_KEY = 'apex_onboarding_company_setup_draft_v1';
+
+const clampStep = (value: number) => Math.min(3, Math.max(1, value));
+
+const loadOnboardingDraft = (): Partial<SetupWizardDraft> | null => {
+  try {
+    const raw = localStorage.getItem(ONBOARDING_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SetupWizardDraft>;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
 
 // ── Validation helpers ──────────────────────────
 const gstinRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/;
@@ -48,36 +90,45 @@ const T: Record<string, Record<Lang, string>> = {
 
 export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const { settings, updateSettings, theme } = useApp();
-  const [step, setStep] = useState(1);
-  const [lang, setLang] = useState<Lang>('en');
+  const draft = useMemo(() => loadOnboardingDraft(), []);
+  const [step, setStep] = useState(() => clampStep(draft?.step ?? 1));
+  const [lang, setLang] = useState<Lang>(() => (draft?.lang === 'gu' ? 'gu' : 'en'));
   const t = (key: string) => T[key]?.[lang] || T[key]?.en || key;
 
   // Logo
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(() => draft?.logoPreview || null);
   const logoRef = useRef<HTMLInputElement>(null);
 
   // Step 1 state
-  const [companyName, setCompanyName] = useState(settings.company.name || '');
-  const [legalName, setLegalName] = useState(settings.company.tagline || '');
-  const [gstin, setGstin] = useState(settings.company.gstin || '');
-  const [pan, setPan] = useState('');
-  const [address, setAddress] = useState(settings.company.address || '');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('Gujarat');
-  const [pincode, setPincode] = useState('');
+  const [companyName, setCompanyName] = useState(draft?.companyName ?? (settings.company.name || ''));
+  const [legalName, setLegalName] = useState(draft?.legalName ?? (settings.company.tagline || ''));
+  const [gstin, setGstin] = useState(draft?.gstin ?? (settings.company.gstin || ''));
+  const [pan, setPan] = useState(draft?.pan ?? '');
+  const [address, setAddress] = useState(draft?.address ?? (settings.company.address || ''));
+  const [city, setCity] = useState(draft?.city ?? '');
+  const [state, setState] = useState(draft?.state ?? 'Gujarat');
+  const [pincode, setPincode] = useState(draft?.pincode ?? '');
   const [country] = useState('India');
-  const [phone, setPhone] = useState(settings.company.phone || '');
-  const [email, setEmail] = useState(settings.company.email || '');
+  const [phone, setPhone] = useState(draft?.phone ?? (settings.company.phone || ''));
+  const [email, setEmail] = useState(draft?.email ?? (settings.company.email || ''));
 
   // Step 2 state
-  const [fyStart, setFyStart] = useState('2026-04-01');
-  const [fyEnd, setFyEnd] = useState('2027-03-31');
-  const [currency, setCurrency] = useState(settings.financial.currency || 'INR');
-  const [invPrefix, setInvPrefix] = useState(settings.invoice.salesPrefix || 'INV');
-  const [invStartNo, setInvStartNo] = useState(settings.invoice.salesNextNo || 1001);
-  const [taxType, setTaxType] = useState<'GST' | 'NO_TAX' | 'CUSTOM'>('NO_TAX');
-  const [roundOff, setRoundOff] = useState(true);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [fyStart, setFyStart] = useState(draft?.fyStart ?? '2026-04-01');
+  const [fyEnd, setFyEnd] = useState(draft?.fyEnd ?? '2027-03-31');
+  const [currency, setCurrency] = useState(draft?.currency ?? (settings.financial.currency || 'INR'));
+  const [invPrefix, setInvPrefix] = useState(draft?.invPrefix ?? (settings.invoice.salesPrefix || 'INV'));
+  const [invStartNo, setInvStartNo] = useState(typeof draft?.invStartNo === 'number' ? draft.invStartNo : settings.invoice.salesNextNo || 1001);
+  const [taxType, setTaxType] = useState<'GST' | 'NO_TAX' | 'CUSTOM'>(() => {
+    if (draft?.taxType === 'GST' || draft?.taxType === 'NO_TAX' || draft?.taxType === 'CUSTOM') return draft.taxType;
+    return 'NO_TAX';
+  });
+  const [roundOff, setRoundOff] = useState(typeof draft?.roundOff === 'boolean' ? draft.roundOff : true);
+  const [touched, setTouched] = useState<Record<string, boolean>>(() => draft?.touched ?? {});
+  const [visitedSteps, setVisitedSteps] = useState<number[]>(() => {
+    const saved = Array.isArray(draft?.visitedSteps) ? draft?.visitedSteps : [];
+    const merged = Array.from(new Set([1, ...saved.map(s => clampStep(Number(s) || 1))]));
+    return merged;
+  });
 
   const markTouched = (f: string) => setTouched(p => ({ ...p, [f]: true }));
 
@@ -113,6 +164,96 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const allValid = s1Valid && s2Valid;
   const totalErrors = Object.keys(s1Errors).length + Object.keys(s2Errors).length;
 
+  const touchStepFields = (targetStep: number) => {
+    if (targetStep === 1) {
+      setTouched(p => ({ ...p, companyName: true, address: true, phone: true }));
+      Object.keys(s1Errors).forEach(markTouched);
+      return;
+    }
+
+    if (targetStep === 2) {
+      setTouched(p => ({ ...p, fyStart: true, fyEnd: true, invPrefix: true, invStartNo: true }));
+      Object.keys(s2Errors).forEach(markTouched);
+    }
+  };
+
+  const goToStep = (targetStep: number) => {
+    const nextStep = clampStep(targetStep);
+    if (nextStep > step) {
+      touchStepFields(step);
+    }
+    setVisitedSteps(prev => (prev.includes(nextStep) ? prev : [...prev, nextStep]));
+    setStep(nextStep);
+  };
+
+  const stepStatuses = useMemo<Record<number, StepStatus>>(() => {
+    const hasAnyTouched = (fields: string[]) => fields.some(f => !!touched[f]);
+
+    const step1Touched = hasAnyTouched(['companyName', 'legalName', 'gstin', 'pan', 'address', 'city', 'state', 'pincode', 'phone', 'email']);
+    const step2Touched = hasAnyTouched(['fyStart', 'fyEnd', 'invPrefix', 'invStartNo']);
+
+    const step1Status: StepStatus = s1Valid
+      ? 'completed'
+      : step1Touched
+      ? 'validation_errors'
+      : visitedSteps.includes(1)
+      ? 'incomplete'
+      : 'not_started';
+
+    const step2Status: StepStatus = s2Valid && step2Touched
+      ? 'completed'
+      : step2Touched && Object.keys(s2Errors).length > 0
+      ? 'validation_errors'
+      : visitedSteps.includes(2)
+      ? 'incomplete'
+      : 'not_started';
+
+    const step3Status: StepStatus = allValid
+      ? 'completed'
+      : visitedSteps.includes(3)
+      ? 'validation_errors'
+      : 'not_started';
+
+    return {
+      1: step1Status,
+      2: step2Status,
+      3: step3Status,
+    };
+  }, [allValid, s1Valid, s2Valid, s2Errors, touched, visitedSteps]);
+
+  const progressPercent = useMemo(() => {
+    const completed = [1, 2, 3].filter(n => stepStatuses[n] === 'completed').length;
+    return Math.round((completed / 3) * 100);
+  }, [stepStatuses]);
+
+  useEffect(() => {
+    const draftPayload: SetupWizardDraft = {
+      step,
+      lang,
+      logoPreview,
+      companyName,
+      legalName,
+      gstin,
+      pan,
+      address,
+      city,
+      state,
+      pincode,
+      phone,
+      email,
+      fyStart,
+      fyEnd,
+      currency,
+      invPrefix,
+      invStartNo,
+      taxType,
+      roundOff,
+      touched,
+      visitedSteps,
+    };
+    localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draftPayload));
+  }, [step, lang, logoPreview, companyName, legalName, gstin, pan, address, city, state, pincode, phone, email, fyStart, fyEnd, currency, invPrefix, invStartNo, taxType, roundOff, touched, visitedSteps]);
+
   // ── Logo Handling ──────────────────────────────
   const handleLogoDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -142,6 +283,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       financial: { ...settings.financial, financialYearStart: `${fyMonth}-${fyDay}`, currency },
       invoice: { ...settings.invoice, salesPrefix: invPrefix, salesNextNo: invStartNo },
     });
+    localStorage.removeItem(ONBOARDING_DRAFT_KEY);
     onComplete();
   };
 
@@ -193,6 +335,13 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     { num: 3, label: t('step3Title'), icon: <CheckCircle2 className="w-4 h-4" /> },
   ];
 
+  const statusMeta: Record<StepStatus, { label: string; dot: string; text: string }> = {
+    completed: { label: 'Completed', dot: 'bg-emerald-500', text: 'text-emerald-500' },
+    incomplete: { label: 'Incomplete', dot: 'bg-amber-500', text: 'text-amber-500' },
+    not_started: { label: 'Not Started', dot: 'bg-slate-400', text: 'text-slate-400' },
+    validation_errors: { label: 'Validation Errors', dot: 'bg-rose-500', text: 'text-rose-500' },
+  };
+
   return (
     <div className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-y-auto ${theme === 'dark' ? 'bg-slate-950' : 'bg-slate-100'}`}>
       {/* Background pattern */}
@@ -219,11 +368,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         </div>
 
         {/* ── Step Indicator ──────────────────────── */}
-        <div className="flex items-center justify-center mb-8 space-x-2">
+        <div className="flex items-center justify-center mb-4 space-x-2">
           {steps.map((s, i) => (
             <React.Fragment key={s.num}>
               <button
-                onClick={() => { if (s.num < step || (s.num === 2 && s1Valid) || (s.num === 3 && s1Valid && s2Valid)) setStep(s.num); }}
+                onClick={() => goToStep(s.num)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                   step === s.num
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-500/20'
@@ -233,12 +382,31 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 }`}
               >
                 {step > s.num ? <Check className="w-3.5 h-3.5" /> : s.icon}
-                <span className="hidden sm:inline">{s.label}</span>
+                <div className="hidden sm:flex flex-col items-start leading-tight">
+                  <span>{s.label}</span>
+                  <span className={`text-[10px] font-semibold flex items-center gap-1 ${statusMeta[stepStatuses[s.num]].text}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusMeta[stepStatuses[s.num]].dot}`} />
+                    {statusMeta[stepStatuses[s.num]].label}
+                  </span>
+                </div>
                 <span className="sm:hidden">Step {s.num}</span>
               </button>
               {i < steps.length - 1 && <div className={`w-8 h-[2px] rounded-full ${step > s.num ? 'bg-emerald-500' : 'dark:bg-slate-800 bg-slate-300'}`} />}
             </React.Fragment>
           ))}
+        </div>
+
+        <div className="mb-8 max-w-xl mx-auto px-1">
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500 mb-2">
+            <span>Onboarding Progress</span>
+            <span>{progressPercent}% complete</span>
+          </div>
+          <div className="h-2 rounded-full dark:bg-slate-800 bg-slate-200 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
 
         {/* ── Step Content Card ───────────────────── */}
@@ -426,7 +594,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 <div className="dark:bg-slate-950 bg-slate-50 rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden">
                   <div className="px-5 py-3 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
                     <div className="flex items-center space-x-2"><Building2 className="w-4 h-4 text-indigo-500" /><span className="text-xs font-bold dark:text-white text-slate-900">Company Details</span></div>
-                    <button onClick={() => setStep(1)} className="text-[10px] font-bold text-indigo-500 cursor-pointer hover:underline">Edit →</button>
+                    <button onClick={() => goToStep(1)} className="text-[10px] font-bold text-indigo-500 cursor-pointer hover:underline">Edit →</button>
                   </div>
                   <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                     {[
@@ -450,7 +618,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 <div className="dark:bg-slate-950 bg-slate-50 rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden">
                   <div className="px-5 py-3 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
                     <div className="flex items-center space-x-2"><DollarSign className="w-4 h-4 text-indigo-500" /><span className="text-xs font-bold dark:text-white text-slate-900">Financial Configuration</span></div>
-                    <button onClick={() => setStep(2)} className="text-[10px] font-bold text-indigo-500 cursor-pointer hover:underline">Edit →</button>
+                    <button onClick={() => goToStep(2)} className="text-[10px] font-bold text-indigo-500 cursor-pointer hover:underline">Edit →</button>
                   </div>
                   <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                     {[
@@ -487,7 +655,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           <div className="px-8 py-5 dark:bg-slate-950 bg-slate-50 border-t dark:border-slate-800 border-slate-200 flex items-center justify-between">
             <div>
               {step > 1 && (
-                <button onClick={() => setStep(step - 1)} className="flex items-center space-x-1.5 px-4 py-2.5 dark:bg-slate-800 bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer dark:hover:bg-slate-700 hover:bg-slate-300 transition-colors">
+                <button onClick={() => goToStep(step - 1)} className="flex items-center space-x-1.5 px-4 py-2.5 dark:bg-slate-800 bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer dark:hover:bg-slate-700 hover:bg-slate-300 transition-colors">
                   <ChevronLeft className="w-4 h-4" /><span>{t('back')}</span>
                 </button>
               )}
@@ -495,7 +663,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             <div>
               {step < 3 ? (
                 <button
-                  onClick={() => { if (step === 1 && s1Valid) setStep(2); else if (step === 2 && s2Valid) setStep(3); else { /* touch all fields */ Object.keys(step === 1 ? s1Errors : s2Errors).forEach(markTouched); setTouched(p => ({ ...p, companyName: true, address: true, phone: true, fyStart: true, fyEnd: true, invPrefix: true, invStartNo: true })); } }}
+                  onClick={() => goToStep(step + 1)}
                   className="flex items-center space-x-1.5 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/20 cursor-pointer transition-colors"
                 >
                   <span>{t('next')}</span><ChevronRight className="w-4 h-4" />

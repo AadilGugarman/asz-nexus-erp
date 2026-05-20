@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { Fruit, Supplier, Customer, VehicleArrival, Invoice, PurchaseInvoice, InventoryItem, StockMovement, SupplierLedgerEntry, CustomerLedgerEntry, PaymentReceipt, ThemeMode, AppSettings, CompanyProfile } from '../types';
 import { INITIAL_FRUITS, INITIAL_SUPPLIERS, INITIAL_CUSTOMERS, INITIAL_VEHICLE_ARRIVALS, INITIAL_INVOICES } from '../mockData';
+import { useAppearanceStore } from '@/store/appearance.store';
 
 interface AppContextType {
   theme: ThemeMode;
@@ -51,23 +52,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    const savedTheme = localStorage.getItem('apex_theme');
-    return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'dark';
-  });
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
-  useEffect(() => {
-    localStorage.setItem('apex_theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
+  const theme = useAppearanceStore((s) => s.resolvedTheme) as ThemeMode;
+  const toggleTheme = useAppearanceStore((s) => s.toggleTheme);
 
   const [fruits, setFruits] = useState<Fruit[]>(() => {
     const saved = localStorage.getItem('apex_fruits');
@@ -478,13 +464,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const defaultSettings: AppSettings = {
     company: { name: 'Talha Fruit Co.', tagline: 'Wholesale Fruit Commission Agents & Merchants', address: 'Central Fruit Market, APMC Yard, Gate No. 4', phone: '+91 99887 77665', email: 'accounts@talhafruit.in', gstin: '', bankName: 'State Bank of India', accountNo: '38920019283', ifsc: 'SBIN0001234', upiId: 'tfc.apmc@sbi', logo: '' },
     financial: { financialYearStart: '04-01', currency: 'INR', commissionRate: 8, defaultHamali: 0, defaultFreight: 0 },
-    invoice: { salesPrefix: 'INV', purchasePrefix: 'PUR', arrivalPrefix: 'ARR', salesNextNo: 1001, purchaseNextNo: 101, arrivalNextNo: 1, termsText: 'Subject to APMC market yard rules. Goods once sold will not be taken back.', footerNote: 'Thank you for your business', showUPI: true, showBankDetails: true, templateStyle: 'modern', brandColor: '#6366f1', enableQR: true, autoInvoiceNo: true, defaultTaxRate: 0, paymentDueDays: 15, showCompanyDetails: true, showPaymentDetails: true, signatureImage: '' },
+    invoice: {
+      salesPrefix: 'INV',
+      purchasePrefix: 'PUR',
+      arrivalPrefix: 'ARR',
+      salesNextNo: 1001,
+      purchaseNextNo: 101,
+      arrivalNextNo: 1,
+      termsText: 'Subject to APMC market yard rules. Goods once sold will not be taken back.',
+      footerNote: 'Thank you for your business',
+      showUPI: true,
+      showBankDetails: true,
+      templateStyle: 'modern',
+      brandColor: '#6366f1',
+      enableQR: true,
+      autoInvoiceNo: true,
+      invoiceNumberMode: 'sequential',
+      businessPrefix: 'TF',
+      defaultTaxRate: 0,
+      paymentDueDays: 15,
+      showCompanyDetails: true,
+      showPaymentDetails: true,
+      watermarkType: 'none',
+      watermarkText: '',
+      watermarkImage: '',
+      watermarkOpacity: 0.08,
+      watermarkSize: 110,
+      watermarkPosition: 'center',
+      watermarkRepeat: false,
+      signatureImage: '',
+      invoiceLogo: '',
+      enableInvoiceLogo: false,
+    },
     security: { appPin: '', autoLockMinutes: 0, pinEnabled: false },
   };
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('apex_settings');
-    if (saved) { try { return { ...defaultSettings, ...JSON.parse(saved) }; } catch { return defaultSettings; } }
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          ...defaultSettings,
+          ...parsed,
+          company: { ...defaultSettings.company, ...(parsed.company || {}) },
+          financial: { ...defaultSettings.financial, ...(parsed.financial || {}) },
+          invoice: { ...defaultSettings.invoice, ...(parsed.invoice || {}) },
+          security: { ...defaultSettings.security, ...(parsed.security || {}) },
+        };
+      } catch {
+        return defaultSettings;
+      }
+    }
     return defaultSettings;
   });
 
@@ -495,7 +526,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetAllData = () => {
-    const keys = ['apex_fruits','apex_suppliers','apex_customers','apex_vehicles','apex_invoices','apex_purchase_invoices','apex_payments','apex_settings'];
+    const keys = ['apex_fruits','apex_suppliers','apex_customers','apex_vehicles','apex_invoices','apex_purchase_invoices','apex_payments','apex_settings','apex_appearance','apex_theme','apex_fontsize','apex_compact','apex_accent','apex_lang','apex_lowstock','apex_anims'];
     keys.forEach(k => localStorage.removeItem(k));
     setFruits(INITIAL_FRUITS);
     setSuppliers(INITIAL_SUPPLIERS);
@@ -521,7 +552,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (data.invoices) setInvoices(data.invoices);
       if (data.purchaseInvoices) setPurchaseInvoices(data.purchaseInvoices);
       if (data.payments) setPayments(data.payments);
-      if (data.settings) setSettings(prev => ({ ...prev, ...data.settings }));
+      if (data.settings) {
+        setSettings(prev => ({
+          ...prev,
+          ...data.settings,
+          company: { ...prev.company, ...(data.settings.company || {}) },
+          financial: { ...prev.financial, ...(data.settings.financial || {}) },
+          invoice: { ...prev.invoice, ...(data.settings.invoice || {}) },
+          security: { ...prev.security, ...(data.settings.security || {}) },
+        }));
+      }
       return true;
     } catch { return false; }
   };

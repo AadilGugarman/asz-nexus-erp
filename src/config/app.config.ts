@@ -23,6 +23,7 @@ export const APP_CONFIG = {
 
 export const STORAGE_KEYS = {
   theme: 'apex_theme',
+  appearance: 'apex_appearance',
   activeFY: 'apex_active_fy',
   activeCompany: 'apex_active_company',
   setupDone: 'apex_setup_done',

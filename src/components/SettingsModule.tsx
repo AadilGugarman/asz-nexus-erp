@@ -1,5 +1,36 @@
 import React, { useState, useRef } from 'react';
+
+// Utility to generate company initials (max 3, skip common words)
+const getCompanyInitials = (name: string) => {
+  const skip = ["and", "&", "of", "the"];
+  return name
+    .split(/\s+/)
+    .filter(w => w && !skip.includes(w.toLowerCase()))
+    .map(w => w[0])
+    .join('')
+    .slice(0, 3)
+    .toUpperCase();
+};
 import { useApp } from '../context/AppContext';
+import { useAppearance } from '@/hooks';
+import {
+  loadBackupLocalPreferences,
+    setBackupAutoBackup as persistBackupAutoBackup,
+    setBackupEncryptBackups as persistBackupEncryptBackups,
+    setBackupFrequency as persistBackupFrequency,
+    setBackupHistory as persistBackupHistory,
+    setBackupLocation as persistBackupLocation,
+    setBackupRetention as persistBackupRetention,
+} from '@/lib/settings-backup.storage';
+import {
+  loadSecurityLocalPreferences,
+  setSecurityAllowExport,
+  setSecurityAuditLog,
+  setSecurityDbEncryption,
+  setSecuritySessionTimeout,
+  setSecurityTwoFactorEnabled,
+} from '@/lib/settings-security.storage';
+import { useLockStore } from '@/store';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import {
@@ -8,76 +39,85 @@ import {
   Check, AlertTriangle, HardDrive, Info, Plus, Star, Briefcase, X, MapPin, Phone, Mail, Sparkles,
   Printer, Share2, Image, QrCode, PenTool
 } from 'lucide-react';
-import { CompanyProfile } from '../types';
+import { CompanyProfile, Invoice } from '../types';
+import { formatInvoiceNumber } from '../utils/invoice-number';
+import { InvoiceTemplateRenderer } from './invoice/InvoiceTemplateRenderer';
 
 type Section = 'COMPANIES' | 'FINANCIAL' | 'INVOICE' | 'MASTERS' | 'BACKUP' | 'APPEARANCE' | 'SECURITY';
 
 export const SettingsModule: React.FC = () => {
-  const { settings, updateSettings, theme, toggleTheme, resetAllData, importData, getExportData,
+  const { settings, updateSettings, resetAllData, importData, getExportData,
     vehicles, invoices, purchaseInvoices, payments, suppliers, customers, fruits,
     companies, activeCompanyId, addCompany, updateCompany, deleteCompany, switchCompany,
     addFruitVariety, addFruit, addSupplier, addCustomer } = useApp();
+  const {
+    themePreference,
+    setThemePreference,
+    fontFamily,
+    setFontFamily,
+    fontSize,
+    setFontSize,
+    density,
+    setDensity,
+    accentColor,
+    setAccentColor,
+    language,
+    setLanguage,
+    lowStockAlerts,
+    setLowStockAlerts,
+    animationsEnabled,
+    setAnimationsEnabled,
+    resetAppearance,
+  } = useAppearance();
   const toast = useToast();
   const dialog = useConfirmDialog();
+  const configureLockSecurity = useLockStore((s) => s.configureSecurity);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const securityDefaults = React.useMemo(() => loadSecurityLocalPreferences(), []);
+  const backupDefaults = React.useMemo(() => loadBackupLocalPreferences(), []);
 
   const [activeSection, setActiveSection] = useState<Section>('COMPANIES');
   const [showPin, setShowPin] = useState(false);
   const [confirmResetDialog, setConfirmResetDialog] = useState(false);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const sigInputRef = useRef<HTMLInputElement>(null);
+  const companyLogoInputRef = useRef<HTMLInputElement>(null);
+  const [logoUploadProgress, setLogoUploadProgress] = useState(false);
 
-  // ── Appearance State ────────────────────────
-  const [accentColor, setAccentColor] = useState(() => localStorage.getItem('apex_accent') || '#6366f1');
-  const [appLang, setAppLang] = useState(() => localStorage.getItem('apex_lang') || 'en');
-  const [fontSize, setFontSize] = useState(() => localStorage.getItem('apex_fontsize') || 'medium');
-  const [compactMode, setCompactMode] = useState(() => localStorage.getItem('apex_compact') === 'true');
-  const [lowStockAlerts, setLowStockAlerts] = useState(() => localStorage.getItem('apex_lowstock') !== 'false');
-  const [animationsEnabled, setAnimationsEnabled] = useState(() => localStorage.getItem('apex_anims') !== 'false');
-
-  React.useEffect(() => { localStorage.setItem('apex_accent', accentColor); }, [accentColor]);
-  React.useEffect(() => { localStorage.setItem('apex_lang', appLang); }, [appLang]);
-  React.useEffect(() => { localStorage.setItem('apex_fontsize', fontSize); }, [fontSize]);
-  React.useEffect(() => { localStorage.setItem('apex_compact', String(compactMode)); }, [compactMode]);
-  React.useEffect(() => { localStorage.setItem('apex_lowstock', String(lowStockAlerts)); }, [lowStockAlerts]);
-  React.useEffect(() => { localStorage.setItem('apex_anims', String(animationsEnabled)); }, [animationsEnabled]);
-
-  const resetAppearance = () => {
-    if (theme === 'light') toggleTheme();
-    setAccentColor('#6366f1'); setAppLang('en'); setFontSize('medium');
-    setCompactMode(false); setLowStockAlerts(true); setAnimationsEnabled(true);
+  const handleResetAppearance = () => {
+    resetAppearance();
     toast.info('Appearance Reset', 'All appearance settings restored to defaults.');
   };
 
   // ── Security State (extended) ───────────────
-  const [sessionTimeout, setSessionTimeout] = useState(() => localStorage.getItem('apex_session_timeout') || '60');
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(() => localStorage.getItem('apex_2fa') === 'true');
-  const [allowExport, setAllowExport] = useState(() => localStorage.getItem('apex_allow_export') !== 'false');
-  const [auditLog, setAuditLog] = useState(() => localStorage.getItem('apex_audit_log') === 'true');
-  const [dbEncryption, setDbEncryption] = useState(() => localStorage.getItem('apex_db_encrypt') === 'true');
+  const [sessionTimeout, setSessionTimeout] = useState(() => securityDefaults.sessionTimeout);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(() => securityDefaults.twoFactorEnabled);
+  const [allowExport, setAllowExport] = useState(() => securityDefaults.allowExport);
+  const [auditLog, setAuditLog] = useState(() => securityDefaults.auditLog);
+  const [dbEncryption, setDbEncryption] = useState(() => securityDefaults.dbEncryption);
 
-  React.useEffect(() => { localStorage.setItem('apex_session_timeout', sessionTimeout); }, [sessionTimeout]);
-  React.useEffect(() => { localStorage.setItem('apex_2fa', String(twoFactorEnabled)); }, [twoFactorEnabled]);
-  React.useEffect(() => { localStorage.setItem('apex_allow_export', String(allowExport)); }, [allowExport]);
-  React.useEffect(() => { localStorage.setItem('apex_audit_log', String(auditLog)); }, [auditLog]);
-  React.useEffect(() => { localStorage.setItem('apex_db_encrypt', String(dbEncryption)); }, [dbEncryption]);
+  React.useEffect(() => { setSecuritySessionTimeout(sessionTimeout); }, [sessionTimeout]);
+  React.useEffect(() => { setSecurityTwoFactorEnabled(twoFactorEnabled); }, [twoFactorEnabled]);
+  React.useEffect(() => { setSecurityAllowExport(allowExport); }, [allowExport]);
+  React.useEffect(() => { setSecurityAuditLog(auditLog); }, [auditLog]);
+  React.useEffect(() => { setSecurityDbEncryption(dbEncryption); }, [dbEncryption]);
 
   // ── Backup State ────────────────────────────
-  const [autoBackup, setAutoBackup] = useState(() => JSON.parse(localStorage.getItem('apex_auto_backup') || 'false'));
-  const [backupFreq, setBackupFreq] = useState(() => localStorage.getItem('apex_backup_freq') || 'weekly');
-  const [backupLocation, setBackupLocation] = useState(() => localStorage.getItem('apex_backup_loc') || '/backups');
-  const [backupRetention, setBackupRetention] = useState(() => parseInt(localStorage.getItem('apex_backup_ret') || '30'));
-  const [encryptBackups, setEncryptBackups] = useState(() => JSON.parse(localStorage.getItem('apex_encrypt_bk') || 'false'));
-  const [backupHistory, setBackupHistory] = useState<{ id: string; name: string; type: string; size: string; date: string; encrypted: boolean }[]>(() => JSON.parse(localStorage.getItem('apex_backup_history') || '[]'));
+  const [autoBackup, setAutoBackup] = useState(() => backupDefaults.autoBackup);
+  const [backupFreq, setBackupFreq] = useState(() => backupDefaults.backupFreq);
+  const [backupLocation, setBackupLocation] = useState(() => backupDefaults.backupLocation);
+  const [backupRetention, setBackupRetention] = useState(() => backupDefaults.backupRetention);
+  const [encryptBackups, setEncryptBackups] = useState(() => backupDefaults.encryptBackups);
+  const [backupHistory, setBackupHistory] = useState<{ id: string; name: string; type: string; size: string; date: string; encrypted: boolean }[]>(() => backupDefaults.backupHistory);
   const [backupCreating, setBackupCreating] = useState(false);
   const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
 
-  React.useEffect(() => { localStorage.setItem('apex_auto_backup', JSON.stringify(autoBackup)); }, [autoBackup]);
-  React.useEffect(() => { localStorage.setItem('apex_backup_freq', backupFreq); }, [backupFreq]);
-  React.useEffect(() => { localStorage.setItem('apex_backup_loc', backupLocation); }, [backupLocation]);
-  React.useEffect(() => { localStorage.setItem('apex_backup_ret', String(backupRetention)); }, [backupRetention]);
-  React.useEffect(() => { localStorage.setItem('apex_encrypt_bk', JSON.stringify(encryptBackups)); }, [encryptBackups]);
-  React.useEffect(() => { localStorage.setItem('apex_backup_history', JSON.stringify(backupHistory)); }, [backupHistory]);
+  React.useEffect(() => { persistBackupAutoBackup(autoBackup); }, [autoBackup]);
+  React.useEffect(() => { persistBackupFrequency(backupFreq); }, [backupFreq]);
+  React.useEffect(() => { persistBackupLocation(backupLocation); }, [backupLocation]);
+  React.useEffect(() => { persistBackupRetention(backupRetention); }, [backupRetention]);
+  React.useEffect(() => { persistBackupEncryptBackups(encryptBackups); }, [encryptBackups]);
+  React.useEffect(() => { persistBackupHistory(backupHistory); }, [backupHistory]);
 
   const lastBackup = backupHistory.length > 0 ? backupHistory[0] : null;
 
@@ -189,7 +229,38 @@ export const SettingsModule: React.FC = () => {
       id: editingCompanyId || `co-${Date.now()}`,
       company: { name: cfName.trim(), tagline: cfTagline, address: [cfAddress, cfCity, cfState, cfPincode].filter(Boolean).join(', '), phone: cfPhone, email: cfEmail, gstin: cfGstin.toUpperCase(), bankName: cfBankName, accountNo: cfAccountNo, ifsc: cfIfsc, upiId: cfUpiId, logo: cfLogo },
       financial: { financialYearStart: '04-01', currency: cfCurrency, commissionRate: 8, defaultHamali: 0, defaultFreight: 0 },
-      invoice: { salesPrefix: cfInvPrefix, purchasePrefix: 'PUR', arrivalPrefix: 'ARR', salesNextNo: cfInvStart, purchaseNextNo: 101, arrivalNextNo: 1, termsText: 'Subject to APMC market yard rules.', footerNote: 'Thank you for your business', showUPI: true, showBankDetails: true, templateStyle: 'modern', brandColor: '#6366f1', enableQR: true, autoInvoiceNo: true, defaultTaxRate: 0, paymentDueDays: 15, showCompanyDetails: true, showPaymentDetails: true, signatureImage: '' },
+      invoice: {
+        salesPrefix: cfInvPrefix,
+        purchasePrefix: 'PUR',
+        arrivalPrefix: 'ARR',
+        salesNextNo: cfInvStart,
+        purchaseNextNo: 101,
+        arrivalNextNo: 1,
+        termsText: 'Subject to APMC market yard rules.',
+        footerNote: 'Thank you for your business',
+        showUPI: true,
+        showBankDetails: true,
+        templateStyle: 'modern',
+        brandColor: '#6366f1',
+        enableQR: true,
+        autoInvoiceNo: true,
+        invoiceNumberMode: 'sequential',
+        businessPrefix: 'TF',
+        defaultTaxRate: 0,
+        paymentDueDays: 15,
+        showCompanyDetails: true,
+        showPaymentDetails: true,
+        watermarkType: 'none',
+        watermarkText: '',
+        watermarkImage: '',
+        watermarkOpacity: 0.08,
+        watermarkSize: 110,
+        watermarkPosition: 'center',
+        watermarkRepeat: false,
+        signatureImage: '',
+        invoiceLogo: '',
+        enableInvoiceLogo: false,
+      },
       createdAt: isEditMode ? (companies.find(c => c.id === editingCompanyId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
       pan: cfPan.toUpperCase(), city: cfCity, state: cfState, pincode: cfPincode,
     };
@@ -253,7 +324,36 @@ export const SettingsModule: React.FC = () => {
 
   const saveFinancial = () => { updateSettings({ financial: fin }); toast.success('Financial Saved', 'Financial settings updated across the system.'); };
   const saveInvoice = () => { updateSettings({ invoice: inv }); toast.success('Invoice Settings Saved', 'Numbering, terms, and print preferences updated.'); };
-  const saveSecurity = () => { updateSettings({ security: sec }); toast.success('Security Updated', sec.pinEnabled ? 'App PIN protection is now active.' : 'Security settings saved.'); };
+  const saveSecurity = async () => {
+    if (sec.pinEnabled && sec.appPin.trim().length > 0 && sec.appPin.trim().length < 4) {
+      toast.error('Invalid PIN', 'PIN must be at least 4 digits.');
+      return;
+    }
+
+    await configureLockSecurity({
+      pinEnabled: sec.pinEnabled,
+      appPin: sec.appPin,
+      autoLockMinutes: sec.autoLockMinutes,
+    });
+
+    const lockState = useLockStore.getState();
+    updateSettings({
+      security: {
+        ...sec,
+        appPin: '',
+        pinEnabled: lockState.pinEnabled,
+        autoLockMinutes: lockState.autoLockMinutes,
+      },
+    });
+    setSec((prev) => ({ ...prev, appPin: '', pinEnabled: lockState.pinEnabled, autoLockMinutes: lockState.autoLockMinutes }));
+
+    toast.success(
+      'Security Updated',
+      lockState.pinEnabled
+        ? 'App PIN protection and lock policy are active.'
+        : 'Security settings saved.',
+    );
+  };
 
   const handleExport = () => {
     const blob = new Blob([getExportData()], { type: 'application/json' });
@@ -292,6 +392,27 @@ export const SettingsModule: React.FC = () => {
   }, [vehicles, invoices, purchaseInvoices, payments]);
 
   const dataCounts = { vehicles: vehicles.length, invoices: invoices.length, purchaseInvoices: purchaseInvoices.length, payments: payments.length, suppliers: suppliers.length, customers: customers.length, fruits: fruits.length };
+
+  const invoicePreviewSample: Invoice = {
+    id: 'sample-invoice',
+    invoiceNo: formatInvoiceNumber(inv, inv.salesNextNo || 1, new Date().toISOString().split('T')[0], invoices),
+    date: new Date().toISOString().split('T')[0],
+    customerId: 'sample-customer',
+    customerName: 'Metro Fresh Supermarket',
+    previousBalance: 35000,
+    todayAmount: 42950,
+    hamali: 350,
+    discount: 100,
+    paidAmount: 5000,
+    remainingBalance: 72950,
+    notes: 'Sample invoice preview for style verification',
+    createdAt: new Date().toISOString(),
+    items: [
+      { id: 's1', fruit: 'Kesar Mango', lotVariety: 'Grade A', caret: 12, weight: 220, rate: 85, amount: 18700 },
+      { id: 's2', fruit: 'Alphonso', lotVariety: 'Export', caret: 8, weight: 120, rate: 140, amount: 16800 },
+      { id: 's3', fruit: 'Rajapuri', lotVariety: 'Table', caret: 10, weight: 160, rate: 45, amount: 7200 },
+    ],
+  };
 
   return (
     <div className="space-y-6 font-sans">
@@ -344,7 +465,7 @@ export const SettingsModule: React.FC = () => {
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {companies.map(c => {
                     const isActive = c.id === activeCompanyId;
-                    const initials = c.company.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                    const initials = getCompanyInitials(c.company.name);
                     return (
                       <div key={c.id} className={`rounded-xl border-2 overflow-hidden transition-all ${isActive ? 'dark:border-emerald-500/60 border-emerald-500 shadow-lg dark:shadow-emerald-500/10' : 'dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300'}`}>
                         <div className="p-4 flex items-start space-x-3.5">
@@ -521,29 +642,137 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* 5. Signature */}
-              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2"><PenTool className="w-4 h-4 text-cyan-500" /><span className="text-sm font-bold dark:text-white text-slate-900">Signature</span></div>
-                <div className="p-6">
-                  <div className="flex items-start space-x-4">
+              {/* 5. Invoice Branding — Signature + Logo side by side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                {/* ── Signature Upload ────────────────── */}
+                <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                  <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
+                    <PenTool className="w-4 h-4 text-cyan-500" />
+                    <span className="text-sm font-bold dark:text-white text-slate-900">Signature</span>
+                  </div>
+                  <div className="p-6 flex flex-col gap-4 flex-1">
                     {inv.signatureImage ? (
-                      <div className="relative">
-                        <img src={inv.signatureImage} alt="Signature" className="h-16 max-w-[200px] object-contain border dark:border-slate-700 border-slate-300 rounded-xl p-2 dark:bg-slate-950 bg-slate-50" />
-                        <button onClick={() => setInv(p => ({ ...p, signatureImage: '' }))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center cursor-pointer text-xs"><X className="w-3 h-3" /></button>
+                      <div className="flex items-center gap-3">
+                        <div className="relative shrink-0">
+                          <img src={inv.signatureImage} alt="Signature" className="h-16 max-w-[180px] object-contain border dark:border-slate-700 border-slate-300 rounded-xl p-2 dark:bg-slate-950 bg-slate-50" />
+                          <button onClick={() => setInv(p => ({ ...p, signatureImage: '' }))} title="Remove signature" className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center cursor-pointer text-xs shadow"><X className="w-3 h-3" /></button>
+                        </div>
+                        <button onClick={() => sigInputRef.current?.click()} className="text-[11px] font-bold dark:text-indigo-400 text-indigo-600 hover:underline cursor-pointer">Replace</button>
                       </div>
                     ) : (
-                      <div onClick={() => sigInputRef.current?.click()} className="h-16 w-48 border-2 border-dashed dark:border-slate-700 border-slate-300 rounded-xl flex items-center justify-center cursor-pointer dark:hover:border-indigo-500/50 hover:border-indigo-500/50 transition-colors">
-                        <div className="flex items-center space-x-2 text-xs dark:text-slate-500 text-slate-400"><Image className="w-4 h-4" /><span>Upload Signature</span></div>
+                      <div
+                        onClick={() => sigInputRef.current?.click()}
+                        className="h-20 border-2 border-dashed dark:border-slate-700 border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer dark:hover:border-cyan-500/50 hover:border-cyan-500/50 transition-colors gap-1.5"
+                      >
+                        <Image className="w-5 h-5 dark:text-slate-500 text-slate-400" />
+                        <span className="text-xs dark:text-slate-500 text-slate-400 font-medium">Click or drop to upload</span>
+                        <span className="text-[10px] dark:text-slate-600 text-slate-400">PNG, JPG supported</span>
                       </div>
                     )}
-                    <input ref={sigInputRef} type="file" accept="image/*" className="hidden" onChange={e => {
+                    <input ref={sigInputRef} type="file" accept="image/png,image/jpeg,image/jpg" className="hidden" onChange={e => {
                       const file = e.target.files?.[0];
                       if (file) { const reader = new FileReader(); reader.onload = () => setInv(p => ({ ...p, signatureImage: reader.result as string })); reader.readAsDataURL(file); }
                       e.target.value = '';
                     }} />
-                    <div className="text-[11px] dark:text-slate-400 text-slate-500 leading-relaxed">Upload a PNG/JPG signature image. It will appear on printed invoices in the authorized signatory section. Max 500KB recommended.</div>
+                    <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-relaxed">Appears in the authorized signatory section of printed invoices. Max 500 KB recommended.</p>
                   </div>
                 </div>
+
+                {/* ── Invoice Logo Upload ──────────────── */}
+                <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                  <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Image className="w-4 h-4 text-violet-500" />
+                      <span className="text-sm font-bold dark:text-white text-slate-900">Invoice Logo</span>
+                    </div>
+                    {/* Enable toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <span className="text-[11px] font-semibold dark:text-slate-400 text-slate-500">Enable Custom Logo</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={inv.enableInvoiceLogo ?? false}
+                        onClick={() => setInv(p => ({ ...p, enableInvoiceLogo: !(p.enableInvoiceLogo ?? false) }))}
+                        className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors cursor-pointer focus:outline-none ${(inv.enableInvoiceLogo ?? false) ? 'bg-violet-600' : 'dark:bg-slate-700 bg-slate-300'}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transform transition-transform ${(inv.enableInvoiceLogo ?? false) ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </label>
+                  </div>
+                  <div className="p-6 flex flex-col gap-4 flex-1">
+                    {/* Upload area */}
+                    {inv.invoiceLogo ? (
+                      <div className="flex items-center gap-3">
+                        <div className="relative shrink-0">
+                          <img src={inv.invoiceLogo} alt="Invoice Logo" className="h-16 max-w-[180px] object-contain border dark:border-slate-700 border-slate-300 rounded-xl p-2 dark:bg-slate-950 bg-slate-50" />
+                          <button onClick={() => setInv(p => ({ ...p, invoiceLogo: '' }))} title="Remove logo" className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center cursor-pointer text-xs shadow"><X className="w-3 h-3" /></button>
+                        </div>
+                        <button onClick={() => logoInputRef.current?.click()} className="text-[11px] font-bold dark:text-violet-400 text-violet-600 hover:underline cursor-pointer">Replace</button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => logoInputRef.current?.click()}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file && /image\/(png|jpe?g|svg\+xml)/.test(file.type)) {
+                            setLogoUploadProgress(true);
+                            const reader = new FileReader();
+                            reader.onload = () => { setInv(p => ({ ...p, invoiceLogo: reader.result as string })); setLogoUploadProgress(false); };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className={`h-20 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors gap-1.5 ${logoUploadProgress ? 'dark:border-violet-500/60 border-violet-400/60 animate-pulse' : 'dark:border-slate-700 border-slate-300 dark:hover:border-violet-500/50 hover:border-violet-500/50'}`}
+                      >
+                        {logoUploadProgress ? (
+                          <span className="text-xs dark:text-violet-400 text-violet-600 font-semibold">Uploading…</span>
+                        ) : (
+                          <>
+                            <Image className="w-5 h-5 dark:text-slate-500 text-slate-400" />
+                            <span className="text-xs dark:text-slate-500 text-slate-400 font-medium">Click or drag &amp; drop to upload</span>
+                            <span className="text-[10px] dark:text-slate-600 text-slate-400">PNG, JPG, SVG · max 1 MB</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml" className="hidden" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setLogoUploadProgress(true);
+                        const reader = new FileReader();
+                        reader.onload = () => { setInv(p => ({ ...p, invoiceLogo: reader.result as string })); setLogoUploadProgress(false); };
+                        reader.readAsDataURL(file);
+                      }
+                      e.target.value = '';
+                    }} />
+                    {/* Fallback helper */}
+                    <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-relaxed">
+                      Invoice Logo overrides the default company logo in printed invoices. If disabled, the system automatically uses the company master logo.
+                    </p>
+                    {/* Status badge */}
+                    {!(inv.enableInvoiceLogo ?? false) && (
+                      <div className="flex items-center gap-1.5 text-[11px] dark:text-amber-400 text-amber-600 font-semibold">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Custom logo disabled — company master logo will be used</span>
+                      </div>
+                    )}
+                    {(inv.enableInvoiceLogo ?? false) && !inv.invoiceLogo && (
+                      <div className="flex items-center gap-1.5 text-[11px] dark:text-amber-400 text-amber-600 font-semibold">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>No logo uploaded — falling back to company master logo</span>
+                      </div>
+                    )}
+                    {(inv.enableInvoiceLogo ?? false) && inv.invoiceLogo && (
+                      <div className="flex items-center gap-1.5 text-[11px] dark:text-emerald-400 text-emerald-600 font-semibold">
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                        <span>Custom invoice logo active</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
 
               {/* 6. Invoice Preview & Actions */}
@@ -585,99 +814,8 @@ export const SettingsModule: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto bg-white text-slate-900 printable-patti">
-                  <div className="p-10 max-w-[780px] mx-auto font-[system-ui,sans-serif] text-[13px] leading-relaxed">
-                    {/* Header */}
-                    <div className="flex justify-between items-start border-b-[3px] pb-5 mb-6" style={{ borderColor: inv.brandColor || '#6366f1' }}>
-                      <div>
-                        {inv.showCompanyDetails !== false && (<>
-                          <div className="flex items-center space-x-3 mb-1">
-                            {settings.company.logo && <img src={settings.company.logo} alt="Logo" className="h-10 max-w-[100px] object-contain shrink-0" />}
-                            <h1 className="text-[26px] font-black tracking-tight text-slate-950">{settings.company.name.toUpperCase()}</h1>
-                          </div>
-                          <p className="text-[11px] font-bold text-slate-600 mt-1 tracking-[0.15em] uppercase">{settings.company.tagline}</p>
-                          <p className="text-[10.5px] text-slate-500 mt-1.5">{settings.company.address}<br/>Phone: {settings.company.phone} | Email: {settings.company.email}</p>
-                          {settings.company.gstin && <p className="text-[10px] font-mono font-bold text-slate-600 mt-1">GSTIN: {settings.company.gstin}</p>}
-                        </>)}
-                      </div>
-                      <div className="text-right shrink-0 ml-6">
-                        <div className="inline-block border-2 px-5 py-3 rounded-lg" style={{ borderColor: inv.brandColor || '#6366f1', backgroundColor: (inv.brandColor || '#6366f1') + '10' }}>
-                          <div className="text-[9px] font-black tracking-[0.2em] uppercase" style={{ color: inv.brandColor || '#6366f1' }}>Sales Invoice</div>
-                          <div className="text-[22px] font-black font-mono text-slate-950 mt-0.5">{inv.salesPrefix}-2026-{String(inv.salesNextNo).padStart(4, '0')}</div>
-                        </div>
-                        <div className="text-[11px] font-mono text-slate-600 mt-2 font-semibold">{new Date().toLocaleDateString()}</div>
-                      </div>
-                    </div>
-
-                    {/* Customer */}
-                    <div className="border border-slate-300 rounded-lg p-3.5 mb-6 bg-slate-50">
-                      <div className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Billed To</div>
-                      <div className="text-[16px] font-black text-slate-950 mt-1">Sample Customer Name</div>
-                      <div className="text-[10.5px] text-slate-500 mt-1">123 Market Road, Mumbai, Maharashtra</div>
-                    </div>
-
-                    {/* Table */}
-                    <table className="w-full border-collapse text-[11.5px] mb-6">
-                      <thead><tr style={{ backgroundColor: inv.brandColor || '#6366f1' }} className="text-white">
-                        <th className="py-2.5 px-3 text-left font-bold rounded-tl-lg">#</th>
-                        <th className="py-2.5 px-3 text-left font-bold">Item</th>
-                        <th className="py-2.5 px-3 text-right font-bold">Qty</th>
-                        <th className="py-2.5 px-3 text-right font-bold">Rate</th>
-                        <th className="py-2.5 px-3 text-right font-bold rounded-tr-lg">Amount</th>
-                      </tr></thead>
-                      <tbody>
-                        {[{ item: 'Kesar Mango (Grade A)', qty: 50, rate: 85, amt: 4250 }, { item: 'Alphonso Mango (Export)', qty: 30, rate: 140, amt: 4200 }, { item: 'Rajapuri Mango (Raw)', qty: 40, rate: 45, amt: 1800 }].map((r, i) => (
-                          <tr key={i} className={`border-b border-slate-200 ${i % 2 ? 'bg-slate-50/60' : ''}`}>
-                            <td className="py-2 px-3 text-slate-400 font-mono">{i + 1}</td>
-                            <td className="py-2 px-3 font-semibold text-slate-900">{r.item}</td>
-                            <td className="py-2 px-3 text-right font-mono font-semibold">{r.qty}</td>
-                            <td className="py-2 px-3 text-right font-mono">₹{r.rate}</td>
-                            <td className="py-2 px-3 text-right font-mono font-bold">₹{r.amt.toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 border-slate-900 bg-slate-100 font-bold">
-                          <td colSpan={4} className="py-2.5 px-3 text-right text-[10px] uppercase tracking-wider text-slate-500">Total</td>
-                          <td className="py-2.5 px-3 text-right font-mono font-black text-slate-950 text-[14px]">₹ 10,250</td>
-                        </tr>
-                        {(inv.defaultTaxRate ?? 0) > 0 && <tr className="text-[10.5px] border-t border-slate-200">
-                          <td colSpan={4} className="py-1.5 px-3 text-right text-slate-500">Tax ({inv.defaultTaxRate}%)</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-bold">₹{Math.round(10250 * (inv.defaultTaxRate || 0) / 100).toLocaleString()}</td>
-                        </tr>}
-                      </tfoot>
-                    </table>
-
-                    {/* Balance Box */}
-                    <div className="grid grid-cols-4 gap-0 border-2 border-slate-900 rounded-lg overflow-hidden mb-6 text-[11px]">
-                      <div className="p-3 bg-white border-r border-slate-300"><div className="text-[9px] font-bold uppercase text-slate-400">Previous</div><div className="text-[15px] font-black font-mono text-slate-900 mt-0.5">₹ 35,000</div></div>
-                      <div className="p-3 border-r border-slate-300" style={{ backgroundColor: (inv.brandColor || '#6366f1') + '08' }}><div className="text-[9px] font-bold uppercase" style={{ color: inv.brandColor || '#6366f1' }}>+ Today</div><div className="text-[15px] font-black font-mono mt-0.5" style={{ color: inv.brandColor || '#6366f1' }}>₹ 10,250</div></div>
-                      <div className="p-3 bg-emerald-50 border-r border-slate-300"><div className="text-[9px] font-bold uppercase text-emerald-600">− Paid</div><div className="text-[15px] font-black font-mono text-emerald-800 mt-0.5">₹ 5,000</div></div>
-                      <div className="p-3 bg-slate-900 text-white"><div className="text-[9px] font-black uppercase tracking-wider text-emerald-300">Balance</div><div className="text-[18px] font-black font-mono text-white mt-0.5">₹ 40,250</div></div>
-                    </div>
-
-                    {/* Payment info */}
-                    {inv.showPaymentDetails !== false && settings.company.bankName && (
-                      <div className="border border-slate-200 rounded-lg p-3 mb-6 bg-slate-50 text-[10.5px] flex items-center justify-between">
-                        <div><div className="font-bold text-slate-900">🏦 {settings.company.bankName}</div><div className="text-slate-500 mt-0.5">A/C: {settings.company.accountNo} | IFSC: {settings.company.ifsc}{inv.showUPI && settings.company.upiId ? ` | UPI: ${settings.company.upiId}` : ''}</div></div>
-                        {inv.enableQR !== false && <div className="text-center"><QrCode className="w-12 h-12 text-slate-800 mx-auto" /><div className="text-[8px] text-slate-400 mt-0.5">Scan to Pay</div></div>}
-                      </div>
-                    )}
-
-                    {/* Terms */}
-                    {inv.termsText && <div className="text-[10px] text-slate-500 mb-4"><strong>Terms:</strong> {inv.termsText}</div>}
-                    {inv.paymentDueDays > 0 && <div className="text-[10px] text-slate-500 mb-4 font-semibold">Payment due within {inv.paymentDueDays} days.</div>}
-
-                    {/* Signatures */}
-                    <div className="mt-12 grid grid-cols-2 gap-12 text-[10px] text-slate-600">
-                      <div className="space-y-10"><div className="border-b border-slate-400 w-52" style={{height:'1px'}}></div><div className="font-bold text-slate-800 uppercase tracking-wider">Customer Signature</div></div>
-                      <div className="text-right space-y-2">
-                        {inv.signatureImage && <img src={inv.signatureImage} alt="Signature" className="h-12 ml-auto object-contain" />}
-                        {!inv.signatureImage && <div className="border-b border-slate-400 w-52 ml-auto mt-8" style={{height:'1px'}}></div>}
-                        <div className="font-bold text-slate-800 uppercase tracking-wider">For {settings.company.name}</div>
-                      </div>
-                    </div>
-
-                    {inv.footerNote && <div className="mt-6 pt-3 border-t border-slate-200 text-center text-[9px] text-slate-400 font-mono">{inv.footerNote} • {settings.company.name} ERP</div>}
+                  <div className="p-6 sm:p-8 max-w-[820px] mx-auto">
+                    <InvoiceTemplateRenderer invoice={invoicePreviewSample} company={settings.company} invoiceSettings={inv} />
                   </div>
                 </div>
               </div>
@@ -993,11 +1131,12 @@ export const SettingsModule: React.FC = () => {
                 <div className="p-6">
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { id: 'light', icon: <Sun className="w-5 h-5 text-amber-500" />, label: 'Light', desc: 'Clean bright workspace', bg: 'bg-white border-slate-300', active: theme === 'light' },
-                      { id: 'dark', icon: <Moon className="w-5 h-5 text-indigo-400" />, label: 'Dark', desc: 'Trading terminal feel', bg: 'bg-slate-900 border-slate-700', active: theme === 'dark' },
-                      { id: 'system', icon: <Settings className="w-5 h-5 dark:text-slate-400 text-slate-500" />, label: 'System', desc: 'Follow OS preference', bg: 'bg-gradient-to-r from-white to-slate-900 border-slate-400', active: false },
+                      { id: 'light', icon: <Sun className="w-5 h-5 text-amber-500" />, label: 'Light', desc: 'Clean bright workspace', bg: 'bg-white border-slate-300', active: themePreference === 'light' },
+                      { id: 'dark', icon: <Moon className="w-5 h-5 text-indigo-400" />, label: 'Dark', desc: 'Trading terminal feel', bg: 'bg-slate-900 border-slate-700', active: themePreference === 'dark' },
+                      { id: 'system', icon: <Settings className="w-5 h-5 dark:text-slate-400 text-slate-500" />, label: 'System', desc: 'Follow OS preference', bg: 'bg-gradient-to-r from-white to-slate-900 border-slate-400', active: themePreference === 'system' },
                     ].map(t => (
-                      <button key={t.id} onClick={() => { if (t.id === 'light' && theme === 'dark') toggleTheme(); if (t.id === 'dark' && theme === 'light') toggleTheme(); if (t.id === 'system') toast.info('Coming Soon', 'System theme detection coming in next update.'); }}
+                      <button key={t.id} onClick={() => setThemePreference(t.id as 'light' | 'dark' | 'system')}
+                        aria-label={`Set ${t.label} theme`}
                         className={`flex flex-col items-center p-5 rounded-xl border-2 transition-all cursor-pointer ${t.active ? 'border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-lg shadow-cyan-500/10' : 'dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300'}`}>
                         <div className={`w-14 h-9 rounded-lg border mb-3 flex items-center justify-center shadow-sm ${t.bg}`}>{t.icon}</div>
                         <span className="text-xs font-bold dark:text-white text-slate-900">{t.label}</span>
@@ -1014,12 +1153,12 @@ export const SettingsModule: React.FC = () => {
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2"><Palette className="w-4 h-4 text-cyan-500" /><span className="text-sm font-bold dark:text-white text-slate-900">Accent Color</span></div>
                 <div className="p-6 space-y-4">
                   <div className="flex items-center space-x-4">
-                    <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)} className="w-10 h-10 rounded-xl border-2 dark:border-slate-700 border-slate-300 cursor-pointer p-0.5" />
+                    <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)} aria-label="Select accent color" className="w-10 h-10 rounded-xl border-2 dark:border-slate-700 border-slate-300 cursor-pointer p-0.5" />
                     <div className="flex-1">
                       <div className="text-xs font-bold dark:text-white text-slate-900 mb-1.5">Preset Colors</div>
                       <div className="flex items-center space-x-2">
                         {['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6'].map(c => (
-                          <button key={c} onClick={() => setAccentColor(c)} className={`w-7 h-7 rounded-lg cursor-pointer transition-all shadow-sm ${accentColor === c ? 'ring-2 ring-offset-2 dark:ring-offset-slate-900 ring-offset-white scale-110' : 'hover:scale-110'}`} style={{ backgroundColor: c }} />
+                          <button key={c} onClick={() => setAccentColor(c)} aria-label={`Set accent ${c}`} className={`w-7 h-7 rounded-lg cursor-pointer transition-all shadow-sm ${accentColor === c ? 'ring-2 ring-offset-2 dark:ring-offset-slate-900 ring-offset-white scale-110' : 'hover:scale-110'}`} style={{ backgroundColor: c }} />
                         ))}
                       </div>
                     </div>
@@ -1042,14 +1181,14 @@ export const SettingsModule: React.FC = () => {
                 <div className="p-6">
                   <div className="grid grid-cols-2 gap-3">
                     {[{ id: 'en', flag: '🇬🇧', label: 'English', desc: 'Default language' }, { id: 'gu', flag: '🇮🇳', label: 'ગુજરાતી', desc: 'Gujarati' }].map(l => (
-                      <button key={l.id} onClick={() => setAppLang(l.id)}
-                        className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${appLang === l.id ? 'border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-md' : 'dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300'}`}>
+                      <button key={l.id} onClick={() => setLanguage(l.id)}
+                        className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${language === l.id ? 'border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-md' : 'dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300'}`}>
                         <span className="text-2xl">{l.flag}</span>
                         <div className="text-left">
                           <div className="text-xs font-bold dark:text-white text-slate-900">{l.label}</div>
                           <div className="text-[10px] dark:text-slate-400 text-slate-500">{l.desc}</div>
                         </div>
-                        {appLang === l.id && <Check className="w-4 h-4 text-cyan-500 ml-auto shrink-0" />}
+                        {language === l.id && <Check className="w-4 h-4 text-cyan-500 ml-auto shrink-0" />}
                       </button>
                     ))}
                   </div>
@@ -1060,9 +1199,28 @@ export const SettingsModule: React.FC = () => {
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2"><FileText className="w-4 h-4 text-cyan-500" /><span className="text-sm font-bold dark:text-white text-slate-900">Typography</span></div>
                 <div className="p-6 space-y-4">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-500 text-slate-400 mb-2">Font Family</div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: 'inter', label: 'Inter', css: "'Inter', sans-serif" },
+                        { id: 'roboto', label: 'Roboto', css: "'Roboto', sans-serif" },
+                        { id: 'segoe', label: 'Segoe UI', css: "'Segoe UI', sans-serif" },
+                      ].map(f => (
+                        <button
+                          key={f.id}
+                          onClick={() => setFontFamily(f.id as 'inter' | 'roboto' | 'segoe')}
+                          className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${fontFamily === f.id ? 'border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-md' : 'dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300'}`}
+                        >
+                          <span className="font-bold dark:text-white text-slate-900" style={{ fontFamily: f.css }}>{f.label}</span>
+                          {fontFamily === f.id && <Check className="w-3.5 h-3.5 text-cyan-500 mt-1.5" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
-                    {[{ id: 'small', label: 'Small', size: '12px' }, { id: 'medium', label: 'Medium', size: '14px' }, { id: 'large', label: 'Large', size: '16px' }].map(s => (
-                      <button key={s.id} onClick={() => setFontSize(s.id)}
+                    {[{ id: 'small', label: 'Small', size: '13px' }, { id: 'medium', label: 'Medium', size: '14px' }, { id: 'large', label: 'Large', size: '16px' }].map(s => (
+                      <button key={s.id} onClick={() => setFontSize(s.id as 'small' | 'medium' | 'large')}
                         className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${fontSize === s.id ? 'border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-md' : 'dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300'}`}>
                         <span className="font-bold dark:text-white text-slate-900" style={{ fontSize: s.size }}>{s.label}</span>
                         <span className="text-[10px] dark:text-slate-400 text-slate-500 mt-1">{s.size}</span>
@@ -1083,7 +1241,26 @@ export const SettingsModule: React.FC = () => {
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2"><Eye className="w-4 h-4 text-cyan-500" /><span className="text-sm font-bold dark:text-white text-slate-900">Display Options</span></div>
                 <div className="p-6">
-                  <Toggle label="Compact Mode" desc="Reduce spacing and padding for denser data views" checked={compactMode} onChange={setCompactMode} />
+                  <div className="pb-3 border-b dark:border-slate-800 border-slate-200">
+                    <div className="text-sm font-bold dark:text-white text-slate-900">Density</div>
+                    <div className="text-[11px] dark:text-slate-400 text-slate-500">Controls table row heights, sidebar spacing, card paddings, inputs, and modal spacing.</div>
+                    <div className="grid grid-cols-3 gap-3 mt-3">
+                      {[
+                        { id: 'compact', label: 'Compact', desc: 'Maximum data density' },
+                        { id: 'comfortable', label: 'Comfortable', desc: 'Balanced default spacing' },
+                        { id: 'spacious', label: 'Spacious', desc: 'Lower visual fatigue' },
+                      ].map(mode => (
+                        <button
+                          key={mode.id}
+                          onClick={() => setDensity(mode.id as 'compact' | 'comfortable' | 'spacious')}
+                          className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all cursor-pointer ${density === mode.id ? 'border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-md' : 'dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300'}`}
+                        >
+                          <span className="text-xs font-bold dark:text-white text-slate-900">{mode.label}</span>
+                          <span className="text-[10px] dark:text-slate-400 text-slate-500 mt-1 text-center">{mode.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <Toggle label="Low Stock Alerts" desc="Show warning badges on inventory items below threshold" checked={lowStockAlerts} onChange={setLowStockAlerts} />
                 </div>
               </div>
@@ -1102,9 +1279,9 @@ export const SettingsModule: React.FC = () => {
                 <div className="p-6 flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold dark:text-white text-slate-900">Restore Default Settings</div>
-                    <div className="text-[11px] dark:text-slate-400 text-slate-500 mt-0.5 max-w-md">Reset theme to dark, accent color to indigo, font size to medium, language to English, and all display options to defaults.</div>
+                    <div className="text-[11px] dark:text-slate-400 text-slate-500 mt-0.5 max-w-md">Reset theme to system, accent to indigo, typography and density to defaults, and restore all display options.</div>
                   </div>
-                  <button onClick={resetAppearance} className="px-5 py-2.5 dark:bg-slate-800 bg-white text-amber-700 dark:text-amber-400 border dark:border-amber-500/30 border-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/40 rounded-xl font-bold text-xs cursor-pointer transition-all flex items-center space-x-1.5 shrink-0"><RotateCcw className="w-4 h-4" /><span>Reset to Defaults</span></button>
+                  <button onClick={handleResetAppearance} className="px-5 py-2.5 dark:bg-slate-800 bg-white text-amber-700 dark:text-amber-400 border dark:border-amber-500/30 border-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/40 rounded-xl font-bold text-xs cursor-pointer transition-all flex items-center space-x-1.5 shrink-0"><RotateCcw className="w-4 h-4" /><span>Reset to Defaults</span></button>
                 </div>
               </div>
             </div>
@@ -1121,7 +1298,7 @@ export const SettingsModule: React.FC = () => {
                 </div>
                 <div className="p-6 space-y-1">
                   {/* PIN Lock */}
-                  <Toggle label="Require Password / App PIN" desc="Enable PIN protection when opening the app" checked={sec.pinEnabled} onChange={v => { setSec(p => ({ ...p, pinEnabled: v })); saveSecurity(); }} />
+                  <Toggle label="Require Password / App PIN" desc="Enable PIN protection when opening the app" checked={sec.pinEnabled} onChange={v => { setSec(p => ({ ...p, pinEnabled: v })); }} />
 
                   {sec.pinEnabled && (
                     <div className="space-y-4 pl-3 ml-1 border-l-2 dark:border-cyan-500/30 border-cyan-300 pt-3 animate-slide-down">
@@ -1135,7 +1312,7 @@ export const SettingsModule: React.FC = () => {
                             {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
-                        <span className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 block">Numeric digits only. Stored locally in browser.</span>
+                        <span className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 block">Numeric digits only. PIN is stored locally as a hash.</span>
                       </div>
 
                       {/* Auto-Lock Timeout */}
@@ -1248,11 +1425,11 @@ export const SettingsModule: React.FC = () => {
                         <button onClick={() => setCfLogo('')} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center cursor-pointer text-xs"><X className="w-3 h-3" /></button>
                       </div>
                     ) : (
-                      <div onClick={() => logoInputRef.current?.click()} className="h-14 w-36 border-2 border-dashed dark:border-slate-700 border-slate-300 rounded-xl flex items-center justify-center cursor-pointer dark:hover:border-indigo-500/50 hover:border-indigo-500/50 transition-colors">
+                      <div onClick={() => companyLogoInputRef.current?.click()} className="h-14 w-36 border-2 border-dashed dark:border-slate-700 border-slate-300 rounded-xl flex items-center justify-center cursor-pointer dark:hover:border-indigo-500/50 hover:border-indigo-500/50 transition-colors">
                         <div className="flex items-center space-x-2 text-xs dark:text-slate-500 text-slate-400"><Image className="w-4 h-4" /><span>Upload Logo</span></div>
                       </div>
                     )}
-                    <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden" onChange={e => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = () => setCfLogo(reader.result as string); reader.readAsDataURL(file); } e.target.value = ''; }} />
+                    <input ref={companyLogoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden" onChange={e => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = () => setCfLogo(reader.result as string); reader.readAsDataURL(file); } e.target.value = ''; }} />
                     <div className="text-[10px] dark:text-slate-500 text-slate-400 leading-relaxed max-w-[200px]">PNG, JPG, or SVG. Will appear on all invoices and receipts.</div>
                   </div>
                 </div>

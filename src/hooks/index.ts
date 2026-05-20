@@ -12,3 +12,5 @@ export * from './useSuppliers';
 export * from './useTauri';
 export * from './useToast';
 export * from './useWindow';
+export * from './useAppearance';
+export * from './useInactivityLock';

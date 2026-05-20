@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { PurchaseInvoice, PurchaseInvoiceItem } from '../types';
 import { PurchasePreviewModal } from './PurchasePreviewModal';
-import { ShoppingBag, Plus, Save, Search, Eye, Trash2, FileText, Calendar, Copy, Calculator } from 'lucide-react';
+import { ShoppingBag, Plus, Save, Search, Eye, Trash2, FileText, Calendar, Copy, Calculator, ArrowUpDown } from 'lucide-react';
 import { Combobox } from './ui/Combobox';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
+import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 
 export const PurchaseBillingModule: React.FC = () => {
   const { suppliers, fruits, purchaseInvoices, savePurchaseInvoice, deletePurchaseInvoice, addFruit, addFruitVariety } = useApp();
@@ -14,6 +15,10 @@ export const PurchaseBillingModule: React.FC = () => {
 
   const [activeSubTab, setActiveSubTab] = useState<'NEW_INVOICE' | 'LIST'>('NEW_INVOICE');
   const [previewInvoice, setPreviewInvoice] = useState<PurchaseInvoice | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
+  const [isListLoading, setIsListLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'billNo' | 'todayAmount' | 'remainingBalance'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Form State
   const [billNo, setBillNo] = useState(`PUR-2026-${String(purchaseInvoices.length + 101).padStart(3, '0')}`);
@@ -213,35 +218,80 @@ export const PurchaseBillingModule: React.FC = () => {
   };
 
   const [searchTerm, setSearchTerm] = useState('');
+  const listSearchRef = useRef<HTMLInputElement>(null);
+  const nextFieldRef = useRef<HTMLInputElement>(null);
   const filteredInvoices = useMemo(() => {
-    return purchaseInvoices.filter(inv => {
+    const filtered = purchaseInvoices.filter(inv => {
       return (
         inv.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.items.some(it => it.fruit.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     });
-  }, [purchaseInvoices, searchTerm]);
+
+    return [...filtered].sort((a, b) => {
+      const factor = sortDir === 'asc' ? 1 : -1;
+      if (sortBy === 'billNo') return a.billNo.localeCompare(b.billNo) * factor;
+      if (sortBy === 'todayAmount') return (a.todayAmount - b.todayAmount) * factor;
+      if (sortBy === 'remainingBalance') return (a.remainingBalance - b.remainingBalance) * factor;
+      return a.date.localeCompare(b.date) * factor;
+    });
+  }, [purchaseInvoices, searchTerm, sortBy, sortDir]);
+
+  useEffect(() => {
+    if (activeSubTab !== 'LIST') return;
+    setIsListLoading(true);
+    const t = window.setTimeout(() => setIsListLoading(false), 180);
+    return () => window.clearTimeout(t);
+  }, [activeSubTab, searchTerm, sortBy, sortDir]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && activeSubTab === 'LIST') {
+        e.preventDefault();
+        listSearchRef.current?.focus();
+      }
+      if (e.ctrlKey && e.key === 'Enter' && activeSubTab === 'NEW_INVOICE') {
+        e.preventDefault();
+        handleSaveInvoice();
+      }
+      if (e.altKey && e.key.toLowerCase() === 'n' && activeSubTab === 'NEW_INVOICE') {
+        e.preventDefault();
+        addItemRow();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeSubTab, items, selectedSupplierId, notes, billNo, date, freightInput, hamaliInput, paidAmountInput]);
+
+  const handleSort = (key: 'date' | 'billNo' | 'todayAmount' | 'remainingBalance') => {
+    if (sortBy === key) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortBy(key);
+    setSortDir('desc');
+  };
 
   return (
     <div className="space-y-6 font-sans">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 dark:bg-slate-900 bg-white p-4 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-md">
+      <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div>
-          <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
-            <ShoppingBag className="w-6 h-6 text-emerald-500" />
+          <h1 className="erp-title text-[1.1rem] flex items-center space-x-2.5">
+            <ShoppingBag className="w-6 h-6 text-[#00c896]" />
             <span>DIRECT PURCHASE BILLING & INVOICES</span>
           </h1>
-          <p className="text-xs dark:text-slate-400 text-slate-600 mt-0.5">Premium fast supplier purchase bill entry, auto stock increment, and supplier balance sync</p>
+          <p className="erp-subtitle mt-1">Premium fast supplier purchase bill entry, auto stock increment, and supplier balance sync</p>
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-950 dark:bg-slate-950 bg-slate-100 p-1.5 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200">
+        <div className="erp-surface flex items-center space-x-2 p-1.5">
           <button
             onClick={() => setActiveSubTab('NEW_INVOICE')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
               activeSubTab === 'NEW_INVOICE'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900'
+                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
+                : 'text-[#64748b] hover:text-[#0f172a] hover:bg-white'
             }`}
           >
             <Plus className="w-4 h-4" />
@@ -249,10 +299,10 @@ export const PurchaseBillingModule: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveSubTab('LIST')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
               activeSubTab === 'LIST'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900'
+                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
+                : 'text-[#64748b] hover:text-[#0f172a] hover:bg-white'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -265,8 +315,8 @@ export const PurchaseBillingModule: React.FC = () => {
       {activeSubTab === 'NEW_INVOICE' && (
         <div className="space-y-6">
           {/* HEADER SELECTION & BALANCE DISPLAY */}
-          <div className="bg-slate-900 dark:bg-slate-900 bg-white p-6 rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 dark:border-slate-800 border-slate-200 pb-4">
+          <div className="erp-panel p-6 rounded-2xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#edf2f7] pb-4">
               <div className="flex items-center space-x-3">
                 <span className="text-xs bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 px-3 py-1 rounded-full font-mono font-bold">
                   {billNo}
@@ -274,10 +324,11 @@ export const PurchaseBillingModule: React.FC = () => {
                 <div className="flex items-center space-x-1 font-mono">
                   <span className="text-xs dark:text-slate-400 text-slate-600 font-medium font-sans">Date:</span>
                   <input
+                    ref={nextFieldRef}
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 font-bold rounded-lg px-2.5 py-1 text-xs outline-none focus:border-emerald-500"
+                    className="erp-input min-h-0 py-1 px-2.5 text-xs font-semibold"
                   />
                 </div>
               </div>
@@ -297,6 +348,8 @@ export const PurchaseBillingModule: React.FC = () => {
                     onChange={(val) => {
                       const matched = suppliers.find(s => s.name === val) || suppliers[0];
                       if (matched) setSelectedSupplierId(matched.id);
+                      // Move to next field on selection
+                      setTimeout(() => nextFieldRef.current?.focus(), 0);
                     }}
                     options={suppliers.map(s => s.name)}
                     placeholder="Select Supplier..."
@@ -343,35 +396,35 @@ export const PurchaseBillingModule: React.FC = () => {
             )}
 
             {/* LIVE SUPPLIER BALANCE FORMULA BAR */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-950 dark:bg-slate-950 bg-slate-100 p-4 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200">
-              <div className="p-3.5 bg-slate-900 dark:bg-slate-900 bg-white rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-sm">
-                <span className="text-[10px] dark:text-slate-400 text-slate-600 uppercase font-bold block tracking-wider">Previous Outstanding</span>
-                <span className="text-xl font-black font-mono dark:text-slate-200 text-slate-900 mt-1 block">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-[#f8fafc] p-4 rounded-xl border border-[#e2e8f0]">
+              <div className="p-3.5 bg-white rounded-xl border border-[#e2e8f0] shadow-sm">
+                <span className="text-[10px] text-[#64748b] uppercase font-semibold block tracking-wider">Previous Outstanding</span>
+                <span className="text-xl font-semibold font-mono text-[#0f172a] mt-1 block">
                   ₹ {previousBalance.toLocaleString('en-IN')}
                 </span>
               </div>
-              <div className="p-3.5 bg-emerald-950/40 dark:bg-emerald-950/40 bg-emerald-50 rounded-xl border border-emerald-500/20 shadow-sm">
-                <span className="text-[10px] text-emerald-500 uppercase font-bold block tracking-wider">+ Net Today Bill</span>
-                <span className="text-xl font-black font-mono text-emerald-500 mt-1 block">
+              <div className="p-3.5 bg-[rgba(0,200,150,0.08)] rounded-xl border border-[rgba(0,200,150,0.25)] shadow-sm">
+                <span className="text-[10px] text-[#00c896] uppercase font-semibold block tracking-wider">+ Net Today Bill</span>
+                <span className="text-xl font-semibold font-mono text-[#00c896] mt-1 block">
                   ₹ {todayAmount.toLocaleString('en-IN')}
                 </span>
               </div>
-              <div className="p-3.5 bg-indigo-950/40 dark:bg-indigo-950/40 bg-indigo-50 rounded-xl border border-indigo-500/20 shadow-sm">
-                <span className="text-[10px] text-indigo-500 uppercase font-bold block tracking-wider">- Cash Paid Instantly</span>
+              <div className="p-3.5 bg-[rgba(0,174,239,0.08)] rounded-xl border border-[rgba(0,174,239,0.25)] shadow-sm">
+                <span className="text-[10px] text-[#00aeef] uppercase font-semibold block tracking-wider">- Cash Paid Instantly</span>
                 <div className="flex items-center mt-1">
-                  <span className="text-indigo-500 font-mono font-bold mr-1.5 text-base">₹</span>
+                  <span className="text-[#00aeef] font-mono font-semibold mr-1.5 text-base">₹</span>
                   <input
                     type="number"
                     value={paidAmountInput === 0 ? '' : paidAmountInput}
                     placeholder="0"
                     onChange={(e) => setPaidAmountInput(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-indigo-500/40 text-indigo-500 font-mono font-extrabold rounded-lg px-3 py-1 text-base outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full bg-white border border-[#00aeef]/40 text-[#0369a1] font-mono font-semibold rounded-lg px-3 py-1 text-base outline-none focus:ring-2 focus:ring-[#00aeef]/20 transition-all"
                   />
                 </div>
               </div>
-              <div className="p-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 text-slate-950 rounded-xl shadow-lg flex flex-col justify-center font-bold">
-                <span className="text-[10px] text-emerald-950 uppercase font-black block tracking-wider">Final Supplier Payable</span>
-                <span className="text-2xl font-black font-mono text-slate-950 mt-1 block font-black">
+              <div className="p-3.5 bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white rounded-xl shadow-lg flex flex-col justify-center font-semibold">
+                <span className="text-[10px] text-white/90 uppercase font-semibold block tracking-wider">Final Supplier Payable</span>
+                <span className="text-2xl font-semibold font-mono text-white mt-1 block">
                   ₹ {remainingBalance.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -379,27 +432,27 @@ export const PurchaseBillingModule: React.FC = () => {
           </div>
 
           {/* MAIN BILLING TABLE */}
-          <div className="bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-2xl overflow-hidden font-sans">
-            <div className="px-5 py-4 bg-slate-950 dark:bg-slate-950 bg-slate-100 border-b border-slate-800 dark:border-slate-800 border-slate-200 flex items-center justify-between">
+          <div className="erp-table-wrap rounded-2xl font-sans">
+            <div className="px-5 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-xs font-black uppercase tracking-wider dark:text-slate-300 text-slate-900">Purchased Fruit Items</span>
-                <span className="text-xs bg-slate-800 dark:bg-slate-800 bg-slate-200 dark:text-slate-300 text-slate-800 px-2 py-0.5 rounded-full font-mono font-bold border border-slate-700 dark:border-slate-700 border-slate-300">{items.length} items active</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#00c896] animate-pulse"></div>
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#475569]">Purchased Fruit Items</span>
+                <span className="text-xs bg-[#f1f5f9] text-[#475569] px-2 py-0.5 rounded-full font-mono font-semibold border border-[#e2e8f0]">{items.length} items active</span>
               </div>
               <button
                 type="button"
                 onClick={addItemRow}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+                className="erp-btn-primary flex items-center space-x-1 px-3 py-1.5 text-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Row (Alt+A)</span>
               </button>
             </div>
 
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <div className="overflow-x-auto">
+              <table className="erp-table text-left text-xs sm:text-sm">
                 <thead>
-                  <tr className="bg-slate-900/60 dark:bg-slate-900/60 bg-slate-50 dark:text-slate-300 text-slate-700 text-xs font-bold uppercase tracking-wider border-b border-slate-800 dark:border-slate-800 border-slate-200 select-none">
+                  <tr className="select-none">
                     <th className="py-3 px-4 w-48 min-w-[160px]">Fruit Category</th>
                     <th className="py-3 px-3 w-48 min-w-[160px]">Variety (Vakkal)</th>
                     <th className="py-3 px-3 w-28 text-right min-w-[100px]">Carets Qty</th>
@@ -409,13 +462,13 @@ export const PurchaseBillingModule: React.FC = () => {
                     <th className="py-3 px-3 w-20 text-center min-w-[90px]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80 dark:divide-slate-800/80 divide-slate-200 font-mono">
+                <tbody className="font-mono">
                   {items.map((it, idx) => {
                     const fruitObj = fruits.find(f => f.name === it.fruit) || fruits[0];
                     const varieties = fruitObj ? fruitObj.varieties : ['Standard'];
 
                     return (
-                      <tr key={it.id} className="hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-100 font-sans group focus-within:bg-slate-800/60 dark:focus-within:bg-slate-800/60 focus-within:bg-slate-100 transition-colors">
+                      <tr key={it.id} className="font-sans group focus-within:bg-[#f8fafc] transition-colors">
                         <td className="p-1 px-3" data-pinv-cell={`${idx}-0`}>
                           <Combobox
                             value={it.fruit}
@@ -450,7 +503,7 @@ export const PurchaseBillingModule: React.FC = () => {
                             placeholder="0"
                             onChange={(e) => handleItemChange(idx, 'caret', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, idx, 2)}
-                            className="w-full bg-slate-950 dark:bg-slate-950 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 dark:text-white text-slate-900 rounded-lg p-2 text-right text-xs outline-none font-mono font-semibold"
+                            className="w-full bg-white border border-[#dbe4ef] focus:border-[#00c896] text-[#0f172a] rounded-lg p-2 text-right text-xs outline-none font-mono font-semibold"
                           />
                         </td>
 
@@ -463,7 +516,7 @@ export const PurchaseBillingModule: React.FC = () => {
                             placeholder="0.0"
                             onChange={(e) => handleItemChange(idx, 'weight', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, idx, 3)}
-                            className="w-full bg-slate-950 dark:bg-slate-950 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 dark:text-white text-slate-900 rounded-lg p-2 text-right text-xs outline-none font-mono font-semibold"
+                            className="w-full bg-white border border-[#dbe4ef] focus:border-[#00c896] text-[#0f172a] rounded-lg p-2 text-right text-xs outline-none font-mono font-semibold"
                           />
                         </td>
 
@@ -476,11 +529,11 @@ export const PurchaseBillingModule: React.FC = () => {
                             placeholder="0.00"
                             onChange={(e) => handleItemChange(idx, 'rate', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, idx, 4)}
-                            className="w-full bg-slate-950 dark:bg-slate-950 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-500 font-bold rounded-lg p-2 text-right text-xs outline-none bg-emerald-950/20"
+                            className="w-full bg-white border border-[#dbe4ef] focus:border-[#00c896] text-[#0f766e] font-semibold rounded-lg p-2 text-right text-xs outline-none"
                           />
                         </td>
 
-                        <td className="p-2 px-4 text-right font-black font-mono text-emerald-500 bg-emerald-950/20 text-sm">
+                        <td className="p-2 px-4 text-right font-semibold font-mono text-[#0f766e] bg-[rgba(0,200,150,0.08)] text-sm">
                           ₹ {it.amount.toLocaleString('en-IN')}
                         </td>
 
@@ -490,7 +543,7 @@ export const PurchaseBillingModule: React.FC = () => {
                               type="button"
                               onClick={() => duplicateItemRow(idx)}
                               title="Duplicate Row"
-                              className="p-1.5 dark:text-slate-400 text-slate-600 hover:text-emerald-500 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-[#64748b] hover:text-[#0f766e] hover:bg-[#f1f5f9] rounded-lg transition-colors cursor-pointer"
                             >
                               <Copy className="w-3.5 h-3.5" />
                             </button>
@@ -499,7 +552,7 @@ export const PurchaseBillingModule: React.FC = () => {
                               onClick={() => removeItemRow(idx)}
                               disabled={items.length <= 1}
                               title="Remove Row"
-                              className="p-1.5 dark:text-slate-400 text-slate-600 hover:text-rose-500 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
+                              className="p-1.5 text-[#64748b] hover:text-rose-500 hover:bg-[#f1f5f9] rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -510,16 +563,16 @@ export const PurchaseBillingModule: React.FC = () => {
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-slate-950 dark:bg-slate-950 bg-slate-100 font-bold text-xs uppercase tracking-wider border-t border-slate-800 dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-900 font-sans">
-                    <td colSpan={2} className="py-4 px-4 text-right dark:text-slate-400 text-slate-600">Inline Subtotal:</td>
-                    <td className="py-4 px-3 text-right font-mono text-emerald-500 font-bold">{totalCarets} CRT</td>
-                    <td className="py-4 px-3 text-right font-mono text-emerald-500 font-bold">{totalWeight.toFixed(1)} KG</td>
-                    <td className="py-4 px-3 text-right dark:text-slate-400 text-slate-600">Avg: ₹{(totalWeight > 0 ? itemsSubtotal / totalWeight : 0).toFixed(1)}/kg</td>
-                    <td className="py-4 px-4 text-right font-mono text-emerald-500 font-black text-base bg-emerald-950/40 border-l border-emerald-500/20">
+                  <tr className="bg-[#f8fafc] font-semibold text-xs uppercase tracking-wider border-t border-[#edf2f7] text-[#475569] font-sans">
+                    <td colSpan={2} className="py-4 px-4 text-right text-[#64748b]">Inline Subtotal:</td>
+                    <td className="py-4 px-3 text-right font-mono text-[#0f766e]">{totalCarets} CRT</td>
+                    <td className="py-4 px-3 text-right font-mono text-[#0f766e]">{totalWeight.toFixed(1)} KG</td>
+                    <td className="py-4 px-3 text-right text-[#64748b]">Avg: ₹{(totalWeight > 0 ? itemsSubtotal / totalWeight : 0).toFixed(1)}/kg</td>
+                    <td className="py-4 px-4 text-right font-mono text-[#0f766e] text-base bg-[rgba(0,200,150,0.08)] border-l border-[rgba(0,200,150,0.2)]">
                       ₹ {itemsSubtotal.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-4 px-3 dark:text-slate-400 text-slate-600 text-[11px] font-normal">
-                      Use <kbd className="bg-slate-800 px-1 font-mono text-emerald-500">Enter</kbd> or <kbd className="bg-slate-800 px-1 font-mono text-emerald-500">Arrows</kbd>
+                    <td className="py-4 px-3 text-[#64748b] text-[11px] font-normal">
+                      Use <kbd className="bg-[#f1f5f9] px-1 font-mono text-[#0f766e]">Enter</kbd> or <kbd className="bg-[#f1f5f9] px-1 font-mono text-[#0f766e]">Arrows</kbd>
                     </td>
                   </tr>
                   {(freight > 0 || hamali > 0) && (
@@ -538,7 +591,7 @@ export const PurchaseBillingModule: React.FC = () => {
             </div>
 
             {/* Invoice Notes & Action */}
-            <div className="p-5 bg-slate-950 dark:bg-slate-950 bg-slate-100 border-t border-slate-800 dark:border-slate-800 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-5">
+            <div className="p-5 bg-[#f8fafc] border-t border-[#edf2f7] flex flex-col sm:flex-row items-center justify-between gap-5">
               <div className="flex items-center space-x-3 w-full sm:w-1/2">
                 <span className="text-xs dark:text-slate-400 text-slate-600 font-bold uppercase tracking-wider whitespace-nowrap">Remarks / Notes:</span>
                 <input
@@ -546,7 +599,7 @@ export const PurchaseBillingModule: React.FC = () => {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Farm gate delivery, quality check remarks..."
-                  className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-slate-200 text-slate-900 rounded-xl px-4 py-2 text-xs font-sans outline-none focus:border-emerald-500"
+                  className="erp-input w-full px-4 py-2 text-xs"
                 />
               </div>
 
@@ -554,14 +607,14 @@ export const PurchaseBillingModule: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleResetForm}
-                  className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer shadow"
+                  className="erp-btn-secondary px-6 py-3.5 text-xs"
                 >
                   Clear Form
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveInvoice}
-                  className="px-8 py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:opacity-95 text-white rounded-xl text-sm font-black shadow-xl shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                  className="erp-btn-primary px-8 py-3.5 text-sm flex items-center justify-center space-x-2"
                 >
                   <Save className="w-5 h-5 stroke-[2.5]" />
                   <span>COMPLETE PURCHASE & INCREMENT STOCK</span>
@@ -574,45 +627,76 @@ export const PurchaseBillingModule: React.FC = () => {
 
       {/* SUB-TAB 2: INVOICES LIST */}
       {activeSubTab === 'LIST' && (
-        <div className="bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-xl p-6 space-y-6 font-sans">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800 dark:border-slate-800 border-slate-200 pb-4">
+        <div className={`erp-table-wrap rounded-2xl p-6 space-y-6 font-sans ${isCompact ? 'table-compact' : ''}`}>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[#edf2f7] pb-4">
             <h2 className="text-base font-bold dark:text-white text-slate-900 flex items-center space-x-2">
               <span>Direct Purchase Invoices Archive</span>
               <span className="text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-mono px-2.5 py-0.5 rounded font-bold">
                 {filteredInvoices.length} Bills Synced
               </span>
             </h2>
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 dark:text-slate-400 text-slate-600 absolute left-3 top-3.5" />
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setIsCompact(v => !v)}
+                className="erp-btn-secondary px-3 py-2 text-xs"
+              >
+                {isCompact ? 'Comfortable' : 'Compact'}
+              </button>
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
               <input
+                ref={listSearchRef}
                 type="text"
                 placeholder="Search bill #, supplier name, fruit..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-9 pr-4 py-2.5 rounded-xl text-xs outline-none focus:border-emerald-500 placeholder-slate-500"
+                className="erp-input w-full pl-9 pr-4"
               />
+              </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto scroll-smooth scrollbar-thin scrollbar-thumb-slate-700">
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+          <div className="overflow-x-auto scroll-smooth">
+            <table className="erp-table text-left text-xs sm:text-sm">
               <thead>
-                <tr className="bg-slate-950 dark:bg-slate-950 bg-slate-100 dark:text-slate-300 text-slate-900 uppercase font-bold border-b border-slate-800 dark:border-slate-800 border-slate-200 text-[11px]">
-                  <th className="py-3.5 px-4">Bill # / Date</th>
+                <tr>
+                  <th className="py-3.5 px-4">
+                    <button type="button" onClick={() => handleSort('billNo')} className="inline-flex items-center gap-1">
+                      Bill # / Date <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
                   <th className="py-3.5 px-3">Supplier / Orchard</th>
                   <th className="py-3.5 px-3 text-right">Carets</th>
                   <th className="py-3.5 px-3 text-right">Weight (KG)</th>
-                  <th className="py-3.5 px-3 text-right font-black text-emerald-500">Bill Total</th>
+                  <th className="py-3.5 px-3 text-right font-black text-emerald-500">
+                    <button type="button" onClick={() => handleSort('todayAmount')} className="inline-flex items-center gap-1 ml-auto">
+                      Bill Total <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
                   <th className="py-3.5 px-3 text-right text-indigo-500">Cash Paid Now</th>
-                  <th className="py-3.5 px-3 text-right font-black dark:text-slate-100 text-slate-950">Final Balance</th>
-                  <th className="py-3.5 px-4 text-center">Actions / View</th>
+                  <th className="py-3.5 px-3 text-right font-black dark:text-slate-100 text-slate-950">
+                    <button type="button" onClick={() => handleSort('remainingBalance')} className="inline-flex items-center gap-1 ml-auto">
+                      Final Balance <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
+                  <th className="py-3.5 px-4 text-center sticky right-0 bg-[#f8fafc] z-[3]">Actions / View</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80 dark:divide-slate-800/80 divide-slate-200 font-mono">
-                {filteredInvoices.length === 0 ? (
+              <tbody className="font-mono">
+                {isListLoading ? (
                   <tr>
-                    <td colSpan={8} className="py-16 text-center dark:text-slate-500 text-slate-600 font-sans text-sm font-medium">
-                      No purchase bills found matching your search criteria.
+                    <td colSpan={8} className="p-0">
+                      <TableSkeleton rows={6} cols={8} compact={isCompact} />
+                    </td>
+                  </tr>
+                ) : filteredInvoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-0">
+                      <ModuleEmptyState
+                        title="No purchase bills found"
+                        subtitle="Try a different search or create a new purchase bill."
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -621,7 +705,7 @@ export const PurchaseBillingModule: React.FC = () => {
                     const weight = inv.items.reduce((s, it) => s + (Number(it.weight) || 0), 0);
 
                     return (
-                      <tr key={inv.id} className="hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors font-sans group">
+                      <tr key={inv.id} className="transition-colors font-sans group">
                         <td className="py-4 px-4 font-mono">
                           <span className="font-bold dark:text-slate-200 text-slate-900 block text-sm">{inv.billNo}</span>
                           <span className="text-[11px] dark:text-slate-400 text-slate-600 flex items-center mt-0.5 font-sans">
@@ -651,7 +735,7 @@ export const PurchaseBillingModule: React.FC = () => {
                         <td className="py-4 px-3 text-right font-black font-mono dark:text-slate-100 text-slate-950 text-sm">
                           ₹ {inv.remainingBalance.toLocaleString('en-IN')}
                         </td>
-                        <td className="py-4 px-4 text-center font-sans">
+                        <td className="py-4 px-4 text-center font-sans sticky right-0 bg-white z-[2] border-l border-[#edf2f7]">
                           <div className="flex items-center justify-center space-x-1.5">
                             <button
                               onClick={() => setPreviewInvoice(inv)}

@@ -1,9 +1,60 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TFC - Talha Fruit Co. | Wholesale Fruit Trading ERP</title>
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('apex_appearance');
+          var parsed = raw ? JSON.parse(raw) : {};
+          var pref = parsed.themePreference || localStorage.getItem('apex_theme') || 'system';
+          var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved = pref === 'system' ? (systemDark ? 'dark' : 'light') : pref;
+
+          var root = document.documentElement;
+          root.classList.toggle('dark', resolved === 'dark');
+          root.dataset.theme = resolved;
+          root.dataset.density = parsed.density || (localStorage.getItem('apex_compact') === 'true' ? 'compact' : 'comfortable');
+
+          var fontSize = parsed.fontSize || localStorage.getItem('apex_fontsize') || 'medium';
+          var fontSizeMap = { small: '13px', medium: '14px', large: '16px' };
+          root.style.setProperty('--font-size-base', fontSizeMap[fontSize] || '14px');
+
+          var fontFamily = parsed.fontFamily || 'inter';
+          var fontMap = {
+            inter: "'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif",
+            roboto: "'Roboto', 'Segoe UI', 'Inter', Arial, sans-serif",
+            segoe: "'Segoe UI', 'Inter', 'Roboto', Arial, sans-serif",
+          };
+          root.style.setProperty('--app-font-family', fontMap[fontFamily] || fontMap.inter);
+
+          var density = root.dataset.density;
+          var densityScale = { compact: '0.92', comfortable: '1', spacious: '1.12' };
+          var rowHeight = { compact: '34px', comfortable: '40px', spacious: '46px' };
+          var inputHeight = { compact: '34px', comfortable: '38px', spacious: '44px' };
+          var cardScale = { compact: '0.9', comfortable: '1', spacious: '1.1' };
+          root.style.setProperty('--density-scale', densityScale[density] || '1');
+          root.style.setProperty('--table-row-height', rowHeight[density] || '40px');
+          root.style.setProperty('--input-height', inputHeight[density] || '38px');
+          root.style.setProperty('--card-padding-scale', cardScale[density] || '1');
+
+          var accent = parsed.accentColor || localStorage.getItem('apex_accent') || '#6366f1';
+          root.style.setProperty('--accent-color', accent);
+
+          var animationsEnabled = parsed.animationsEnabled;
+          if (typeof animationsEnabled !== 'boolean') {
+            animationsEnabled = localStorage.getItem('apex_anims') !== 'false';
+          }
+          var reduced = !animationsEnabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          root.dataset.reducedMotion = reduced ? 'true' : 'false';
+          root.dataset.highContrast = window.matchMedia('(forced-colors: active), (prefers-contrast: more)').matches ? 'true' : 'false';
+        } catch (e) {
+          // Keep default styles if parsing fails.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

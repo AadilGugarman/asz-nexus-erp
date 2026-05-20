@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Users, Search, DollarSign, Printer, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Users, Search, DollarSign, Printer, ArrowUpRight, ArrowDownRight, ArrowUpDown } from 'lucide-react';
 import { PaymentReceipt } from '../types';
 import { useToast } from './ui/Toast';
 import { StatementPreview } from './ui/StatementPreview';
+import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 
 export const SupplierModule: React.FC = () => {
   const { suppliers, getSupplierLedger, addPayment } = useApp();
@@ -12,6 +13,10 @@ export const SupplierModule: React.FC = () => {
   const [selectedSupplierId, setSelectedSupplierId] = useState(suppliers[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
   const [showStatement, setShowStatement] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'runningBalance'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -19,6 +24,9 @@ export const SupplierModule: React.FC = () => {
   const [payMode, setPayMode] = useState<'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI'>('BANK_TRANSFER');
   const [payRefNo, setPayRefNo] = useState('');
   const [payNotes, setPayNotes] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const supplierListRef = useRef<HTMLDivElement>(null);
+  const [highlightedIdx, setHighlightedIdx] = useState<number>(-1);
 
   const selectedSupplier = useMemo(() => {
     return suppliers.find(s => s.id === selectedSupplierId) || suppliers[0];
@@ -28,6 +36,15 @@ export const SupplierModule: React.FC = () => {
     if (!selectedSupplier) return [];
     return getSupplierLedger(selectedSupplier.id);
   }, [selectedSupplier, getSupplierLedger]);
+
+  const sortedLedgerEntries = useMemo(() => {
+    return [...ledgerEntries].sort((a, b) => {
+      const factor = sortDir === 'asc' ? 1 : -1;
+      if (sortBy === 'amount') return (a.amount - b.amount) * factor;
+      if (sortBy === 'runningBalance') return (a.runningBalance - b.runningBalance) * factor;
+      return a.date.localeCompare(b.date) * factor;
+    });
+  }, [ledgerEntries, sortBy, sortDir]);
 
   const outstandingBalance = ledgerEntries.length > 0 ? ledgerEntries[0].runningBalance : (selectedSupplier?.previousBalance || 0);
 
@@ -66,29 +83,78 @@ export const SupplierModule: React.FC = () => {
     return suppliers.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.code.toLowerCase().includes(searchTerm.toLowerCase()) || s.city.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [suppliers, searchTerm]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (document.activeElement === searchInputRef.current || document.activeElement === supplierListRef.current) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setHighlightedIdx(idx => Math.min(idx + 1, filteredSuppliers.length - 1));
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setHighlightedIdx(idx => Math.max(idx - 1, 0));
+        } else if (e.key === 'Enter' && highlightedIdx >= 0 && filteredSuppliers[highlightedIdx]) {
+          e.preventDefault();
+          setSelectedSupplierId(filteredSuppliers[highlightedIdx].id);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          searchInputRef.current?.blur();
+          setHighlightedIdx(-1);
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [filteredSuppliers, highlightedIdx]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const t = window.setTimeout(() => setIsLoading(false), 180);
+    return () => window.clearTimeout(t);
+  }, [searchTerm, selectedSupplierId, sortBy, sortDir]);
+
+  const handleSort = (key: 'date' | 'amount' | 'runningBalance') => {
+    if (sortBy === key) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortBy(key);
+    setSortDir('desc');
+  };
+
   return (
     <div className="space-y-6 font-sans">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 dark:bg-slate-900 bg-white p-4 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-md">
+      <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div>
-          <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
-            <Users className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+          <h1 className="erp-title text-[1.1rem] flex items-center space-x-2.5">
+            <Users className="w-6 h-6 text-[#00c896]" />
             <span>SUPPLIER PURCHASE TRACKING & LEDGER</span>
           </h1>
-          <p className="text-xs dark:text-slate-400 text-slate-600 mt-0.5">Automated purchase history from incoming fruit loads & payment tracking</p>
+          <p className="erp-subtitle mt-1">Automated purchase history from incoming fruit loads and payment tracking</p>
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-950 dark:bg-slate-950 bg-slate-100 p-1.5 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200">
+        <div className="erp-surface flex items-center space-x-2 p-1.5">
           <button
             onClick={() => setShowPaymentModal(true)}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+            className="erp-btn-primary flex items-center space-x-1.5 px-4 py-2 text-xs"
           >
             <DollarSign className="w-4 h-4" />
             <span>Record Payment to Supplier</span>
           </button>
           <button
             onClick={handlePrintLedger}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-slate-800 dark:bg-slate-800 bg-white hover:bg-slate-700 dark:hover:bg-slate-700 hover:bg-slate-50 dark:text-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-700 dark:border-slate-700 border-slate-300 transition-colors cursor-pointer"
+            className="erp-btn-secondary flex items-center space-x-1.5 px-4 py-2 text-xs"
           >
             <Printer className="w-4 h-4" />
             <span>Print / Save Statement</span>
@@ -98,37 +164,51 @@ export const SupplierModule: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* LEFT COLUMN: SUPPLIER LIST */}
-        <div className="lg:col-span-1 bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-xl overflow-hidden flex flex-col h-[700px] no-print">
-          <div className="p-4 bg-slate-950 dark:bg-slate-950 bg-slate-100 border-b border-slate-800 dark:border-slate-800 border-slate-200">
+        <div className="lg:col-span-1 erp-table-wrap rounded-2xl flex flex-col h-[700px] no-print">
+          <div className="p-4 bg-[#f8fafc] border-b border-[#edf2f7]">
             <div className="relative">
-              <Search className="w-4 h-4 dark:text-slate-400 text-slate-600 absolute left-3 top-3.5" />
+              <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search supplier..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-9 pr-4 py-2.5 rounded-xl text-xs outline-none focus:border-emerald-500"
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setHighlightedIdx(0);
+                }}
+                className="erp-input w-full pl-9 pr-4"
+                onFocus={() => setHighlightedIdx(0)}
+                onBlur={() => setTimeout(() => setHighlightedIdx(-1), 100)}
+                autoComplete="off"
               />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-800 dark:divide-slate-800 divide-slate-100 scrollbar-thin">
-            {filteredSuppliers.map(s => {
+          <div ref={supplierListRef} className="flex-1 overflow-y-auto divide-y divide-[#edf2f7]" tabIndex={-1}>
+            {filteredSuppliers.length === 0 ? (
+              <ModuleEmptyState
+                title="No suppliers found"
+                subtitle="Try a different supplier name, code, or city."
+              />
+            ) : filteredSuppliers.map((s, idx) => {
               const isSelected = s.id === selectedSupplierId;
+              const isHighlighted = idx === highlightedIdx;
               return (
                 <div
                   key={s.id}
                   onClick={() => setSelectedSupplierId(s.id)}
                   className={`p-4 cursor-pointer transition-colors font-sans ${
-                    isSelected ? 'bg-emerald-500/15 border-l-4 border-emerald-500' : 'hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-50'
+                    isHighlighted ? 'bg-emerald-100/80 border-l-4 border-emerald-400' : isSelected ? 'bg-[rgba(0,200,150,0.12)] border-l-4 border-[#00c896]' : 'hover:bg-[#f8fafc]'
                   }`}
+                  tabIndex={-1}
                 >
                   <div className="flex items-center justify-between font-sans">
-                    <span className="font-bold dark:text-white text-slate-900 text-sm">{s.name}</span>
-                    <span className="text-[10px] font-mono bg-slate-800 dark:bg-slate-800 bg-slate-100 dark:text-slate-300 text-slate-700 px-1.5 py-0.5 rounded border border-slate-700 dark:border-slate-700 border-slate-200 font-bold">{s.code}</span>
+                    <span className="font-semibold text-[#0f172a] text-sm">{s.name}</span>
+                    <span className="text-[10px] font-mono bg-[#f1f5f9] text-[#475569] px-1.5 py-0.5 rounded border border-[#e2e8f0] font-semibold">{s.code}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-1.5 text-xs dark:text-slate-400 text-slate-600 font-sans">
+                  <div className="flex items-center justify-between mt-1.5 text-xs text-[#64748b] font-sans">
                     <span>{s.city}</span>
-                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">₹ {s.previousBalance.toLocaleString('en-IN')}</span>
+                    <span className="font-mono text-[#0f766e] font-semibold">₹ {s.previousBalance.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               );
@@ -137,76 +217,103 @@ export const SupplierModule: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: SUPPLIER LEDGER STATEMENT */}
-        <div className="lg:col-span-3 bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-xl p-6 flex flex-col space-y-6 printable-patti font-sans">
+        <div className={`lg:col-span-3 erp-panel rounded-2xl p-6 flex flex-col space-y-6 printable-patti font-sans ${isCompact ? 'table-compact' : ''}`}>
           {selectedSupplier ? (
             <>
               {/* Supplier Profile Info Header */}
-              <div className="bg-slate-950 dark:bg-slate-950 bg-slate-50 p-6 rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-sans">
+              <div className="bg-[#f8fafc] p-6 rounded-2xl border border-[#e2e8f0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-sans">
                 <div>
                   <div className="flex items-center space-x-2.5 font-sans">
-                    <h2 className="text-2xl font-black dark:text-white text-slate-900">{selectedSupplier.name}</h2>
-                    <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold">
+                    <h2 className="text-2xl font-semibold text-[#0f172a]">{selectedSupplier.name}</h2>
+                    <span className="bg-[rgba(0,200,150,0.12)] text-[#0f766e] border border-[rgba(0,200,150,0.28)] px-2.5 py-0.5 rounded-lg text-xs font-mono font-semibold">
                       {selectedSupplier.code}
                     </span>
                   </div>
-                  <p className="text-xs dark:text-slate-400 text-slate-600 mt-1 font-sans">Location: {selectedSupplier.city} | Contact: {selectedSupplier.phone}</p>
+                  <p className="text-xs text-[#64748b] mt-1 font-sans">Location: {selectedSupplier.city} | Contact: {selectedSupplier.phone}</p>
                 </div>
 
-                <div className="bg-slate-900 dark:bg-slate-900 bg-white p-4 rounded-xl border border-slate-700 dark:border-slate-700 border-slate-200 text-right min-w-[220px] shadow-sm">
-                  <span className="text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 block">Total Outstanding Payable</span>
-                  <span className={`text-2xl font-black font-mono mt-0.5 block ${outstandingBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] text-right min-w-[220px] shadow-sm">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b] block">Total Outstanding Payable</span>
+                  <span className={`text-2xl font-semibold font-mono mt-0.5 block ${outstandingBalance >= 0 ? 'text-[#0f766e]' : 'text-rose-600'}`}>
                     ₹ {outstandingBalance.toLocaleString('en-IN')}
                   </span>
-                  <span className="text-[10px] dark:text-slate-400 text-slate-500 block mt-0.5 font-medium">{outstandingBalance >= 0 ? 'Credit in favor' : 'Advance Paid'}</span>
+                  <span className="text-[10px] text-[#94a3b8] block mt-0.5 font-medium">{outstandingBalance >= 0 ? 'Credit in favor' : 'Advance Paid'}</span>
                 </div>
               </div>
 
               {/* Ledger Statement Table */}
-              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 font-sans">
-                <table className="w-full text-left border-collapse text-xs sm:text-sm font-sans">
+              <div className="flex items-center justify-end">
+                <button type="button" onClick={() => setIsCompact(v => !v)} className="erp-btn-secondary px-3 py-2 text-xs">
+                  {isCompact ? 'Comfortable' : 'Compact'}
+                </button>
+              </div>
+              <div className="erp-table-wrap overflow-x-auto font-sans">
+                <table className="erp-table text-left text-xs sm:text-sm font-sans">
                   <thead>
-                    <tr className="bg-slate-950 dark:bg-slate-950 bg-slate-100 dark:text-slate-300 text-slate-900 uppercase font-bold border-b border-slate-800 dark:border-slate-800 border-slate-200 text-[11px]">
-                      <th className="py-3.5 px-4 w-28">Date</th>
+                    <tr>
+                      <th className="py-3.5 px-4 w-28">
+                        <button type="button" onClick={() => handleSort('date')} className="inline-flex items-center gap-1">
+                          Date <ArrowUpDown className="w-3.5 h-3.5" />
+                        </button>
+                      </th>
                       <th className="py-3.5 px-3 w-32">Type</th>
                       <th className="py-3.5 px-3">Reference / Description</th>
                       <th className="py-3.5 px-3 text-right">Weight / Qty</th>
                       <th className="py-3.5 px-3 text-right">Rate</th>
-                      <th className="py-3.5 px-3 text-right text-rose-600 dark:text-rose-400">Purchase (Dr)</th>
+                      <th className="py-3.5 px-3 text-right text-rose-600 dark:text-rose-400">
+                        <button type="button" onClick={() => handleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
+                          Purchase (Dr) <ArrowUpDown className="w-3.5 h-3.5" />
+                        </button>
+                      </th>
                       <th className="py-3.5 px-3 text-right text-emerald-600 dark:text-emerald-400">Payment (Cr)</th>
-                      <th className="py-3.5 px-4 text-right font-black text-teal-600 dark:text-teal-400">Running Balance</th>
+                      <th className="py-3.5 px-4 text-right font-black text-teal-600 dark:text-teal-400">
+                        <button type="button" onClick={() => handleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
+                          Running Balance <ArrowUpDown className="w-3.5 h-3.5" />
+                        </button>
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/80 dark:divide-slate-800/80 divide-slate-200 font-mono">
-                    {ledgerEntries.map(entry => {
+                  <tbody className="font-mono">
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={8} className="p-0"><TableSkeleton rows={8} cols={8} compact={isCompact} /></td>
+                      </tr>
+                    ) : sortedLedgerEntries.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-0">
+                          <ModuleEmptyState title="No ledger entries" subtitle="Supplier transactions will appear here once purchases or payments are recorded." />
+                        </td>
+                      </tr>
+                    ) : sortedLedgerEntries.map(entry => {
                       const isPurchase = entry.type === 'PURCHASE_VEHICLE' || entry.type === 'PURCHASE_BILL';
                       const isPayment = entry.type === 'PAYMENT';
                       const isOpening = entry.type === 'OPENING';
 
                       return (
-                        <tr key={entry.id} className="hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors font-sans group">
-                          <td className="py-4 px-4 font-mono font-medium dark:text-slate-300 text-slate-800 text-xs">{entry.date}</td>
+                        <tr key={entry.id} className="font-sans group">
+                          <td className="py-4 px-4 font-mono font-medium text-[#64748b] text-xs">{entry.date}</td>
                           <td className="py-4 px-3 font-sans">
-                            {isOpening && <span className="bg-slate-800 dark:bg-slate-800 bg-slate-200 dark:text-slate-300 text-slate-800 px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono">OPENING</span>}
-                            {isPurchase && <span className="bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center w-max font-mono"><ArrowUpRight className="w-3.5 h-3.5 mr-1" /> {entry.type === 'PURCHASE_VEHICLE' ? 'VEH INWARD' : 'DIRECT BILL'}</span>}
-                            {isPayment && <span className="bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center w-max font-mono"><ArrowDownRight className="w-3.5 h-3.5 mr-1" /> PAYMENT</span>}
+                            {isOpening && <span className="bg-[#f1f5f9] text-[#475569] px-2.5 py-1 rounded-lg text-[10px] font-semibold font-mono">OPENING</span>}
+                            {isPurchase && <span className="bg-rose-500/10 text-rose-700 border border-rose-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowUpRight className="w-3.5 h-3.5 mr-1" /> {entry.type === 'PURCHASE_VEHICLE' ? 'VEH INWARD' : 'DIRECT BILL'}</span>}
+                            {isPayment && <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowDownRight className="w-3.5 h-3.5 mr-1" /> PAYMENT</span>}
                           </td>
                           <td className="py-4 px-3 max-w-[200px] font-sans">
-                            <span className="font-bold dark:text-white text-slate-950 block text-sm">{entry.referenceNo || 'Account Entry'}</span>
-                            <span className="text-[11px] dark:text-slate-400 text-slate-600 block truncate font-medium">{entry.variety || entry.note}</span>
+                            <span className="font-semibold text-[#0f172a] block text-sm">{entry.referenceNo || 'Account Entry'}</span>
+                            <span className="text-[11px] text-[#64748b] block truncate font-medium">{entry.variety || entry.note}</span>
                           </td>
-                          <td className="py-4 px-3 text-right font-mono dark:text-slate-300 text-slate-800 font-semibold">
+                          <td className="py-4 px-3 text-right font-mono text-[#334155] font-semibold">
                             {entry.weightKg ? `${entry.weightKg} KG` : '-'}
                           </td>
-                          <td className="py-4 px-3 text-right font-mono dark:text-slate-300 text-slate-800 font-semibold">
+                          <td className="py-4 px-3 text-right font-mono text-[#334155] font-semibold">
                             {entry.rate ? `₹${entry.rate}` : '-'}
                           </td>
-                          <td className="py-4 px-3 text-right font-mono font-extrabold text-rose-600 dark:text-rose-400 text-sm">
+                          <td className="py-4 px-3 text-right font-mono font-semibold text-rose-600 text-sm">
                             {isPurchase ? `₹ ${entry.amount.toLocaleString('en-IN')}` : '-'}
                           </td>
-                          <td className="py-4 px-3 text-right font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                          <td className="py-4 px-3 text-right font-mono font-semibold text-emerald-600 text-sm">
                             {isPayment ? `₹ ${Math.abs(entry.amount).toLocaleString('en-IN')}` : '-'}
                           </td>
-                          <td className="py-4 px-4 text-right font-mono font-black text-teal-600 dark:text-teal-400 bg-teal-950/10 text-sm">
+                          <td className="py-4 px-4 text-right font-mono font-semibold text-[#00aeef] bg-[rgba(0,174,239,0.06)] text-sm">
                             ₹ {entry.runningBalance.toLocaleString('en-IN')}
                           </td>
                         </tr>
@@ -217,9 +324,10 @@ export const SupplierModule: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="py-24 text-center dark:text-slate-500 text-slate-400 font-sans text-sm font-medium">
-              Select a supplier from the left sidebar to view their complete automated purchase ledger.
-            </div>
+            <ModuleEmptyState
+              title="No supplier selected"
+              subtitle="Select a supplier from the left panel to view complete automated ledger details."
+            />
           )}
         </div>
       </div>
@@ -277,7 +385,7 @@ export const SupplierModule: React.FC = () => {
       )}
 
       {/* Statement Preview */}
-      <StatementPreview isOpen={showStatement} onClose={() => setShowStatement(false)} title="Supplier Ledger Statement" subtitle={selectedSupplier ? `${selectedSupplier.name} · ${selectedSupplier.code}` : ''} accentColor="#10b981">
+      <StatementPreview isOpen={showStatement} onClose={() => setShowStatement(false)} title="Supplier Ledger Statement" subtitle={selectedSupplier ? `${selectedSupplier.name} · ${selectedSupplier.code}` : ''}>
         {selectedSupplier && (
           <div className="space-y-6">
             {/* Party Info */}

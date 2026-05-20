@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { UserCheck, Search, DollarSign, Printer, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { UserCheck, Search, DollarSign, Printer, ArrowUpRight, ArrowDownRight, ArrowUpDown } from 'lucide-react';
 import { PaymentReceipt } from '../types';
 import { useToast } from './ui/Toast';
 import { StatementPreview } from './ui/StatementPreview';
+import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 
 export const CustomerModule: React.FC = () => {
   const { customers, getCustomerLedger, addPayment } = useApp();
@@ -12,6 +13,10 @@ export const CustomerModule: React.FC = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
   const [showStatement, setShowStatement] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'runningBalance'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Payment Receipt Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -19,6 +24,9 @@ export const CustomerModule: React.FC = () => {
   const [payMode, setPayMode] = useState<'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI'>('UPI');
   const [payRefNo, setPayRefNo] = useState('');
   const [payNotes, setPayNotes] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const customerListRef = useRef<HTMLDivElement>(null);
+  const [highlightedIdx, setHighlightedIdx] = useState<number>(-1);
 
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.id === selectedCustomerId) || customers[0];
@@ -28,6 +36,15 @@ export const CustomerModule: React.FC = () => {
     if (!selectedCustomer) return [];
     return getCustomerLedger(selectedCustomer.id);
   }, [selectedCustomer, getCustomerLedger]);
+
+  const sortedLedgerEntries = useMemo(() => {
+    return [...ledgerEntries].sort((a, b) => {
+      const factor = sortDir === 'asc' ? 1 : -1;
+      if (sortBy === 'amount') return (a.amount - b.amount) * factor;
+      if (sortBy === 'runningBalance') return (a.runningBalance - b.runningBalance) * factor;
+      return a.date.localeCompare(b.date) * factor;
+    });
+  }, [ledgerEntries, sortBy, sortDir]);
 
   const outstandingBalance = ledgerEntries.length > 0 ? ledgerEntries[0].runningBalance : (selectedCustomer?.previousBalance || 0);
 
@@ -66,29 +83,78 @@ export const CustomerModule: React.FC = () => {
     return customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.city.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [customers, searchTerm]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (document.activeElement === searchInputRef.current || document.activeElement === customerListRef.current) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setHighlightedIdx(idx => Math.min(idx + 1, filteredCustomers.length - 1));
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setHighlightedIdx(idx => Math.max(idx - 1, 0));
+        } else if (e.key === 'Enter' && highlightedIdx >= 0 && filteredCustomers[highlightedIdx]) {
+          e.preventDefault();
+          setSelectedCustomerId(filteredCustomers[highlightedIdx].id);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          searchInputRef.current?.blur();
+          setHighlightedIdx(-1);
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [filteredCustomers, highlightedIdx]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const t = window.setTimeout(() => setIsLoading(false), 180);
+    return () => window.clearTimeout(t);
+  }, [searchTerm, selectedCustomerId, sortBy, sortDir]);
+
+  const handleSort = (key: 'date' | 'amount' | 'runningBalance') => {
+    if (sortBy === key) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortBy(key);
+    setSortDir('desc');
+  };
+
   return (
     <div className="space-y-6 font-sans">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 dark:bg-slate-900 bg-white p-4 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-md">
+      <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div>
-          <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
-            <UserCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <h1 className="erp-title text-[1.1rem] flex items-center space-x-2.5">
+            <UserCheck className="w-6 h-6 text-[#00aeef]" />
             <span>CUSTOMER BALANCE SYSTEM & LEDGER</span>
           </h1>
-          <p className="text-xs dark:text-slate-400 text-slate-600 mt-0.5">Automated balance tracking from sales billing & payment receipts</p>
+          <p className="erp-subtitle mt-1">Automated balance tracking from sales billing and payment receipts</p>
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-950 dark:bg-slate-950 bg-slate-100 p-1.5 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200">
+        <div className="erp-surface flex items-center space-x-2 p-1.5">
           <button
             onClick={() => setShowPaymentModal(true)}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+            className="erp-btn-primary flex items-center space-x-1.5 px-4 py-2 text-xs"
           >
             <DollarSign className="w-4 h-4" />
             <span>Receive Payment from Customer</span>
           </button>
           <button
             onClick={handlePrintLedger}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-slate-800 dark:bg-slate-800 bg-white hover:bg-slate-700 dark:hover:bg-slate-700 hover:bg-slate-50 dark:text-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-700 dark:border-slate-700 border-slate-300 transition-colors cursor-pointer"
+            className="erp-btn-secondary flex items-center space-x-1.5 px-4 py-2 text-xs"
           >
             <Printer className="w-4 h-4" />
             <span>Print / Save Statement</span>
@@ -98,36 +164,50 @@ export const CustomerModule: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 font-sans">
         {/* LEFT COLUMN: CUSTOMERS LIST */}
-        <div className="lg:col-span-1 bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-xl overflow-hidden flex flex-col h-[700px] no-print">
-          <div className="p-4 bg-slate-950 dark:bg-slate-950 bg-slate-100 border-b border-slate-800 dark:border-slate-800 border-slate-200">
+        <div className="lg:col-span-1 erp-table-wrap rounded-2xl overflow-hidden flex flex-col h-[700px] no-print">
+          <div className="p-4 bg-[#f8fafc] border-b border-[#edf2f7]">
             <div className="relative">
-              <Search className="w-4 h-4 dark:text-slate-400 text-slate-600 absolute left-3 top-3.5" />
+              <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search buyer/customer..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-9 pr-4 py-2.5 rounded-xl text-xs outline-none focus:border-indigo-500"
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setHighlightedIdx(0);
+                }}
+                className="erp-input w-full pl-9 pr-4"
+                onFocus={() => setHighlightedIdx(0)}
+                onBlur={() => setTimeout(() => setHighlightedIdx(-1), 100)}
+                autoComplete="off"
               />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-800 dark:divide-slate-800 divide-slate-100 scrollbar-thin">
-            {filteredCustomers.map(c => {
+          <div ref={customerListRef} className="flex-1 overflow-y-auto divide-y divide-[#edf2f7]" tabIndex={-1}>
+            {filteredCustomers.length === 0 ? (
+              <ModuleEmptyState
+                title="No customers found"
+                subtitle="Try a different buyer name or city."
+              />
+            ) : filteredCustomers.map((c, idx) => {
               const isSelected = c.id === selectedCustomerId;
+              const isHighlighted = idx === highlightedIdx;
               return (
                 <div
                   key={c.id}
                   onClick={() => setSelectedCustomerId(c.id)}
                   className={`p-4 cursor-pointer transition-colors font-sans ${
-                    isSelected ? 'bg-indigo-500/15 border-l-4 border-indigo-500' : 'hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-50'
+                    isHighlighted ? 'bg-sky-100/80 border-l-4 border-sky-400' : isSelected ? 'bg-[rgba(0,174,239,0.12)] border-l-4 border-[#00aeef]' : 'hover:bg-[#f8fafc]'
                   }`}
+                  tabIndex={-1}
                 >
                   <div className="flex items-center justify-between font-sans">
-                    <span className="font-bold dark:text-white text-slate-900 text-sm">{c.name}</span>
+                    <span className="font-semibold text-[#0f172a] text-sm">{c.name}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-1.5 text-xs dark:text-slate-400 text-slate-600 font-sans">
+                  <div className="flex items-center justify-between mt-1.5 text-xs text-[#64748b] font-sans">
                     <span>{c.city}</span>
-                    <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">₹ {c.previousBalance.toLocaleString('en-IN')}</span>
+                    <span className="font-mono text-[#0369a1] font-semibold">₹ {c.previousBalance.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               );
@@ -136,63 +216,90 @@ export const CustomerModule: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: CUSTOMER ACCOUNT LEDGER */}
-        <div className="lg:col-span-3 bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-xl p-6 flex flex-col space-y-6 printable-patti font-sans">
+        <div className={`lg:col-span-3 erp-panel rounded-2xl p-6 flex flex-col space-y-6 printable-patti font-sans ${isCompact ? 'table-compact' : ''}`}>
           {selectedCustomer ? (
             <>
               {/* Customer Header Info */}
-              <div className="bg-slate-950 dark:bg-slate-950 bg-slate-50 p-6 rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-sans">
+              <div className="bg-[#f8fafc] p-6 rounded-2xl border border-[#e2e8f0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-sans">
                 <div>
-                  <h2 className="text-2xl font-black dark:text-white text-slate-900">{selectedCustomer.name}</h2>
-                  <p className="text-xs dark:text-slate-400 text-slate-600 mt-1 font-sans">Location: {selectedCustomer.city} | Contact: {selectedCustomer.phone}</p>
+                  <h2 className="text-2xl font-semibold text-[#0f172a]">{selectedCustomer.name}</h2>
+                  <p className="text-xs text-[#64748b] mt-1 font-sans">Location: {selectedCustomer.city} | Contact: {selectedCustomer.phone}</p>
                 </div>
 
-                <div className="bg-slate-900 dark:bg-slate-900 bg-white p-4 rounded-xl border border-slate-700 dark:border-slate-700 border-slate-200 text-right min-w-[220px] shadow-sm">
-                  <span className="text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 block">Total Outstanding Receivable</span>
-                  <span className={`text-2xl font-black font-mono mt-0.5 block ${outstandingBalance >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] text-right min-w-[220px] shadow-sm">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b] block">Total Outstanding Receivable</span>
+                  <span className={`text-2xl font-semibold font-mono mt-0.5 block ${outstandingBalance >= 0 ? 'text-[#0369a1]' : 'text-[#0f766e]'}`}>
                     ₹ {outstandingBalance.toLocaleString('en-IN')}
                   </span>
-                  <span className="text-[10px] dark:text-slate-400 text-slate-500 block mt-0.5 font-medium">{outstandingBalance >= 0 ? 'Due from Customer' : 'Advance Credit'}</span>
+                  <span className="text-[10px] text-[#94a3b8] block mt-0.5 font-medium">{outstandingBalance >= 0 ? 'Due from Customer' : 'Advance Credit'}</span>
                 </div>
               </div>
 
               {/* Table */}
-              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 font-sans">
-                <table className="w-full text-left border-collapse text-xs sm:text-sm font-sans">
+              <div className="flex items-center justify-end">
+                <button type="button" onClick={() => setIsCompact(v => !v)} className="erp-btn-secondary px-3 py-2 text-xs">
+                  {isCompact ? 'Comfortable' : 'Compact'}
+                </button>
+              </div>
+              <div className="erp-table-wrap overflow-x-auto font-sans">
+                <table className="erp-table text-left text-xs sm:text-sm font-sans">
                   <thead>
-                    <tr className="bg-slate-950 dark:bg-slate-950 bg-slate-100 dark:text-slate-300 text-slate-900 uppercase font-bold border-b border-slate-800 dark:border-slate-800 border-slate-200 text-[11px]">
-                      <th className="py-3.5 px-4 w-28">Date</th>
+                    <tr>
+                      <th className="py-3.5 px-4 w-28">
+                        <button type="button" onClick={() => handleSort('date')} className="inline-flex items-center gap-1">
+                          Date <ArrowUpDown className="w-3.5 h-3.5" />
+                        </button>
+                      </th>
                       <th className="py-3.5 px-3 w-32">Type</th>
                       <th className="py-3.5 px-3">Invoice # / Description</th>
-                      <th className="py-3.5 px-3 text-right text-indigo-600 dark:text-indigo-400">Invoice Amount (Dr)</th>
+                      <th className="py-3.5 px-3 text-right text-indigo-600 dark:text-indigo-400">
+                        <button type="button" onClick={() => handleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
+                          Invoice Amount (Dr) <ArrowUpDown className="w-3.5 h-3.5" />
+                        </button>
+                      </th>
                       <th className="py-3.5 px-3 text-right text-emerald-600 dark:text-emerald-400">Payment Recd (Cr)</th>
-                      <th className="py-3.5 px-4 text-right font-black text-teal-600 dark:text-teal-400">Running Balance</th>
+                      <th className="py-3.5 px-4 text-right font-black text-teal-600 dark:text-teal-400">
+                        <button type="button" onClick={() => handleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
+                          Running Balance <ArrowUpDown className="w-3.5 h-3.5" />
+                        </button>
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/80 dark:divide-slate-800/80 divide-slate-200 font-mono">
-                    {ledgerEntries.map(entry => {
+                  <tbody className="font-mono">
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={6} className="p-0"><TableSkeleton rows={8} cols={6} compact={isCompact} /></td>
+                      </tr>
+                    ) : sortedLedgerEntries.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-0">
+                          <ModuleEmptyState title="No ledger entries" subtitle="Customer invoices and receipts will appear here automatically." />
+                        </td>
+                      </tr>
+                    ) : sortedLedgerEntries.map(entry => {
                       const isInvoice = entry.type === 'INVOICE';
                       const isPayment = entry.type === 'PAYMENT';
                       const isOpening = entry.type === 'OPENING';
 
                       return (
-                        <tr key={entry.id} className="hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors font-sans group">
-                          <td className="py-4 px-4 font-mono font-medium dark:text-slate-300 text-slate-800 text-xs">{entry.date}</td>
+                        <tr key={entry.id} className="font-sans group">
+                          <td className="py-4 px-4 font-mono font-medium text-[#64748b] text-xs">{entry.date}</td>
                           <td className="py-4 px-3 font-sans">
-                            {isOpening && <span className="bg-slate-800 dark:bg-slate-800 bg-slate-200 dark:text-slate-300 text-slate-800 px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono">OPENING</span>}
-                            {isInvoice && <span className="bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center w-max font-mono"><ArrowUpRight className="w-3.5 h-3.5 mr-1 text-indigo-600 dark:text-indigo-400" /> BILL INVOICE</span>}
-                            {isPayment && <span className="bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center w-max font-mono"><ArrowDownRight className="w-3.5 h-3.5 mr-1 text-emerald-600 dark:text-emerald-400" /> RECD PAYMENT</span>}
+                            {isOpening && <span className="bg-[#f1f5f9] text-[#475569] px-2.5 py-1 rounded-lg text-[10px] font-semibold font-mono">OPENING</span>}
+                            {isInvoice && <span className="bg-sky-500/10 text-sky-700 border border-sky-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowUpRight className="w-3.5 h-3.5 mr-1 text-sky-600" /> BILL INVOICE</span>}
+                            {isPayment && <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowDownRight className="w-3.5 h-3.5 mr-1 text-emerald-600" /> RECD PAYMENT</span>}
                           </td>
                           <td className="py-4 px-3 max-w-[240px] font-sans">
-                            <span className="font-bold dark:text-white text-slate-950 block text-sm">{entry.referenceNo || 'Account Balance'}</span>
-                            <span className="text-[11px] dark:text-slate-400 text-slate-600 block truncate font-medium">{entry.note}</span>
+                            <span className="font-semibold text-[#0f172a] block text-sm">{entry.referenceNo || 'Account Balance'}</span>
+                            <span className="text-[11px] text-[#64748b] block truncate font-medium">{entry.note}</span>
                           </td>
-                          <td className="py-4 px-3 text-right font-mono font-extrabold text-indigo-600 dark:text-indigo-400 text-sm">
+                          <td className="py-4 px-3 text-right font-mono font-semibold text-sky-700 text-sm">
                             {isInvoice ? `₹ ${entry.amount.toLocaleString('en-IN')}` : '-'}
                           </td>
-                          <td className="py-4 px-3 text-right font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                          <td className="py-4 px-3 text-right font-mono font-semibold text-emerald-600 text-sm">
                             {isPayment ? `₹ ${Math.abs(entry.amount).toLocaleString('en-IN')}` : '-'}
                           </td>
-                          <td className="py-4 px-4 text-right font-mono font-black text-indigo-600 dark:text-indigo-400 bg-indigo-950/10 text-sm">
+                          <td className="py-4 px-4 text-right font-mono font-semibold text-[#0369a1] bg-[rgba(0,174,239,0.06)] text-sm">
                             ₹ {entry.runningBalance.toLocaleString('en-IN')}
                           </td>
                         </tr>
@@ -203,9 +310,10 @@ export const CustomerModule: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="py-24 text-center dark:text-slate-500 text-slate-400 font-sans text-sm font-medium">
-              Select a customer from the left sidebar to view their complete automated balance ledger.
-            </div>
+            <ModuleEmptyState
+              title="No customer selected"
+              subtitle="Select a customer from the left panel to view full balance movement history."
+            />
           )}
         </div>
       </div>
@@ -263,7 +371,7 @@ export const CustomerModule: React.FC = () => {
       )}
 
       {/* Statement Preview */}
-      <StatementPreview isOpen={showStatement} onClose={() => setShowStatement(false)} title="Customer Account Statement" subtitle={selectedCustomer ? `${selectedCustomer.name} · ${selectedCustomer.city}` : ''} accentColor="#6366f1">
+      <StatementPreview isOpen={showStatement} onClose={() => setShowStatement(false)} title="Customer Account Statement" subtitle={selectedCustomer ? `${selectedCustomer.name} · ${selectedCustomer.city}` : ''}>
         {selectedCustomer && (
           <div className="space-y-6">
             {/* Party Info */}

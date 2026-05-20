@@ -24,6 +24,10 @@ export const ROUTES = {
   // ── Auth (public) ─────────────────────────────────────────────────────────
   login: '/login',
   setup: '/setup',
+  lock: '/lock',
+
+    // ── Onboarding (authenticated, no-company guard) ──────────────────────────
+    companySetup: '/company-setup',
 
   // ── Fallback ──────────────────────────────────────────────────────────────
   notFound: '/404',

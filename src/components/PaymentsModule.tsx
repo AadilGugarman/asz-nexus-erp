@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentReceipt } from '../types';
 import { Combobox } from './ui/Combobox';
@@ -7,8 +7,9 @@ import { useConfirmDialog } from './ui/ConfirmDialog';
 import {
   Wallet, Plus, Search, Trash2, Eye, Calendar, ArrowUpRight, ArrowDownRight,
   DollarSign, CreditCard, Banknote, Smartphone, FileText,
-  Printer, X, Building2, Users, UserCheck
+  Printer, X, Building2, Users, UserCheck, ArrowUpDown
 } from 'lucide-react';
+import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 
 const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   CASH: { label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" />, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
@@ -25,6 +26,10 @@ export const PaymentsModule: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'NEW' | 'LIST'>('LIST');
   const [previewPayment, setPreviewPayment] = useState<PaymentReceipt | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
+  const [isListLoading, setIsListLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'partyName'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // ── New Payment Form State ──────────
   const [direction, setDirection] = useState<'PAID_TO_SUPPLIER' | 'RECEIVED_FROM_CUSTOMER'>('PAID_TO_SUPPLIER');
@@ -39,6 +44,11 @@ export const PaymentsModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'SUPPLIER' | 'CUSTOMER'>('ALL');
   const [filterMode, setFilterMode] = useState<'ALL' | 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI'>('ALL');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const referenceRef = useRef<HTMLInputElement>(null);
+  const notesRef = useRef<HTMLInputElement>(null);
 
   // ── Party options based on direction ─
   const partyOptions = useMemo(() => {
@@ -62,7 +72,7 @@ export const PaymentsModule: React.FC = () => {
 
   // ── Filtered Payments ───────────────
   const filteredPayments = useMemo(() => {
-    return payments.filter(p => {
+    const filtered = payments.filter(p => {
       const matchSearch =
         p.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.referenceNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,7 +82,50 @@ export const PaymentsModule: React.FC = () => {
       const matchMode = filterMode === 'ALL' || p.paymentMode === filterMode;
       return matchSearch && matchType && matchMode;
     });
-  }, [payments, searchTerm, filterType, filterMode]);
+
+    return [...filtered].sort((a, b) => {
+      const factor = sortDir === 'asc' ? 1 : -1;
+      if (sortBy === 'amount') return (a.amount - b.amount) * factor;
+      if (sortBy === 'partyName') return a.partyName.localeCompare(b.partyName) * factor;
+      return a.date.localeCompare(b.date) * factor;
+    });
+  }, [payments, searchTerm, filterType, filterMode, sortBy, sortDir]);
+
+  useEffect(() => {
+    if (activeTab !== 'LIST') return;
+    setIsListLoading(true);
+    const t = window.setTimeout(() => setIsListLoading(false), 180);
+    return () => window.clearTimeout(t);
+  }, [activeTab, searchTerm, filterType, filterMode, sortBy, sortDir]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && activeTab === 'LIST') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setActiveTab('NEW');
+        amountRef.current?.focus();
+      }
+      if (e.ctrlKey && e.key === 'Enter' && activeTab === 'NEW') {
+        e.preventDefault();
+        handleSavePayment();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeTab, direction, selectedPartyName, amount, paymentMode, referenceNo, notes, payDate]);
+
+  const handleSort = (field: 'date' | 'amount' | 'partyName') => {
+    if (sortBy === field) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortBy(field);
+    setSortDir('desc');
+  };
 
   // ── Form Submit ─────────────────────
   const handleSavePayment = () => {
@@ -134,22 +187,22 @@ export const PaymentsModule: React.FC = () => {
     <div className="space-y-6 font-sans">
 
       {/* ── TOP HEADER ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-md">
+      <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div>
-          <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
-            <Wallet className="w-6 h-6 text-amber-500" />
+          <h1 className="erp-title text-[1.1rem] flex items-center space-x-2.5">
+            <Wallet className="w-6 h-6 text-[#00aeef]" />
             <span>PAYMENTS & RECEIPTS CENTER</span>
           </h1>
-          <p className="text-xs dark:text-slate-400 text-slate-500 mt-0.5">Record, track, search & print all supplier payments and customer receipts</p>
+          <p className="erp-subtitle mt-1">Record, track, search and print all supplier payments and customer receipts</p>
         </div>
 
-        <div className="flex items-center space-x-2 dark:bg-slate-950 bg-slate-100 p-1.5 rounded-xl border dark:border-slate-800 border-slate-200">
+        <div className="erp-surface flex items-center space-x-2 p-1.5 rounded-xl">
           <button
             onClick={() => setActiveTab('NEW')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
               activeTab === 'NEW'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
-                : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900'
+                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
+                : 'text-[#64748b] hover:text-[#0f172a] hover:bg-white'
             }`}
           >
             <Plus className="w-4 h-4" />
@@ -157,14 +210,14 @@ export const PaymentsModule: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('LIST')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
               activeTab === 'LIST'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
-                : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900'
+                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
+                : 'text-[#64748b] hover:text-[#0f172a] hover:bg-white'
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>Payment Register ({payments.length})</span>
+            <span>All Payments ({payments.length})</span>
           </button>
         </div>
       </div>
@@ -172,35 +225,35 @@ export const PaymentsModule: React.FC = () => {
       {/* ── KPI CARDS ──────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Paid to Suppliers */}
-        <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm col-span-1">
+        <div className="erp-panel p-4 rounded-xl col-span-1">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Paid to Suppliers</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#94a3b8]">Paid to Suppliers</span>
             <div className="p-1.5 bg-rose-500/10 text-rose-500 rounded-lg"><ArrowUpRight className="w-4 h-4" /></div>
           </div>
-          <div className="text-lg font-black font-mono dark:text-white text-slate-900">₹ {totalPaidToSuppliers.toLocaleString('en-IN')}</div>
+          <div className="text-lg font-semibold font-mono text-[#0f172a]">₹ {totalPaidToSuppliers.toLocaleString('en-IN')}</div>
         </div>
         {/* Received from Customers */}
-        <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm col-span-1">
+        <div className="erp-panel p-4 rounded-xl col-span-1">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Received from Buyers</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#94a3b8]">Received from Buyers</span>
             <div className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg"><ArrowDownRight className="w-4 h-4" /></div>
           </div>
-          <div className="text-lg font-black font-mono dark:text-white text-slate-900">₹ {totalReceivedFromCustomers.toLocaleString('en-IN')}</div>
+          <div className="text-lg font-semibold font-mono text-[#0f172a]">₹ {totalReceivedFromCustomers.toLocaleString('en-IN')}</div>
         </div>
         {/* By Mode Breakdown */}
-        <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
+        <div className="erp-panel p-4 rounded-xl">
           <div className="flex items-center space-x-1.5 mb-2"><Banknote className="w-3.5 h-3.5 text-emerald-500" /><span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Cash</span></div>
           <div className="text-base font-bold font-mono dark:text-white text-slate-900">₹ {totalCash.toLocaleString('en-IN')}</div>
         </div>
-        <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
+        <div className="erp-panel p-4 rounded-xl">
           <div className="flex items-center space-x-1.5 mb-2"><Building2 className="w-3.5 h-3.5 text-blue-500" /><span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Bank</span></div>
           <div className="text-base font-bold font-mono dark:text-white text-slate-900">₹ {totalBank.toLocaleString('en-IN')}</div>
         </div>
-        <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
+        <div className="erp-panel p-4 rounded-xl">
           <div className="flex items-center space-x-1.5 mb-2"><Smartphone className="w-3.5 h-3.5 text-orange-500" /><span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">UPI</span></div>
           <div className="text-base font-bold font-mono dark:text-white text-slate-900">₹ {totalUPI.toLocaleString('en-IN')}</div>
         </div>
-        <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
+        <div className="erp-panel p-4 rounded-xl">
           <div className="flex items-center space-x-1.5 mb-2"><CreditCard className="w-3.5 h-3.5 text-violet-500" /><span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Cheque</span></div>
           <div className="text-base font-bold font-mono dark:text-white text-slate-900">₹ {totalCheque.toLocaleString('en-IN')}</div>
         </div>
@@ -210,7 +263,20 @@ export const PaymentsModule: React.FC = () => {
           TAB 1: NEW PAYMENT FORM
          ══════════════════════════════════════════════ */}
       {activeTab === 'NEW' && (
-        <div className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 shadow-xl overflow-hidden animate-slide-up">
+        <div className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 shadow-xl overflow-hidden animate-slide-up" onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.target === amountRef.current) {
+            e.preventDefault();
+            dateRef.current?.focus();
+          }
+          if (e.key === 'Enter' && e.target === dateRef.current) {
+            e.preventDefault();
+            referenceRef.current?.focus();
+          }
+          if (e.key === 'Enter' && e.target === referenceRef.current) {
+            e.preventDefault();
+            notesRef.current?.focus();
+          }
+        }}>
           <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200">
             <h2 className="text-sm font-bold dark:text-white text-slate-900 flex items-center space-x-2">
               <DollarSign className="w-4 h-4 text-amber-500" />
@@ -265,7 +331,11 @@ export const PaymentsModule: React.FC = () => {
                 </label>
                 <Combobox
                   value={selectedPartyName}
-                  onChange={setSelectedPartyName}
+                  onChange={(val) => {
+                    setSelectedPartyName(val);
+                    // Move to next field on selection
+                    setTimeout(() => amountRef.current?.focus(), 0);
+                  }}
                   options={partyOptions}
                   placeholder={direction === 'PAID_TO_SUPPLIER' ? 'Select supplier...' : 'Select customer...'}
                   searchPlaceholder="Search..."
@@ -281,6 +351,7 @@ export const PaymentsModule: React.FC = () => {
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-sm font-bold dark:text-slate-500 text-slate-400">₹</span>
                   <input
+                    ref={amountRef}
                     type="number"
                     value={amount === 0 ? '' : amount}
                     placeholder="0"
@@ -294,6 +365,7 @@ export const PaymentsModule: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Payment Date</label>
                 <input
+                  ref={dateRef}
                   type="date"
                   value={payDate}
                   onChange={(e) => setPayDate(e.target.value)}
@@ -333,6 +405,7 @@ export const PaymentsModule: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Reference / Cheque / UTR No.</label>
                 <input
+                  ref={referenceRef}
                   type="text"
                   value={referenceNo}
                   onChange={(e) => setReferenceNo(e.target.value)}
@@ -343,8 +416,15 @@ export const PaymentsModule: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Remarks / Notes</label>
                 <input
+                  ref={notesRef}
                   type="text"
                   value={notes}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSavePayment();
+                    }
+                  }}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Payment against seasonal load / invoice clearance..."
                   className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs outline-none focus:border-amber-500 placeholder-slate-400"
@@ -388,31 +468,38 @@ export const PaymentsModule: React.FC = () => {
           TAB 2: PAYMENT REGISTER LIST
          ══════════════════════════════════════════════ */}
       {activeTab === 'LIST' && (
-        <div className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 shadow-xl overflow-hidden animate-slide-up">
-          {/* Filters Bar */}
-          <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className={`erp-table-wrap rounded-2xl animate-slide-up ${isCompact ? 'table-compact' : ''}`}>
+          <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
-              <h2 className="text-sm font-bold dark:text-white text-slate-900">Payment Register</h2>
-              <span className="text-xs dark:bg-slate-800 bg-slate-200 dark:text-amber-400 text-amber-700 font-mono font-bold px-2.5 py-0.5 rounded-full border dark:border-slate-700 border-slate-300">{filteredPayments.length} entries</span>
+              <h2 className="text-sm font-semibold text-[#0f172a]">Payment Register</h2>
+              <span className="text-xs bg-[#f1f5f9] text-[#0369a1] font-mono font-semibold px-2.5 py-0.5 rounded-full border border-[#e2e8f0]">{filteredPayments.length} entries</span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <button
+                type="button"
+                onClick={() => setIsCompact(v => !v)}
+                className="erp-btn-secondary px-3 py-2 text-xs"
+              >
+                {isCompact ? 'Comfortable' : 'Compact'}
+              </button>
               {/* Search */}
               <div className="relative flex-1 md:w-64">
-                <Search className="w-4 h-4 dark:text-slate-400 text-slate-500 absolute left-3 top-2.5" />
+                <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-2.5" />
                 <input
+                  ref={searchRef}
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search party, ref no, amount..."
-                  className="w-full dark:bg-slate-900 bg-white border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-9 pr-3 py-2 rounded-lg text-xs outline-none focus:border-amber-500 placeholder-slate-400"
+                  className="erp-input w-full min-h-0 pl-9 pr-3 py-2 text-xs"
                 />
               </div>
               {/* Type Filter */}
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="dark:bg-slate-900 bg-white border dark:border-slate-700/80 border-slate-300 dark:text-slate-300 text-slate-900 rounded-lg px-3 py-2 text-xs font-bold outline-none cursor-pointer"
+                className="erp-input min-h-0 rounded-lg px-3 py-2 text-xs font-semibold cursor-pointer"
               >
                 <option value="ALL">All Parties</option>
                 <option value="SUPPLIER">Suppliers Only</option>
@@ -422,7 +509,7 @@ export const PaymentsModule: React.FC = () => {
               <select
                 value={filterMode}
                 onChange={(e) => setFilterMode(e.target.value as any)}
-                className="dark:bg-slate-900 bg-white border dark:border-slate-700/80 border-slate-300 dark:text-slate-300 text-slate-900 rounded-lg px-3 py-2 text-xs font-bold outline-none cursor-pointer"
+                className="erp-input min-h-0 rounded-lg px-3 py-2 text-xs font-semibold cursor-pointer"
               >
                 <option value="ALL">All Modes</option>
                 <option value="CASH">Cash</option>
@@ -435,25 +522,45 @@ export const PaymentsModule: React.FC = () => {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <table className="erp-table text-left text-xs sm:text-sm">
               <thead>
-                <tr className="dark:bg-slate-900/80 bg-slate-100 dark:text-slate-300 text-slate-700 uppercase font-bold border-b dark:border-slate-800 border-slate-200 text-[11px]">
-                  <th className="py-3 px-4">Date</th>
+                <tr>
+                  <th className="py-3 px-4">
+                    <button type="button" onClick={() => handleSort('date')} className="inline-flex items-center gap-1">
+                      Date <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
                   <th className="py-3 px-3">Direction</th>
-                  <th className="py-3 px-3">Party Name</th>
-                  <th className="py-3 px-3 text-right font-black dark:text-amber-400 text-amber-700">Amount</th>
+                  <th className="py-3 px-3">
+                    <button type="button" onClick={() => handleSort('partyName')} className="inline-flex items-center gap-1">
+                      Party Name <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 text-right font-black dark:text-amber-400 text-amber-700">
+                    <button type="button" onClick={() => handleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
+                      Amount <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
                   <th className="py-3 px-3">Mode</th>
                   <th className="py-3 px-3">Reference No.</th>
                   <th className="py-3 px-3">Notes / Remarks</th>
-                  <th className="py-3 px-4 text-center">Actions</th>
+                  <th className="py-3 px-4 text-center sticky right-0 bg-[#f8fafc] z-[3]">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y dark:divide-slate-800/80 divide-slate-100">
-                {filteredPayments.length === 0 ? (
+              <tbody>
+                {isListLoading ? (
                   <tr>
-                    <td colSpan={8} className="py-16 text-center dark:text-slate-500 text-slate-400 text-sm font-medium">
-                      <span className="text-3xl block mb-2">💸</span>
-                      No payments match your filters. Record a new payment above!
+                    <td colSpan={8} className="p-0">
+                      <TableSkeleton rows={7} cols={8} compact={isCompact} />
+                    </td>
+                  </tr>
+                ) : filteredPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-0">
+                      <ModuleEmptyState
+                        title="No payments match the current filters"
+                        subtitle="Try clearing filters or record a new payment with Ctrl+N."
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -462,21 +569,21 @@ export const PaymentsModule: React.FC = () => {
                     const modeMeta = PAYMENT_MODE_LABELS[p.paymentMode];
 
                     return (
-                      <tr key={p.id} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors group font-sans">
+                      <tr key={p.id} className="transition-colors group font-sans">
                         <td className="py-3.5 px-4">
-                          <div className="flex items-center space-x-1.5 font-mono text-xs dark:text-slate-300 text-slate-700 font-semibold">
-                            <Calendar className="w-3.5 h-3.5 dark:text-slate-500 text-slate-400" />
+                          <div className="flex items-center space-x-1.5 font-mono text-xs text-[#475569] font-semibold">
+                            <Calendar className="w-3.5 h-3.5 text-[#94a3b8]" />
                             <span>{p.date}</span>
                           </div>
                         </td>
                         <td className="py-3.5 px-3">
                           {isSupplier ? (
-                            <span className="inline-flex items-center space-x-1 text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-1 rounded-lg font-mono">
+                            <span className="inline-flex items-center space-x-1 text-[10px] font-semibold uppercase tracking-wider text-rose-600 bg-rose-500/10 border border-rose-500/30 px-2 py-1 rounded-lg font-mono">
                               <ArrowUpRight className="w-3 h-3" />
                               <span>PAID OUT</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center space-x-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-lg font-mono">
+                            <span className="inline-flex items-center space-x-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-lg font-mono">
                               <ArrowDownRight className="w-3 h-3" />
                               <span>RECEIVED</span>
                             </span>
@@ -488,8 +595,8 @@ export const PaymentsModule: React.FC = () => {
                               {isSupplier ? <Users className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                             </div>
                             <div>
-                              <div className="font-bold dark:text-white text-slate-900 text-sm truncate max-w-[200px]">{p.partyName}</div>
-                              <div className="text-[10px] dark:text-slate-500 text-slate-400 font-medium">{isSupplier ? 'Supplier' : 'Customer'}</div>
+                              <div className="font-semibold text-[#0f172a] text-sm truncate max-w-[200px]">{p.partyName}</div>
+                              <div className="text-[10px] text-[#94a3b8] font-medium">{isSupplier ? 'Supplier' : 'Customer'}</div>
                             </div>
                           </div>
                         </td>
@@ -499,29 +606,29 @@ export const PaymentsModule: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3.5 px-3">
-                          <span className={`inline-flex items-center space-x-1.5 text-[10px] font-bold px-2.5 py-1 rounded-lg border ${modeMeta.color}`}>
+                          <span className={`inline-flex items-center space-x-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-lg border ${modeMeta.color}`}>
                             {modeMeta.icon}
                             <span>{modeMeta.label}</span>
                           </span>
                         </td>
                         <td className="py-3.5 px-3">
-                          <span className="font-mono font-bold dark:text-slate-300 text-slate-700 text-xs">{p.referenceNo || '—'}</span>
+                          <span className="font-mono font-semibold text-[#475569] text-xs">{p.referenceNo || '—'}</span>
                         </td>
                         <td className="py-3.5 px-3">
-                          <span className="dark:text-slate-400 text-slate-600 text-xs truncate block max-w-[180px]">{p.notes || '—'}</span>
+                          <span className="text-[#64748b] text-xs truncate block max-w-[180px]">{p.notes || '—'}</span>
                         </td>
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3.5 px-4 text-center sticky right-0 bg-white z-[2] border-l border-[#edf2f7]">
                           <div className="flex items-center justify-center space-x-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => setPreviewPayment(p)}
-                              className="p-2 dark:text-slate-400 text-slate-500 hover:text-amber-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                              className="p-2 text-[#64748b] hover:text-[#00aeef] hover:bg-[#f1f5f9] rounded-lg cursor-pointer transition-colors"
                               title="View Receipt"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeletePayment(p)}
-                              className="p-2 dark:text-slate-400 text-slate-500 hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                              className="p-2 text-[#64748b] hover:text-rose-500 hover:bg-[#f1f5f9] rounded-lg cursor-pointer transition-colors"
                               title="Delete Payment"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -538,8 +645,8 @@ export const PaymentsModule: React.FC = () => {
 
           {/* Footer Summary */}
           {filteredPayments.length > 0 && (
-            <div className="px-6 py-3 dark:bg-slate-950 bg-slate-50 border-t dark:border-slate-800 border-slate-200 flex items-center justify-between text-xs font-bold">
-              <span className="dark:text-slate-400 text-slate-500">
+            <div className="px-6 py-3 bg-[#f8fafc] border-t border-[#edf2f7] flex items-center justify-between text-xs font-semibold">
+              <span className="text-[#64748b]">
                 Showing {filteredPayments.length} of {payments.length} payments
               </span>
               <div className="flex items-center space-x-4 font-mono">

@@ -2,9 +2,8 @@
  * services/startup.ts
  * Parallel startup orchestrator.
  *
- * Runs auth check, DB init, and window-state sync concurrently so the app
- * is interactive as fast as possible. Each task is independent — a failure
- * in one does not block the others.
+ * Runs non-blocking startup tasks (DB warm-up, window show, chunk preloads)
+ * so the app is interactive as fast as possible.
  *
  * Usage (called once from main.tsx before rendering):
  *   await startup.run();
@@ -49,18 +48,6 @@ async function showWindow(): Promise<void> {
   }
 }
 
-/** Warm the auth store — checks session status in the background. */
-async function warmAuth(): Promise<void> {
-  try {
-    // Lazy import so auth code is not in the initial chunk
-    const { useAuthStore } = await import('@/store/auth.store');
-    await useAuthStore.getState().initialize();
-    log('auth warmed');
-  } catch (e) {
-    if (import.meta.env.DEV) console.warn('[startup] warmAuth failed:', e);
-  }
-}
-
 /** Warm the DB connection — opens SQLite pool in the background. */
 async function warmDb(): Promise<void> {
   if (!APP_CONFIG.isTauri) return;
@@ -101,8 +88,7 @@ export const startup = {
   async run(): Promise<void> {
     log('starting');
 
-    // Auth and DB run in parallel — neither blocks the other
-    void warmAuth();
+    // DB warm-up is launched in background and does not block first render.
     void warmDb();
 
     log('parallel tasks launched');

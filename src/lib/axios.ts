@@ -13,6 +13,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { APP_CONFIG } from '@/config';
+import { useAuthStore } from '@/store';
 
 export const apiClient = axios.create({
   baseURL: APP_CONFIG.apiBaseUrl,
@@ -26,8 +27,8 @@ export const apiClient = axios.create({
 // ── Request interceptor ──────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Attach auth token if present (extend when you add auth)
-    const token = localStorage.getItem('auth_token');
+    // Prefer centralized auth store token; keep legacy localStorage fallback.
+    const token = useAuthStore.getState().accessToken ?? localStorage.getItem('auth_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -41,8 +42,9 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Handle unauthorised — clear token, redirect if needed
+      // Keep legacy behavior and clear centralized session state.
       localStorage.removeItem('auth_token');
+      useAuthStore.getState().invalidateSession();
     }
     return Promise.reject(error);
   },

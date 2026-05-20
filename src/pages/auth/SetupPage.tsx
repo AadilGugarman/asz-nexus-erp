@@ -31,9 +31,9 @@ export const SetupPage: React.FC = () => {
     if (isSetupDone) navigate(ROUTES.login, { replace: true });
   }, [isSetupDone, navigate]);
 
-  // Authenticated after setup — go to dashboard
+  // Authenticated after setup — continue onboarding flow.
   useEffect(() => {
-    if (isAuth) navigate(ROUTES.dashboard, { replace: true });
+    if (isAuth) navigate(ROUTES.companySetup, { replace: true });
   }, [isAuth, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Invoice, InvoiceItem } from '../types';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
@@ -6,17 +6,18 @@ import { ShoppingCart, Plus, Save, Search, Eye, Trash2, FileText, Calendar, Copy
 import { Combobox } from './ui/Combobox';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
+import { getNextUniqueInvoiceNumber } from '../utils/invoice-number';
 
 export const SalesBillingModule: React.FC = () => {
-  const { customers, fruits, invoices, saveInvoice, deleteInvoice, addFruit, addFruitVariety } = useApp();
+  const { customers, fruits, invoices, saveInvoice, deleteInvoice, addFruit, addFruitVariety, settings, updateSettings } = useApp();
   const toast = useToast();
   const dialog = useConfirmDialog();
 
   const [activeSubTab, setActiveSubTab] = useState<'NEW_INVOICE' | 'LIST'>('NEW_INVOICE');
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
 
-  const [invoiceNo, setInvoiceNo] = useState(`INV-2026-${String(invoices.length + 1001).padStart(4, '0')}`);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [invoiceNo, setInvoiceNo] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id || '');
   const [notes, setNotes] = useState('Standard market credit');
 
@@ -30,6 +31,19 @@ export const SalesBillingModule: React.FC = () => {
   const [items, setItems] = useState<InvoiceItem[]>([
     { id: `item-${Date.now()}-1`, fruit: fruits[0]?.name || 'Mango', lotVariety: fruits[0]?.varieties[0] || 'Kesar', caret: 10, weight: 200, rate: 90, amount: 18000 }
   ]);
+
+  useEffect(() => {
+    if (!settings.invoice.autoInvoiceNo) {
+      if (!invoiceNo.trim()) {
+        const preview = getNextUniqueInvoiceNumber(settings.invoice, invoices, date, settings.invoice.salesNextNo || 1001);
+        setInvoiceNo(preview.invoiceNo);
+      }
+      return;
+    }
+
+    const next = getNextUniqueInvoiceNumber(settings.invoice, invoices, date, settings.invoice.salesNextNo || 1001);
+    setInvoiceNo(next.invoiceNo);
+  }, [settings.invoice, invoices, date]);
 
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: any) => {
     const updated = [...items]; const item = { ...updated[index] };
@@ -61,14 +75,38 @@ export const SalesBillingModule: React.FC = () => {
   const totalCarets = items.reduce((sum, item) => sum + (parseFloat(String(item.caret)) || 0), 0);
   const totalWeight = items.reduce((sum, item) => sum + (parseFloat(String(item.weight)) || 0), 0);
 
-  const handleResetForm = () => { setInvoiceNo(`INV-2026-${String(invoices.length + 1001).padStart(4, '0')}`); setItems([{ id: `item-${Date.now()}-1`, fruit: fruits[0]?.name || 'Mango', lotVariety: fruits[0]?.varieties[0] || 'Kesar', caret: 0, weight: 0, rate: 0, amount: 0 }]); setHamaliInput(0); setDiscountInput(0); setPaidAmountInput(0); setNotes('Standard market credit'); };
+  const handleResetForm = () => {
+    const next = getNextUniqueInvoiceNumber(settings.invoice, invoices, date, settings.invoice.salesNextNo || 1001);
+    setInvoiceNo(next.invoiceNo);
+    setItems([{ id: `item-${Date.now()}-1`, fruit: fruits[0]?.name || 'Mango', lotVariety: fruits[0]?.varieties[0] || 'Kesar', caret: 0, weight: 0, rate: 0, amount: 0 }]);
+    setHamaliInput(0);
+    setDiscountInput(0);
+    setPaidAmountInput(0);
+    setNotes('Standard market credit');
+  };
 
   const handleSaveInvoice = () => {
     if (!selectedCustomer) { toast.error('No Customer', 'Please select a valid buyer.'); return; }
     if (items.length === 0 || itemsSubtotal <= 0) { toast.warning('Empty Invoice', 'Add at least one item with a positive amount.'); return; }
-    const newInvoice: Invoice = { id: `inv-${Date.now()}`, invoiceNo, date, customerId: selectedCustomer.id, customerName: selectedCustomer.name, previousBalance, todayAmount, hamali, discount, paidAmount, remainingBalance, notes, items, createdAt: new Date().toISOString() };
+
+    let resolvedInvoiceNo = invoiceNo.trim();
+    let nextSalesSeed = settings.invoice.salesNextNo || 1001;
+
+    if (settings.invoice.autoInvoiceNo) {
+      const next = getNextUniqueInvoiceNumber(settings.invoice, invoices, date, settings.invoice.salesNextNo || 1001);
+      resolvedInvoiceNo = next.invoiceNo;
+      nextSalesSeed = next.nextSeed;
+    } else {
+      if (!resolvedInvoiceNo) { toast.error('Invoice Number Missing', 'Please enter an invoice number.'); return; }
+      const duplicate = invoices.some(i => i.invoiceNo === resolvedInvoiceNo);
+      if (duplicate) { toast.error('Duplicate Invoice Number', 'Invoice number already exists. Use a unique number.'); return; }
+      nextSalesSeed = (settings.invoice.salesNextNo || 1001) + 1;
+    }
+
+    const newInvoice: Invoice = { id: `inv-${Date.now()}`, invoiceNo: resolvedInvoiceNo, date, customerId: selectedCustomer.id, customerName: selectedCustomer.name, previousBalance, todayAmount, hamali, discount, paidAmount, remainingBalance, notes, items, createdAt: new Date().toISOString() };
     saveInvoice(newInvoice);
-    toast.success('Invoice Created!', `${invoiceNo} — ₹${todayAmount.toLocaleString('en-IN')} billed to ${selectedCustomer.name}.`);
+    updateSettings({ invoice: { ...settings.invoice, salesNextNo: nextSalesSeed } });
+    toast.success('Invoice Created!', `${resolvedInvoiceNo} — ₹${todayAmount.toLocaleString('en-IN')} billed to ${selectedCustomer.name}.`);
     setTimeout(() => { setActiveSubTab('LIST'); handleResetForm(); }, 600);
   };
 
@@ -110,7 +148,17 @@ export const SalesBillingModule: React.FC = () => {
           <div className={`${card} p-5 space-y-5`}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b dark:border-slate-800 border-slate-100 pb-4">
               <div className="flex items-center space-x-3">
-                <span className="text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-3 py-1.5 rounded-full font-mono font-bold">{invoiceNo}</span>
+                {settings.invoice.autoInvoiceNo ? (
+                  <span className="text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-3 py-1.5 rounded-full font-mono font-bold">{invoiceNo}</span>
+                ) : (
+                  <input
+                    type="text"
+                    value={invoiceNo}
+                    onChange={e => setInvoiceNo(e.target.value.toUpperCase())}
+                    className={`${inp} px-2.5 py-1.5 text-xs font-mono font-bold min-w-[190px]`}
+                    placeholder="Invoice No"
+                  />
+                )}
                 <div className="flex items-center space-x-1.5">
                   <span className={`text-xs ${mutedText} font-medium`}>Date:</span>
                   <input type="date" value={date} onChange={e => setDate(e.target.value)} className={`${inp} px-2.5 py-1.5 text-xs font-mono font-bold`} />

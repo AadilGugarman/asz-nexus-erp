@@ -1,15 +1,20 @@
 /**
  * pages/auth/LoginPage.tsx
- * Login page — wired to the real auth store.
+ * Login page � wired to the real auth store.
  *
- * On submit: calls authStore.login() → Rust verifies Argon2 hash →
- * issues JWT pair → store saves tokens → ProtectedRoute lets user through.
+ * On submit: calls authStore.login() ? Rust verifies Argon2 hash ?
+ * issues JWT pair ? store saves tokens ? ProtectedRoute lets user through.
+ *
+ * After a successful login:
+ *   - If company setup not done ? /company-setup
+ *   - Otherwise ? original destination (or /dashboard)
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES } from '@/config';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useCompanyStore, useLockStore, useStartupStore } from '@/store';
+import { decidePostStartupRoute } from '@/router/routeDecision';
 
 interface LocationState {
   from?: { pathname: string };
@@ -25,13 +30,31 @@ export const LoginPage: React.FC = () => {
   const error      = useAuthStore((s) => s.error);
   const clearError = useAuthStore((s) => s.clearError);
   const isAuth     = useAuthStore((s) => s.isAuthenticated);
+  const isSetupDone = useAuthStore((s) => s.isSetupDone);
+
+  const startupReady = useStartupStore((s) => s.phase === 'ready');
+  const bootstrapCompany = useCompanyStore((s) => s.bootstrap);
+  const hasCompany = useCompanyStore((s) => s.hasCompany);
+  const isLocked = useLockStore((s) => s.isLocked);
 
   const [password, setPassword] = useState('');
 
-  // Redirect once authenticated
+  // Redirect once authenticated � check company setup first
   useEffect(() => {
-    if (isAuth) navigate(from, { replace: true });
-  }, [isAuth, from, navigate]);
+    if (!isAuth || !startupReady) return;
+    bootstrapCompany();
+
+    const target = decidePostStartupRoute({
+      startupReady,
+      isSetupDone,
+      isAuthenticated: true,
+      hasCompany: useCompanyStore.getState().hasCompany,
+      isLocked,
+    });
+
+    if (!target) return;
+    navigate(target === ROUTES.dashboard ? from : target, { replace: true });
+  }, [isAuth, startupReady, isSetupDone, isLocked, from, navigate, bootstrapCompany, hasCompany]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +82,7 @@ export const LoginPage: React.FC = () => {
           type="password"
           value={password}
           onChange={(e) => { setPassword(e.target.value); clearError(); }}
-          placeholder="••••••••"
+          placeholder="��������"
           className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           autoFocus
           autoComplete="current-password"
@@ -81,7 +104,7 @@ export const LoginPage: React.FC = () => {
         {isLoading ? (
           <span className="flex items-center justify-center gap-2">
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Verifying…
+            Verifying�
           </span>
         ) : 'Continue'}
       </button>

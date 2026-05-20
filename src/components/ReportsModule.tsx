@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   FileBarChart2, Calendar, Printer, Filter, TrendingUp,
   ArrowUpRight, ArrowDownRight, Package, Users, UserCheck, DollarSign, Layers, Banknote
 } from 'lucide-react';
 import { StatementPreview } from './ui/StatementPreview';
+import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 
 type ReportTab = 'DAILY' | 'DATERANGE' | 'PARTY' | 'FRUIT' | 'OUTSTANDING' | 'PNL';
 
@@ -17,6 +18,8 @@ export const ReportsModule: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dateFrom, setDateFrom] = useState('2026-05-01');
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
+  const [isCompact, setIsCompact] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const reportTabs: { id: ReportTab; label: string; icon: React.ReactNode }[] = [
     { id: 'DAILY', label: 'Daily Summary', icon: <Calendar className="w-4 h-4" /> },
@@ -32,6 +35,12 @@ export const ReportsModule: React.FC = () => {
   const onDate = (d: string) => d === selectedDate;
 
   const savedVehicles = vehicles.filter(v => v.status === 'SAVED');
+
+  useEffect(() => {
+    setIsLoading(true);
+    const t = window.setTimeout(() => setIsLoading(false), 180);
+    return () => window.clearTimeout(t);
+  }, [activeReport, selectedDate, dateFrom, dateTo]);
 
   // ══════════════════════════════════════════════
   // REPORT 1: DAILY SUMMARY
@@ -168,32 +177,37 @@ export const ReportsModule: React.FC = () => {
 
   // ── Cell helper ─────────────────────────────
   const C = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-    <div className={`dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm ${className}`}>{children}</div>
+    <div className={`erp-panel p-5 rounded-xl ${className}`}>{children}</div>
   );
 
   const Lbl = ({ children }: { children: React.ReactNode }) => (
-    <div className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500 mb-1">{children}</div>
+    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#94a3b8] mb-1">{children}</div>
   );
 
   const Big = ({ children, color = 'dark:text-white text-slate-900' }: { children: React.ReactNode; color?: string }) => (
-    <div className={`text-xl font-black font-mono ${color}`}>{children}</div>
+    <div className={`text-xl font-semibold font-mono ${color}`}>{children}</div>
   );
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className={`space-y-6 font-sans ${isCompact ? 'table-compact' : ''}`}>
 
       {/* ── HEADER ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-md">
+      <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div>
-          <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
-            <FileBarChart2 className="w-6 h-6 text-cyan-500" />
+          <h1 className="erp-title text-[1.1rem] flex items-center space-x-2.5">
+            <FileBarChart2 className="w-6 h-6 text-[#00aeef]" />
             <span>REPORTS & ANALYTICS CENTER</span>
           </h1>
-          <p className="text-xs dark:text-slate-400 text-slate-500 mt-0.5">Daily summaries, date-range analysis, party ledgers, fruit performance, outstanding & P&L</p>
+          <p className="erp-subtitle mt-1">Daily summaries, date-range analysis, party ledgers, fruit performance, outstanding and P&L</p>
         </div>
-        <button onClick={() => setShowReportPreview(true)} className="flex items-center space-x-1.5 dark:bg-slate-800 bg-white dark:hover:bg-slate-700 hover:bg-slate-50 dark:text-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-xs border dark:border-slate-700 border-slate-200 cursor-pointer transition-colors shadow-sm no-print">
-          <Printer className="w-4 h-4" /><span>Print Report</span>
-        </button>
+        <div className="flex items-center gap-2 no-print">
+          <button onClick={() => setIsCompact(v => !v)} className="erp-btn-secondary px-3 py-2 text-xs cursor-pointer">
+            {isCompact ? 'Comfortable' : 'Compact'}
+          </button>
+          <button onClick={() => setShowReportPreview(true)} className="erp-btn-secondary flex items-center space-x-1.5 px-4 py-2 text-xs cursor-pointer">
+            <Printer className="w-4 h-4" /><span>Print Report</span>
+          </button>
+        </div>
       </div>
 
       {/* ── REPORT TAB SWITCHER ────────────────────── */}
@@ -202,10 +216,10 @@ export const ReportsModule: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveReport(tab.id)}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
               activeReport === tab.id
-                ? 'bg-cyan-500 text-slate-950 border-cyan-500 shadow-lg shadow-cyan-500/20'
-                : 'dark:bg-slate-900 bg-white dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-700 dark:hover:border-slate-700 hover:border-slate-300'
+                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white border-transparent shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
+                : 'bg-white border-[#e2e8f0] text-[#475569] hover:border-[#00aeef]/40'
             }`}
           >
             {tab.icon}<span>{tab.label}</span>
@@ -219,9 +233,9 @@ export const ReportsModule: React.FC = () => {
       {activeReport === 'DAILY' && (
         <div className="space-y-5 animate-slide-up">
           <div className="flex items-center space-x-3 no-print">
-            <label className="text-xs font-bold dark:text-slate-400 text-slate-600 uppercase tracking-wider">Select Date:</label>
+            <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">Select Date:</label>
             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-              className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-700 border-slate-300 dark:text-white text-slate-900 font-mono rounded-lg px-3 py-2 text-xs outline-none focus:border-cyan-500" />
+              className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
@@ -243,7 +257,9 @@ export const ReportsModule: React.FC = () => {
           </div>
 
           {/* Transactions table for the day */}
-          {(daily.veh.length > 0 || daily.sinv.length > 0 || daily.pinv.length > 0 || daily.pay.length > 0) && (
+          {isLoading ? (
+            <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={4} compact={isCompact} /></div>
+          ) : (daily.veh.length > 0 || daily.sinv.length > 0 || daily.pinv.length > 0 || daily.pay.length > 0) ? (
             <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
               <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">All Transactions — {selectedDate}</div>
               <div className="overflow-x-auto">
@@ -260,6 +276,13 @@ export const ReportsModule: React.FC = () => {
                 </table>
               </div>
             </div>
+          ) : (
+            <div className="erp-table-wrap rounded-xl">
+              <ModuleEmptyState
+                title="No transactions for selected date"
+                subtitle="Try another date or start recording purchase, sales, and payment entries."
+              />
+            </div>
           )}
         </div>
       )}
@@ -270,10 +293,10 @@ export const ReportsModule: React.FC = () => {
       {activeReport === 'DATERANGE' && (
         <div className="space-y-5 animate-slide-up">
           <div className="flex flex-wrap items-center gap-3 no-print">
-            <label className="text-xs font-bold dark:text-slate-400 text-slate-600 uppercase tracking-wider">From:</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-700 border-slate-300 dark:text-white text-slate-900 font-mono rounded-lg px-3 py-2 text-xs outline-none focus:border-cyan-500" />
-            <label className="text-xs font-bold dark:text-slate-400 text-slate-600 uppercase tracking-wider">To:</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-700 border-slate-300 dark:text-white text-slate-900 font-mono rounded-lg px-3 py-2 text-xs outline-none focus:border-cyan-500" />
+            <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">From:</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
+            <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">To:</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -284,7 +307,9 @@ export const ReportsModule: React.FC = () => {
           </div>
 
           {/* Day-wise breakdown table */}
-          {rangeData.days.length > 0 && (
+          {isLoading ? (
+            <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={6} compact={isCompact} /></div>
+          ) : rangeData.days.length > 0 ? (
             <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
               <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">Day-wise Breakdown</div>
               <div className="overflow-x-auto">
@@ -307,6 +332,13 @@ export const ReportsModule: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          ) : (
+            <div className="erp-table-wrap rounded-xl">
+              <ModuleEmptyState
+                title="No activity in selected date range"
+                subtitle="Adjust From/To dates to inspect day-wise cash movement and turnover."
+              />
             </div>
           )}
         </div>
@@ -465,7 +497,9 @@ export const ReportsModule: React.FC = () => {
                     <span className="font-mono font-black text-rose-600 dark:text-rose-400">₹ {s.balance.toLocaleString('en-IN')}</span>
                   </div>
                 ))}
-                {partyData.suppliers.filter(s => s.balance > 0).length === 0 && <div className="py-8 text-center text-xs dark:text-slate-500 text-slate-400">No outstanding payables 🎉</div>}
+                {partyData.suppliers.filter(s => s.balance > 0).length === 0 && (
+                  <ModuleEmptyState title="No supplier payables" subtitle="All supplier balances are currently settled." />
+                )}
               </div>
             </div>
             <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
@@ -477,7 +511,9 @@ export const ReportsModule: React.FC = () => {
                     <span className="font-mono font-black text-indigo-600 dark:text-indigo-400">₹ {c.balance.toLocaleString('en-IN')}</span>
                   </div>
                 ))}
-                {partyData.customers.filter(c => c.balance > 0).length === 0 && <div className="py-8 text-center text-xs dark:text-slate-500 text-slate-400">No outstanding receivables 🎉</div>}
+                {partyData.customers.filter(c => c.balance > 0).length === 0 && (
+                  <ModuleEmptyState title="No customer receivables" subtitle="No pending customer dues in the current dataset." />
+                )}
               </div>
             </div>
           </div>
@@ -551,7 +587,7 @@ export const ReportsModule: React.FC = () => {
       )}
 
       {/* Report Preview */}
-      <StatementPreview isOpen={showReportPreview} onClose={() => setShowReportPreview(false)} title={`${activeReport === 'DAILY' ? 'Daily Summary' : activeReport === 'DATERANGE' ? 'Date Range Report' : activeReport === 'PARTY' ? 'Party-wise Report' : activeReport === 'FRUIT' ? 'Fruit & Variety Report' : activeReport === 'OUTSTANDING' ? 'Outstanding Report' : 'Trading P&L Statement'}`} subtitle={activeReport === 'DAILY' ? selectedDate : activeReport === 'DATERANGE' ? `${dateFrom} to ${dateTo}` : undefined} accentColor="#06b6d4">
+      <StatementPreview isOpen={showReportPreview} onClose={() => setShowReportPreview(false)} title={`${activeReport === 'DAILY' ? 'Daily Summary' : activeReport === 'DATERANGE' ? 'Date Range Report' : activeReport === 'PARTY' ? 'Party-wise Report' : activeReport === 'FRUIT' ? 'Fruit & Variety Report' : activeReport === 'OUTSTANDING' ? 'Outstanding Report' : 'Trading P&L Statement'}`} subtitle={activeReport === 'DAILY' ? selectedDate : activeReport === 'DATERANGE' ? `${dateFrom} to ${dateTo}` : undefined}>
         <div ref={reportContentRef} className="space-y-5">
           {activeReport === 'PNL' && (
             <table className="w-full text-[11px]">

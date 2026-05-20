@@ -10,15 +10,26 @@
  *   /404             → NotFoundPage
  *   *                → redirect to /404
  */
+/**
+ * Full startup routing flow:
+ *   /   → if !setupDone → /setup
+ *       → if !authenticated → /login
+ *       → if !hasCompany → /company-setup
+ *       → /dashboard
+ *
+ *   /company-setup → CompanySetupRoute (auth required, no-company guard)
+ */
 
 import React, { Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ROUTES } from '@/config';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useCompanyStore, useLockStore, useStartupStore } from '@/store';
 
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicRoute }    from './PublicRoute';
 import { PageLoader }     from '@/components/router/PageLoader';
+import { StartupScreen } from '@/components/router/StartupScreen';
+import { decidePostStartupRoute } from './routeDecision';
 
 import {
   LazyAppLayout,
@@ -27,25 +38,78 @@ import {
   LazyLoginPage,
   LazySetupPage,
   LazyNotFoundPage,
+  LazyCompanySetupPage,
+  LazyLockScreenPage,
 } from './LazyRoutes';
 
 /** Root redirect — send to /setup on first run, /dashboard otherwise. */
 const RootRedirect: React.FC = () => {
+  const startupReady = useStartupStore((s) => s.phase === 'ready');
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
-  const isLoading   = useAuthStore((s) => s.isLoading);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasCompany = useCompanyStore((s) => s.hasCompany);
+  const isLocked = useLockStore((s) => s.isLocked);
 
-  if (isLoading) return null; // wait for initialize()
-  return <Navigate to={isSetupDone ? ROUTES.dashboard : ROUTES.setup} replace />;
+  if (!startupReady) return <StartupScreen message="Bootstrapping application..." />;
+
+  const target = decidePostStartupRoute({
+    startupReady,
+    isSetupDone,
+    isAuthenticated,
+    hasCompany,
+    isLocked,
+  });
+
+  return <Navigate to={target ?? ROUTES.login} replace />;
 };
 
 /** Setup route — only accessible when setup is NOT done yet. */
 const SetupRoute: React.FC = () => {
+  const startupReady = useStartupStore((s) => s.phase === 'ready');
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
-  const isLoading   = useAuthStore((s) => s.isLoading);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasCompany = useCompanyStore((s) => s.hasCompany);
+  const isLocked = useLockStore((s) => s.isLocked);
 
-  if (isLoading) return null;
-  if (isSetupDone) return <Navigate to={ROUTES.login} replace />;
+  if (!startupReady) return <StartupScreen message="Checking setup status..." />;
+  if (isSetupDone) {
+    const target = decidePostStartupRoute({
+      startupReady,
+      isSetupDone,
+      isAuthenticated,
+      hasCompany,
+      isLocked,
+    });
+    return <Navigate to={target ?? ROUTES.login} replace />;
+  }
   return <LazyAuthLayout />;
+};
+
+/** Company-setup route — must be authenticated, must NOT have a company yet. */
+const CompanySetupRoute: React.FC = () => {
+  const startupReady = useStartupStore((s) => s.phase === 'ready');
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasCompany = useCompanyStore((s) => s.hasCompany);
+  const isLocked = useLockStore((s) => s.isLocked);
+
+  if (!startupReady) return <StartupScreen message="Checking company onboarding..." />;
+  if (!isAuthenticated)     return <Navigate to={ROUTES.login}     replace />;
+  if (isLocked) return <Navigate to={ROUTES.lock} replace />;
+  if (hasCompany) return <Navigate to={ROUTES.dashboard} replace />;
+  return <Outlet />;
+};
+
+const LockRoute: React.FC = () => {
+  const startupReady = useStartupStore((s) => s.phase === 'ready');
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasCompany = useCompanyStore((s) => s.hasCompany);
+  const isLocked = useLockStore((s) => s.isLocked);
+
+  if (!startupReady) return <StartupScreen message="Applying lock policies..." />;
+  if (!isAuthenticated) return <Navigate to={ROUTES.login} replace />;
+  if (!hasCompany) return <Navigate to={ROUTES.companySetup} replace />;
+  if (!isLocked) return <Navigate to={ROUTES.dashboard} replace />;
+  return <Outlet />;
 };
 
 export const AppRoutes: React.FC = () => {
@@ -65,6 +129,16 @@ export const AppRoutes: React.FC = () => {
           <Route element={<LazyAuthLayout />}>
             <Route path={ROUTES.login} element={<LazyLoginPage />} />
           </Route>
+        </Route>
+
+        {/* ── Company setup (authenticated, no-company guard) ─────────── */}
+        <Route element={<CompanySetupRoute />}>
+          <Route path={ROUTES.companySetup} element={<LazyCompanySetupPage />} />
+        </Route>
+
+        {/* ── Lock screen (authenticated + company + locked) ───────────── */}
+        <Route element={<LockRoute />}>
+          <Route path={ROUTES.lock} element={<LazyLockScreenPage />} />
         </Route>
 
         {/* ── Protected routes (authenticated only) ──────────────────── */}
