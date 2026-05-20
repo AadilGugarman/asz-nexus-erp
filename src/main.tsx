@@ -19,11 +19,15 @@ import { startup }     from './services/startup';
 import { perf }        from './lib/perf';
 import { initAppearanceSystem } from './store/appearance.store';
 import { useStartupStore } from './store/startup.store';
+import { applyDesktopLanguagePreference, initI18n, initI18nLanguageSync } from './i18n';
 
 perf.mark('script-start');
 
 // Apply persisted/system appearance settings before first render.
 initAppearanceSystem();
+initI18n();
+initI18nLanguageSync();
+void applyDesktopLanguagePreference();
 
 // Launch background tasks immediately — they run while React is mounting
 startup.run();

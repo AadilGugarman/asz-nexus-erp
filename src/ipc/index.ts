@@ -55,6 +55,14 @@ export type {
   EmployeeStats,
   DbStats,
   // Employee
+    // Backup
+    BackupEntry,
+    BackupCreateRequest,
+    BackupDeleteRequest,
+    BackupValidateRequest,
+    BackupRestoreRequest,
+    BackupPruneRequest,
+    RestoreResult,
   Employee,
   EmployeeRole,
   CreateEmployeeRequest,
@@ -139,6 +147,7 @@ export type {
 // ── Domain modules ────────────────────────────────────────────────────────────
 import { appIpc }      from './modules/app.ipc';
 import { authIpc }     from './modules/auth.ipc';
+import { backupIpc }   from './modules/backup.ipc';
 import { customerIpc } from './modules/customer.ipc';
 import { dbIpc }       from './modules/db.ipc';
 import { employeeIpc } from './modules/employee.ipc';
@@ -171,6 +180,7 @@ import { windowIpc }   from './modules/window.ipc';
 export const ipc = {
   app:      appIpc,
   auth:     authIpc,
+    backup:   backupIpc,
   customer: customerIpc,
   db:       dbIpc,
   employee: employeeIpc,

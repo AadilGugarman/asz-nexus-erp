@@ -76,7 +76,9 @@ export function useWindow(): UseWindowReturn {
 
         unlisten.push(
           await win.onResized(() => {
-            ipc.win.getState().then((s) => store.syncFromState(s)).catch(() => {});
+            ipc.win.getState().then((s) => store.syncFromState(s)).catch((err) => {
+              if (import.meta.env.DEV) console.warn('[useWindow] Failed to sync state on resize:', err);
+            });
           }),
           await win.onFocusChanged(({ payload: focused }: { payload: boolean }) => {
             store.setFocused(focused);
@@ -99,7 +101,9 @@ export function useWindow(): UseWindowReturn {
   // ── Controls ────────────────────────────────────────────────────────────────
 
   const startDrag = useCallback(() => {
-    ipc.win.startDrag().catch(() => {});
+    ipc.win.startDrag().catch((err) => {
+      if (import.meta.env.DEV) console.warn('[useWindow] Drag operation failed:', err);
+    });
   }, []);
 
   const minimize = useCallback(async () => {

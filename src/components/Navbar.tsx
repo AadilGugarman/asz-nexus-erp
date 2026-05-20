@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAppTranslation } from '@/hooks';
 
 // Utility to generate company initials (max 3, skip common words)
 const getCompanyInitials = (name: string) => {
@@ -35,6 +36,7 @@ interface NavItem {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenShortcuts, collapsed, setCollapsed }) => {
+  const { t } = useAppTranslation('navbar');
   const { settings } = useApp();
   const coName = settings.company.name;
   const initials = getCompanyInitials(coName);
@@ -43,34 +45,34 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
 
   const navGroups: { title: string; items: NavItem[] }[] = [
     {
-      title: 'Overview',
+      title: t('groups.overview'),
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+        { id: 'dashboard', label: t('items.dashboard'), icon: BarChart3 },
       ]
     },
     {
-      title: 'Transactions',
+      title: t('groups.transactions'),
       items: [
-        { id: 'arrival', label: 'Vehicle Inward', icon: Truck, badge: 'IN' },
-        { id: 'purchase', label: 'Purchase Billing', icon: ShoppingBag },
-        { id: 'sales', label: 'Sales Billing', icon: ShoppingCart },
-        { id: 'payments', label: 'Payments', icon: Wallet },
+        { id: 'arrival', label: t('items.arrival'), icon: Truck, badge: 'IN' },
+        { id: 'purchase', label: t('items.purchase'), icon: ShoppingBag },
+        { id: 'sales', label: t('items.sales'), icon: ShoppingCart },
+        { id: 'payments', label: t('items.payments'), icon: Wallet },
       ]
     },
     {
-      title: 'Data',
+      title: t('groups.data'),
       items: [
-        { id: 'inventory', label: 'Inventory', icon: Package },
-        { id: 'parties', label: 'Parties', icon: Contact },
-        { id: 'suppliers', label: 'Suppliers', icon: Users },
-        { id: 'customers', label: 'Customers', icon: UserCheck },
-        { id: 'reports', label: 'Reports', icon: FileBarChart2 },
+        { id: 'inventory', label: t('items.inventory'), icon: Package },
+        { id: 'parties', label: t('items.parties'), icon: Contact },
+        { id: 'suppliers', label: t('items.suppliers'), icon: Users },
+        { id: 'customers', label: t('items.customers'), icon: UserCheck },
+        { id: 'reports', label: t('items.reports'), icon: FileBarChart2 },
       ]
     },
     {
-      title: 'System',
+      title: t('groups.system'),
       items: [
-        { id: 'settings', label: 'Settings', icon: Settings },
+        { id: 'settings', label: t('items.settings'), icon: Settings },
       ]
     }
   ];
@@ -100,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="hidden lg:flex p-1.5 rounded-lg text-[#94a3b8] hover:text-[#0f172a] hover:bg-[#f1f5f9] transition-colors cursor-pointer"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? t('tooltips.expandSidebar') : t('tooltips.collapseSidebar')}
           >
             {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
@@ -176,7 +178,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
       <div className={`border-t border-[#e2e8f0] p-3 ${collapsed ? 'px-2' : ''}`}>
         <button
           onClick={onOpenShortcuts}
-          title="Keyboard shortcuts"
+          title={t('tooltips.keyboardShortcuts')}
           className={`w-full flex items-center rounded-xl text-[#64748b] hover:bg-[#f8fafc] hover:text-[#0f172a] transition-all cursor-pointer ${
             collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5 space-x-3'
           }`}
@@ -184,7 +186,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenS
           <Keyboard className="w-[18px] h-[18px] shrink-0" />
           {!collapsed && (
             <>
-              <span className="text-[13px] font-semibold flex-1 text-left">Shortcuts</span>
+              <span className="text-[13px] font-semibold flex-1 text-left">{t('actions.shortcuts')}</span>
               <kbd className="text-[9px] font-mono font-bold bg-[#f1f5f9] text-[#64748b] px-1.5 py-0.5 rounded border border-[#e2e8f0]">Alt+K</kbd>
             </>
           )}

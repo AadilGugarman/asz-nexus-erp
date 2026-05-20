@@ -423,9 +423,9 @@ function showError(message: string, err: unknown): void {
   const detail = err instanceof Error ? err.message : String(err);
   try {
     import('sonner').then(({ toast }) => toast.error(`${message}: ${detail}`)).catch(() => {
-      console.error('[fs]', message, detail);
+      if (import.meta.env.DEV) console.error('[fs]', message, detail);
     });
   } catch {
-    console.error('[fs]', message, detail);
+    if (import.meta.env.DEV) console.error('[fs]', message, detail);
   }
 }

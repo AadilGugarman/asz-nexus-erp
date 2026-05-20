@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { STORAGE_KEYS } from '@/config';
+import { DEFAULT_LANGUAGE, normalizeLanguage, type AppLanguage } from '@/types/language';
 
 const APPEARANCE_STORAGE_KEY = STORAGE_KEYS.appearance;
 
@@ -16,7 +17,7 @@ interface AppearancePersistedState {
   fontSize: FontSizeOption;
   density: DensityOption;
   accentColor: string;
-  language: string;
+  language: AppLanguage;
   lowStockAlerts: boolean;
   animationsEnabled: boolean;
 }
@@ -30,7 +31,7 @@ interface AppearanceState extends AppearancePersistedState {
   setFontSize: (value: FontSizeOption) => void;
   setDensity: (value: DensityOption) => void;
   setAccentColor: (value: string) => void;
-  setLanguage: (value: string) => void;
+  setLanguage: (value: AppLanguage) => void;
   setLowStockAlerts: (value: boolean) => void;
   setAnimationsEnabled: (value: boolean) => void;
   toggleTheme: () => void;
@@ -44,7 +45,7 @@ const DEFAULT_APPEARANCE: AppearancePersistedState = {
   fontSize: 'medium',
   density: 'comfortable',
   accentColor: '#6366f1',
-  language: 'en',
+  language: DEFAULT_LANGUAGE,
   lowStockAlerts: true,
   animationsEnabled: true,
 };
@@ -202,7 +203,7 @@ function getInitialAppearanceState(): AppearancePersistedState {
         : DEFAULT_APPEARANCE.fontSize,
     density: legacyCompact === 'true' ? 'compact' : DEFAULT_APPEARANCE.density,
     accentColor: legacyAccent || DEFAULT_APPEARANCE.accentColor,
-    language: legacyLang || DEFAULT_APPEARANCE.language,
+    language: normalizeLanguage(legacyLang) || DEFAULT_APPEARANCE.language,
     lowStockAlerts: getLegacyBoolean('apex_lowstock', true),
     animationsEnabled: getLegacyBoolean('apex_anims', true),
   };
@@ -298,7 +299,7 @@ export const useAppearanceStore = create<AppearanceState>()(
           return next;
         }),
 
-      setLanguage: (language) => set({ language }),
+      setLanguage: (language) => set({ language: normalizeLanguage(language) }),
 
       setLowStockAlerts: (lowStockAlerts) => set({ lowStockAlerts }),
 

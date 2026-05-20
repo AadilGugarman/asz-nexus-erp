@@ -27,8 +27,8 @@ export function useLocalStorage<T>(
         const next = typeof value === 'function' ? (value as (p: T) => T)(prev) : value;
         try {
           localStorage.setItem(key, JSON.stringify(next));
-        } catch {
-          console.warn(`[useLocalStorage] Failed to write key "${key}"`);
+        } catch (err) {
+          if (import.meta.env.DEV) console.warn(`[useLocalStorage] Failed to write key "${key}":`, err);
         }
         return next;
       });

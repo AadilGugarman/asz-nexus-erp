@@ -1,0 +1,104 @@
+{
+  "greeting": {
+    "morning": "સુપ્રભાત",
+    "afternoon": "શુભ બપોર",
+    "evening": "શુભ સાંજ"
+  },
+  "hero": {
+    "summary": "વાહન આવક, ગ્રાહક બિલિંગ, ગોડાઉન સ્ટોક, સપ્લાયર લેજર અને પેમેન્ટ્સમાં રિયલ-ટાઇમ સમન્વય.",
+    "newInward": "નવી આવક એન્ટ્રી",
+    "newSales": "નવું વેચાણ બિલ",
+    "backup": "બેકઅપ",
+    "snapshotTitle": "આજનું લાઇવ સ્નેપશોટ",
+    "snapshot": {
+      "inwardLoads": "આવક લોડ",
+      "purchaseValue": "ખરીદી મૂલ્ય",
+      "salesBills": "વેચાણ બિલ",
+      "salesValue": "વેચાણ મૂલ્ય",
+      "weightIn": "આવક વજન",
+      "cashInOut": "નગદ આવક / જાવક"
+    }
+  },
+  "sections": {
+    "quickActions": "ઝડપી ક્રિયાઓ",
+    "outstanding": {
+      "customerReceivable": "ગ્રાહક લેવાનું",
+      "supplierPayable": "સપ્લાયર ચૂકવવાનું",
+      "customerHint": "તેમણે આપવાનું બાકી છે -> મેનેજ કરવા ક્લિક કરો",
+      "supplierHint": "અમારે ચૂકવવાનું બાકી છે -> મેનેજ કરવા ક્લિક કરો",
+      "buyers": "ખરીદદારો",
+      "suppliers": "સપ્લાયરો"
+    },
+    "netPosition": {
+      "title": "નેટ નાણાકીય સ્થિતિ",
+      "positive": "નેટ પોઝિટિવ - લેવાનું ચૂકવવાના કરતાં વધુ છે",
+      "negative": "નેટ નેગેટિવ - ચૂકવવાનું લેવાના કરતાં વધુ છે"
+    },
+    "topVarieties": {
+      "title": "ટોપ 5 જાતો",
+      "viewAll": "બધું જુઓ ->",
+      "empty": "હજી સ્ટોક નથી"
+    },
+    "lowStock": {
+      "title": "લો સ્ટોક એલર્ટ",
+      "items": "આઇટમ્સ",
+      "allOptimal": "બધા સ્ટોક સ્તરો સારા છે"
+    },
+    "profitQuick": {
+      "title": "ઝડપી નફા ઝાંખી",
+      "totalSales": "કુલ વેચાણ",
+      "totalPurchase": "કુલ ખરીદી",
+      "grossProfit": "ગ્રોસ નફો",
+      "margin": "માર્જિન",
+      "viewReport": "સંપૂર્ણ P&L અહેવાલ જુઓ ->"
+    },
+    "recent": {
+      "title": "તાજેતરની લેવડદેવડ",
+      "live": "લાઇવ",
+      "fullReports": "સંપૂર્ણ અહેવાલ ->",
+      "empty": "હજુ લેવડદેવડ નથી. શરૂઆત માટે વાહન આવક નોંધો!"
+    }
+  },
+  "quickActions": {
+    "arrival": {
+      "label": "વાહન આવક",
+      "desc": "ગેટ એન્ટ્રી અને સપ્લાયર ફાળવણી"
+    },
+    "purchase": {
+      "label": "ખરીદી બિલ",
+      "desc": "સીધી સપ્લાયર ખરીદી એન્ટ્રી"
+    },
+    "sales": {
+      "label": "વેચાણ ઇન્વૉઇસ",
+      "desc": "ગ્રાહક બિલિંગ અને કેશ મેમો"
+    },
+    "payment": {
+      "label": "ચુકવણી નોંધો",
+      "desc": "સપ્લાયરને ચુકવો અથવા ખરીદદારમાંથી મેળવો"
+    },
+    "reports": {
+      "label": "અહેવાલ જુઓ",
+      "desc": "દૈનિક, તારીખ શ્રેણી, P&L વિશ્લેષણ"
+    },
+    "settings": {
+      "label": "સેટિંગ્સ",
+      "desc": "કંપની, નાણાકીય, બેકઅપ ગોઠવણ"
+    }
+  },
+  "kpi": {
+    "totalPurchase": "કુલ ખરીદી",
+    "totalSales": "કુલ વેચાણ",
+    "commission": "કમિશન",
+    "stockValuation": "સ્ટોક મૂલ્યાંકન",
+    "loadsBills": "લોડ/બિલ",
+    "invoices": "ઇન્વૉઇસ",
+    "apmcFee": "APMC એજન્ટ ફી"
+  },
+  "transactions": {
+    "inward": "આવક",
+    "purchase": "ખરીદી",
+    "sale": "વેચાણ",
+    "paidOut": "ચુકવેલ",
+    "received": "મેળવેલ"
+  }
+}

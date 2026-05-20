@@ -1,0 +1,104 @@
+{
+  "greeting": {
+    "morning": "Good Morning",
+    "afternoon": "Good Afternoon",
+    "evening": "Good Evening"
+  },
+  "hero": {
+    "summary": "Real-time sync across vehicle arrivals, customer billing, warehouse inventory, supplier ledgers & payments.",
+    "newInward": "New Inward Load",
+    "newSales": "New Sales Bill",
+    "backup": "Backup",
+    "snapshotTitle": "Today's Live Snapshot",
+    "snapshot": {
+      "inwardLoads": "Inward Loads",
+      "purchaseValue": "Purchase Value",
+      "salesBills": "Sales Bills",
+      "salesValue": "Sales Value",
+      "weightIn": "Weight IN",
+      "cashInOut": "Cash IN / OUT"
+    }
+  },
+  "sections": {
+    "quickActions": "Quick Actions",
+    "outstanding": {
+      "customerReceivable": "Customer Receivable",
+      "supplierPayable": "Supplier Payable",
+      "customerHint": "They owe us -> click to manage",
+      "supplierHint": "We owe them -> click to manage",
+      "buyers": "buyers",
+      "suppliers": "suppliers"
+    },
+    "netPosition": {
+      "title": "Net Financial Position",
+      "positive": "Net Positive - Receivables exceed Payables",
+      "negative": "Net Negative - More payables than receivables"
+    },
+    "topVarieties": {
+      "title": "Top 5 Varieties",
+      "viewAll": "View All ->",
+      "empty": "No stock yet"
+    },
+    "lowStock": {
+      "title": "Low Stock Alerts",
+      "items": "items",
+      "allOptimal": "All stock levels optimal"
+    },
+    "profitQuick": {
+      "title": "Profit Quick View",
+      "totalSales": "Total Sales",
+      "totalPurchase": "Total Purchase",
+      "grossProfit": "Gross Profit",
+      "margin": "Margin",
+      "viewReport": "View Full P&L Report ->"
+    },
+    "recent": {
+      "title": "Recent Transactions",
+      "live": "Live",
+      "fullReports": "Full Reports ->",
+      "empty": "No transactions yet. Start by recording a vehicle arrival!"
+    }
+  },
+  "quickActions": {
+    "arrival": {
+      "label": "Vehicle Inward",
+      "desc": "Gate entry & supplier allocation"
+    },
+    "purchase": {
+      "label": "Purchase Bill",
+      "desc": "Direct supplier purchase entry"
+    },
+    "sales": {
+      "label": "Sales Invoice",
+      "desc": "Customer billing & cash memo"
+    },
+    "payment": {
+      "label": "Record Payment",
+      "desc": "Pay supplier or receive from buyer"
+    },
+    "reports": {
+      "label": "View Reports",
+      "desc": "Daily, date range, P&L analytics"
+    },
+    "settings": {
+      "label": "Settings",
+      "desc": "Company, financial, backup config"
+    }
+  },
+  "kpi": {
+    "totalPurchase": "Total Purchase",
+    "totalSales": "Total Sales",
+    "commission": "Commission",
+    "stockValuation": "Stock Valuation",
+    "loadsBills": "loads/bills",
+    "invoices": "invoices",
+    "apmcFee": "APMC agent fee"
+  },
+  "transactions": {
+    "inward": "Inward",
+    "purchase": "Purchase",
+    "sale": "Sale",
+    "paidOut": "Paid Out",
+    "received": "Received"
+  }
+}

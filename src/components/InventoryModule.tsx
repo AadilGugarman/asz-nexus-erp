@@ -1,7 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Package, Search, Filter, ArrowUpRight, ArrowDownRight, Layers, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Package, Search, Filter, ArrowUpRight, ArrowDownRight, Layers, AlertTriangle, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { Combobox } from './ui/Combobox';
+import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
+import { useDataTable } from '../hooks/useDataTable';
+import { DataTable, Pagination } from './ui/table';
 
 export const InventoryModule: React.FC = () => {
   const { inventory, stockMovements, fruits } = useApp();
@@ -9,6 +12,7 @@ export const InventoryModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'LIVE_STOCK' | 'MOVEMENT_HISTORY'>('LIVE_STOCK');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFruit, setFilterFruit] = useState('ALL');
+  const [isTableLoading, setIsTableLoading] = useState(false);
 
   const filteredInventory = useMemo(() => {
     return inventory.filter(item => {
@@ -30,6 +34,42 @@ export const InventoryModule: React.FC = () => {
       return matchesSearch && matchesFruit;
     });
   }, [stockMovements, searchTerm, filterFruit]);
+
+  const liveStockTable = useDataTable<(typeof filteredInventory)[number], 'fruit' | 'variety' | 'totalCarets' | 'totalWeight'>({
+    data: filteredInventory,
+    initialSortBy: 'totalWeight',
+    initialSortDir: 'desc',
+    initialPageSize: 15,
+    pageSizeOptions: [10, 15, 30, 50],
+    sortComparators: {
+      fruit: (a, b) => a.fruit.localeCompare(b.fruit),
+      variety: (a, b) => a.variety.localeCompare(b.variety),
+      totalCarets: (a, b) => a.totalCarets - b.totalCarets,
+      totalWeight: (a, b) => a.totalWeight - b.totalWeight,
+    },
+    resetPageOn: [activeTab, filterFruit],
+  });
+
+  const movementTable = useDataTable<(typeof filteredMovements)[number], 'date' | 'fruit' | 'weightChange' | 'resultingWeight'>({
+    data: filteredMovements,
+    initialSortBy: 'date',
+    initialSortDir: 'desc',
+    initialPageSize: 20,
+    pageSizeOptions: [10, 20, 50, 100],
+    sortComparators: {
+      date: (a, b) => a.date.localeCompare(b.date),
+      fruit: (a, b) => `${a.fruit}-${a.variety}`.localeCompare(`${b.fruit}-${b.variety}`),
+      weightChange: (a, b) => a.weightChange - b.weightChange,
+      resultingWeight: (a, b) => a.resultingWeight - b.resultingWeight,
+    },
+    resetPageOn: [activeTab, filterFruit],
+  });
+
+  useEffect(() => {
+    setIsTableLoading(true);
+    const timer = window.setTimeout(() => setIsTableLoading(false), 150);
+    return () => window.clearTimeout(timer);
+  }, [activeTab, searchTerm, filterFruit, liveStockTable.sortBy, liveStockTable.sortDir, movementTable.sortBy, movementTable.sortDir]);
 
   const totalStockWeight = inventory.reduce((sum, it) => sum + it.totalWeight, 0);
   const totalStockCarets = inventory.reduce((sum, it) => sum + it.totalCarets, 0);
@@ -141,32 +181,51 @@ export const InventoryModule: React.FC = () => {
 
       {/* SUB-TAB 1: LIVE VARIETY STOCK TABLE */}
       {activeTab === 'LIVE_STOCK' && (
-        <div className="erp-table-wrap font-sans">
+        <DataTable
+          className="font-sans"
+          toolbar={
           <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#475569]">Live Variety-Wise Warehouse Stock</span>
-            <span className="text-xs text-[#64748b] font-semibold font-mono">Total Unique Items: {filteredInventory.length}</span>
+            <span className="text-xs text-[#64748b] font-semibold font-mono">Total Unique Items: {liveStockTable.totalRecords}</span>
           </div>
+          }
+          footer={
+            <Pagination
+              page={liveStockTable.page}
+              totalPages={liveStockTable.totalPages}
+              totalRecords={liveStockTable.totalRecords}
+              pageSize={liveStockTable.pageSize}
+              pageSizeOptions={liveStockTable.pageSizeOptions}
+              onPageChange={liveStockTable.setPage}
+              onPageSizeChange={liveStockTable.setPageSize}
+              label="stock items"
+            />
+          }
+        >
 
-          <div className="overflow-x-auto">
             <table className="erp-table text-left font-sans">
               <thead>
                 <tr>
-                  <th className="py-3.5 px-6">Fruit Category</th>
-                  <th className="py-3.5 px-4">Variety (Vakkal)</th>
-                  <th className="py-3.5 px-4 text-right">Carets Quantity</th>
-                  <th className="py-3.5 px-6 text-right text-[#00aeef]">Total Net Weight (KG)</th>
+                  <th className="py-3.5 px-6"><button type="button" onClick={() => liveStockTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Fruit Category <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3.5 px-4"><button type="button" onClick={() => liveStockTable.toggleSort('variety')} className="inline-flex items-center gap-1">Variety (Vakkal) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3.5 px-4 text-right"><button type="button" onClick={() => liveStockTable.toggleSort('totalCarets')} className="inline-flex items-center gap-1 ml-auto">Carets Quantity <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3.5 px-6 text-right text-[#00aeef]"><button type="button" onClick={() => liveStockTable.toggleSort('totalWeight')} className="inline-flex items-center gap-1 ml-auto">Total Net Weight (KG) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
                   <th className="py-3.5 px-6 text-center">Status / Health</th>
                 </tr>
               </thead>
               <tbody className="font-mono">
-                {filteredInventory.length === 0 ? (
+                {isTableLoading ? (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center text-[#94a3b8] font-sans text-sm">
-                      No stock records found. Save an Inward Load or Purchase Bill to add stock!
+                    <td colSpan={5} className="p-0"><TableSkeleton rows={7} cols={5} /></td>
+                  </tr>
+                ) : liveStockTable.totalRecords === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-0">
+                      <ModuleEmptyState title="No stock records found" subtitle="Save an Inward Load or Purchase Bill to add stock." />
                     </td>
                   </tr>
                 ) : (
-                  filteredInventory.map(item => {
+                  liveStockTable.pageRows.map(item => {
                     const isLowStock = item.totalWeight <= 200 && item.totalWeight > 0;
                     const isOut = item.totalWeight <= 0;
 
@@ -207,40 +266,58 @@ export const InventoryModule: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
+        </DataTable>
       )}
 
       {/* SUB-TAB 2: MOVEMENT AUDIT LOG */}
       {activeTab === 'MOVEMENT_HISTORY' && (
-        <div className="erp-table-wrap font-sans">
+        <DataTable
+          className="font-sans"
+          toolbar={
           <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#475569]">Automated Inventory Movement Audit Log</span>
             <span className="text-xs text-[#64748b] font-medium">Chronological history of all stock additions & billing deductions</span>
           </div>
+          }
+          footer={
+            <Pagination
+              page={movementTable.page}
+              totalPages={movementTable.totalPages}
+              totalRecords={movementTable.totalRecords}
+              pageSize={movementTable.pageSize}
+              pageSizeOptions={movementTable.pageSizeOptions}
+              onPageChange={movementTable.setPage}
+              onPageSizeChange={movementTable.setPageSize}
+              label="movements"
+            />
+          }
+        >
 
-          <div className="overflow-x-auto font-sans">
             <table className="erp-table text-left">
               <thead>
                 <tr>
-                  <th className="py-3 px-4">Date & Time</th>
+                  <th className="py-3 px-4"><button type="button" onClick={() => movementTable.toggleSort('date')} className="inline-flex items-center gap-1">Date & Time <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
                   <th className="py-3 px-3">Movement Type</th>
-                  <th className="py-3 px-3">Item Variety</th>
+                  <th className="py-3 px-3"><button type="button" onClick={() => movementTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Item Variety <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
                   <th className="py-3 px-4">Source / Reference</th>
-                  <th className="py-3 px-3 text-right">Weight Change</th>
+                  <th className="py-3 px-3 text-right"><button type="button" onClick={() => movementTable.toggleSort('weightChange')} className="inline-flex items-center gap-1 ml-auto">Weight Change <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
                   <th className="py-3 px-3 text-right">Carets Change</th>
-                  <th className="py-3 px-4 text-right text-[#00aeef]">Resulting Balance</th>
+                  <th className="py-3 px-4 text-right text-[#00aeef]"><button type="button" onClick={() => movementTable.toggleSort('resultingWeight')} className="inline-flex items-center gap-1 ml-auto">Resulting Balance <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
                 </tr>
               </thead>
               <tbody className="font-mono font-medium">
-                {filteredMovements.length === 0 ? (
+                {isTableLoading ? (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center text-[#94a3b8] font-sans text-sm">
-                      No movement history recorded yet.
+                    <td colSpan={7} className="p-0"><TableSkeleton rows={7} cols={7} /></td>
+                  </tr>
+                ) : movementTable.totalRecords === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-0">
+                      <ModuleEmptyState title="No movement history recorded" subtitle="Stock movement entries appear after arrivals, purchases, and sales." />
                     </td>
                   </tr>
                 ) : (
-                  filteredMovements.map(m => {
+                  movementTable.pageRows.map(m => {
                     const isStockIn = m.type === 'ARRIVAL' || m.type === 'PURCHASE_BILL';
                     return (
                       <tr key={m.id} className="font-sans group">
@@ -279,8 +356,7 @@ export const InventoryModule: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
+        </DataTable>
       )}
     </div>
   );

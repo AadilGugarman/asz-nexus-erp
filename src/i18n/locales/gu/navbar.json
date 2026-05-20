@@ -1,0 +1,29 @@
+{
+  "groups": {
+    "overview": "ઝાંખી",
+    "transactions": "લેણદેણ",
+    "data": "ડેટા",
+    "system": "સિસ્ટમ"
+  },
+  "items": {
+    "dashboard": "ડેશબોર્ડ",
+    "arrival": "વાહન આવક",
+    "purchase": "ખરીદી બિલિંગ",
+    "sales": "વેચાણ બિલિંગ",
+    "payments": "ચુકવણીઓ",
+    "inventory": "ઇન્વેન્ટરી",
+    "parties": "પાર્ટીઓ",
+    "suppliers": "સપ્લાયરો",
+    "customers": "ગ્રાહકો",
+    "reports": "અહેવાલો",
+    "settings": "સેટિંગ્સ"
+  },
+  "actions": {
+    "shortcuts": "શોર્ટકટ્સ"
+  },
+  "tooltips": {
+    "expandSidebar": "સાઇડબાર વિસ્તારો",
+    "collapseSidebar": "સાઇડબાર સંકોચો",
+    "keyboardShortcuts": "કીબોર્ડ શોર્ટકટ્સ"
+  }
+}

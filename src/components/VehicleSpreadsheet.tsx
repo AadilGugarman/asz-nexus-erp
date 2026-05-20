@@ -1,8 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { PurchaseRow, Supplier, Fruit } from '../types';
 import { Plus, Copy, Trash2, ClipboardPaste } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Combobox } from './ui/Combobox';
+import { useDataTable } from '../hooks/useDataTable';
+import { DataTable, Pagination } from './ui/table';
 
 interface VehicleSpreadsheetProps {
   rows: PurchaseRow[];
@@ -131,6 +133,8 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
         const nextRowInput = document.querySelector(`[data-cell="${rowIndex + 1}-0"]`) as HTMLElement;
         if (nextRowInput) {
           nextRowInput.focus();
+        } else if (rows[rowIndex + 1]) {
+          focusCellAt(rowIndex + 1, 0);
         } else {
           addRow();
           setTimeout(() => {
@@ -141,10 +145,12 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
       }
     } else if (e.key === 'ArrowUp') {
       const target = document.querySelector(`[data-cell="${rowIndex - 1}-${colIndex}"]`) as HTMLElement;
-      target?.focus();
+      if (target) target.focus();
+      else focusCellAt(rowIndex - 1, colIndex);
     } else if (e.key === 'ArrowDown') {
       const target = document.querySelector(`[data-cell="${rowIndex + 1}-${colIndex}"]`) as HTMLElement;
       if (target) target.focus();
+      else if (rows[rowIndex + 1]) focusCellAt(rowIndex + 1, colIndex);
       else addRow();
     } else if (e.key === 'ArrowLeft' && (e.target as HTMLInputElement).selectionStart === 0) {
       const target = document.querySelector(`[data-cell="${rowIndex}-${colIndex - 1}"]`) as HTMLElement;
@@ -164,6 +170,29 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
   const totalCarets = rows.reduce((sum, r) => sum + (parseFloat(String(r.caret)) || 0), 0);
   const totalWeight = rows.reduce((sum, r) => sum + (parseFloat(String(r.weight)) || 0), 0);
   const totalAmount = rows.reduce((sum, r) => sum + (parseFloat(String(r.amount)) || 0), 0);
+  const indexedRows = useMemo(() => rows.map((row, idx) => ({ row, idx })), [rows]);
+  const rowTable = useDataTable<(typeof indexedRows)[number], 'idx'>({
+    data: indexedRows,
+    initialSortBy: 'idx',
+    initialSortDir: 'asc',
+    initialPageSize: 12,
+    pageSizeOptions: [12, 25, 50, 100],
+    sortComparators: {
+      idx: (a, b) => a.idx - b.idx,
+    },
+  });
+
+  const focusCellAt = (targetRow: number, targetCol: number) => {
+    if (targetRow < 0 || targetRow >= rows.length) return;
+    const pageForRow = Math.floor(targetRow / rowTable.pageSize) + 1;
+    if (pageForRow !== rowTable.page) {
+      rowTable.setPage(pageForRow);
+    }
+    setTimeout(() => {
+      const target = document.querySelector(`[data-cell="${targetRow}-${targetCol}"]`) as HTMLElement | null;
+      target?.focus();
+    }, 60);
+  };
 
   return (
     <div className="bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-2xl overflow-hidden font-sans">
@@ -200,8 +229,11 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
       </div>
 
       {/* Main Table Container */}
-      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-        <table ref={tableRef} className="w-full text-left border-collapse" onPaste={handlePaste}>
+      <DataTable
+        scrollClassName="scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+        footer={<Pagination page={rowTable.page} totalPages={rowTable.totalPages} totalRecords={rowTable.totalRecords} pageSize={rowTable.pageSize} pageSizeOptions={rowTable.pageSizeOptions} onPageChange={rowTable.setPage} onPageSizeChange={rowTable.setPageSize} label="sheet rows" />}
+      >
+        <table ref={tableRef} className="erp-table w-full text-left border-collapse" onPaste={handlePaste}>
           <thead>
             <tr className="bg-slate-900/60 dark:bg-slate-900/60 bg-slate-50 dark:text-slate-300 text-slate-700 text-xs font-bold uppercase tracking-wider sticky top-0 border-b border-slate-800 dark:border-slate-800 border-slate-200 select-none">
               <th className="py-3 px-4 w-64 min-w-[220px]">Supplier / Party Name</th>
@@ -215,7 +247,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/80 dark:divide-slate-800/80 divide-slate-200 font-mono text-sm">
-            {rows.map((row, rIndex) => (
+            {rowTable.pageRows.map(({ row, idx: rIndex }) => (
               <tr key={row.id} className="hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-100 font-sans group focus-within:bg-slate-800/60 dark:focus-within:bg-slate-800/60 focus-within:bg-slate-100 transition-colors">
                 {/* Supplier Dropdown */}
                 <td className="p-1 px-3" data-cell={`${rIndex}-0`}>
@@ -351,7 +383,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
             </tr>
           </tfoot>
         </table>
-      </div>
+      </DataTable>
     </div>
   );
 };

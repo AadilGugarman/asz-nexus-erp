@@ -7,18 +7,20 @@ import { Combobox } from './ui/Combobox';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
+import { useDataTable } from '../hooks/useDataTable';
+import { DataTable, Pagination } from './ui/table';
+import { useAppearance, useAppTranslation } from '@/hooks';
 
 export const PurchaseBillingModule: React.FC = () => {
   const { suppliers, fruits, purchaseInvoices, savePurchaseInvoice, deletePurchaseInvoice, addFruit, addFruitVariety } = useApp();
+  const { t } = useAppTranslation('billing');
+  const { density, setDensity } = useAppearance();
   const toast = useToast();
   const dialog = useConfirmDialog();
 
   const [activeSubTab, setActiveSubTab] = useState<'NEW_INVOICE' | 'LIST'>('NEW_INVOICE');
   const [previewInvoice, setPreviewInvoice] = useState<PurchaseInvoice | null>(null);
-  const [isCompact, setIsCompact] = useState(false);
   const [isListLoading, setIsListLoading] = useState(false);
-  const [sortBy, setSortBy] = useState<'date' | 'billNo' | 'todayAmount' | 'remainingBalance'>('date');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Form State
   const [billNo, setBillNo] = useState(`PUR-2026-${String(purchaseInvoices.length + 101).padStart(3, '0')}`);
@@ -221,29 +223,36 @@ export const PurchaseBillingModule: React.FC = () => {
   const listSearchRef = useRef<HTMLInputElement>(null);
   const nextFieldRef = useRef<HTMLInputElement>(null);
   const filteredInvoices = useMemo(() => {
-    const filtered = purchaseInvoices.filter(inv => {
+    return purchaseInvoices.filter(inv => {
       return (
         inv.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.items.some(it => it.fruit.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     });
+  }, [purchaseInvoices, searchTerm]);
 
-    return [...filtered].sort((a, b) => {
-      const factor = sortDir === 'asc' ? 1 : -1;
-      if (sortBy === 'billNo') return a.billNo.localeCompare(b.billNo) * factor;
-      if (sortBy === 'todayAmount') return (a.todayAmount - b.todayAmount) * factor;
-      if (sortBy === 'remainingBalance') return (a.remainingBalance - b.remainingBalance) * factor;
-      return a.date.localeCompare(b.date) * factor;
-    });
-  }, [purchaseInvoices, searchTerm, sortBy, sortDir]);
+  const purchaseTable = useDataTable<PurchaseInvoice, 'date' | 'billNo' | 'todayAmount' | 'remainingBalance'>({
+    data: filteredInvoices,
+    initialSortBy: 'date',
+    initialSortDir: 'desc',
+    initialPageSize: 15,
+    pageSizeOptions: [10, 15, 30, 50],
+    sortComparators: {
+      date: (a, b) => a.date.localeCompare(b.date),
+      billNo: (a, b) => a.billNo.localeCompare(b.billNo),
+      todayAmount: (a, b) => a.todayAmount - b.todayAmount,
+      remainingBalance: (a, b) => a.remainingBalance - b.remainingBalance,
+    },
+    resetPageOn: [activeSubTab],
+  });
 
   useEffect(() => {
     if (activeSubTab !== 'LIST') return;
     setIsListLoading(true);
     const t = window.setTimeout(() => setIsListLoading(false), 180);
     return () => window.clearTimeout(t);
-  }, [activeSubTab, searchTerm, sortBy, sortDir]);
+  }, [activeSubTab, searchTerm, purchaseTable.sortBy, purchaseTable.sortDir]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -264,14 +273,7 @@ export const PurchaseBillingModule: React.FC = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeSubTab, items, selectedSupplierId, notes, billNo, date, freightInput, hamaliInput, paidAmountInput]);
 
-  const handleSort = (key: 'date' | 'billNo' | 'todayAmount' | 'remainingBalance') => {
-    if (sortBy === key) {
-      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setSortBy(key);
-    setSortDir('desc');
-  };
+  const isCompact = density === 'compact';
 
   return (
     <div className="space-y-6 font-sans">
@@ -280,9 +282,9 @@ export const PurchaseBillingModule: React.FC = () => {
         <div>
           <h1 className="erp-title text-[1.1rem] flex items-center space-x-2.5">
             <ShoppingBag className="w-6 h-6 text-[#00c896]" />
-            <span>DIRECT PURCHASE BILLING & INVOICES</span>
+            <span>{t('purchase.header.title').toUpperCase()}</span>
           </h1>
-          <p className="erp-subtitle mt-1">Premium fast supplier purchase bill entry, auto stock increment, and supplier balance sync</p>
+          <p className="erp-subtitle mt-1">{t('purchase.header.subtitle')}</p>
         </div>
 
         <div className="erp-surface flex items-center space-x-2 p-1.5">
@@ -295,7 +297,7 @@ export const PurchaseBillingModule: React.FC = () => {
             }`}
           >
             <Plus className="w-4 h-4" />
-            <span>New Purchase Bill</span>
+            <span>{t('purchase.header.newBill')}</span>
           </button>
           <button
             onClick={() => setActiveSubTab('LIST')}
@@ -306,7 +308,7 @@ export const PurchaseBillingModule: React.FC = () => {
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>Purchase Bills ({purchaseInvoices.length})</span>
+            <span>{t('purchase.header.purchaseBills')} ({purchaseInvoices.length})</span>
           </button>
         </div>
       </div>
@@ -322,7 +324,7 @@ export const PurchaseBillingModule: React.FC = () => {
                   {billNo}
                 </span>
                 <div className="flex items-center space-x-1 font-mono">
-                  <span className="text-xs dark:text-slate-400 text-slate-600 font-medium font-sans">Date:</span>
+                  <span className="text-xs dark:text-slate-400 text-slate-600 font-medium font-sans">{t('purchase.newInvoice.date')}</span>
                   <input
                     ref={nextFieldRef}
                     type="date"
@@ -339,10 +341,10 @@ export const PurchaseBillingModule: React.FC = () => {
                   className="text-xs text-emerald-500 hover:underline flex items-center space-x-1 cursor-pointer font-bold"
                 >
                   <Calculator className="w-3.5 h-3.5" />
-                  <span>{showAdvancedDeductions ? 'Hide Freight/Hamali' : 'Add Freight & Hamali'}</span>
+                  <span>{showAdvancedDeductions ? t('purchase.newInvoice.hideCharges') : t('purchase.newInvoice.showCharges')}</span>
                 </button>
                 <div className="flex items-center space-x-2 flex-1 sm:flex-initial">
-                  <label className="text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 whitespace-nowrap">Supplier / Orchard:</label>
+                  <label className="text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 whitespace-nowrap">{t('purchase.newInvoice.supplierOrchard')}</label>
                   <Combobox
                     value={selectedSupplier.name}
                     onChange={(val) => {
@@ -398,19 +400,19 @@ export const PurchaseBillingModule: React.FC = () => {
             {/* LIVE SUPPLIER BALANCE FORMULA BAR */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-[#f8fafc] p-4 rounded-xl border border-[#e2e8f0]">
               <div className="p-3.5 bg-white rounded-xl border border-[#e2e8f0] shadow-sm">
-                <span className="text-[10px] text-[#64748b] uppercase font-semibold block tracking-wider">Previous Outstanding</span>
+                <span className="text-[10px] text-[#64748b] uppercase font-semibold block tracking-wider">{t('purchase.newInvoice.previousOutstanding')}</span>
                 <span className="text-xl font-semibold font-mono text-[#0f172a] mt-1 block">
                   ₹ {previousBalance.toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="p-3.5 bg-[rgba(0,200,150,0.08)] rounded-xl border border-[rgba(0,200,150,0.25)] shadow-sm">
-                <span className="text-[10px] text-[#00c896] uppercase font-semibold block tracking-wider">+ Net Today Bill</span>
+                <span className="text-[10px] text-[#00c896] uppercase font-semibold block tracking-wider">+ {t('purchase.newInvoice.netTodayBill')}</span>
                 <span className="text-xl font-semibold font-mono text-[#00c896] mt-1 block">
                   ₹ {todayAmount.toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="p-3.5 bg-[rgba(0,174,239,0.08)] rounded-xl border border-[rgba(0,174,239,0.25)] shadow-sm">
-                <span className="text-[10px] text-[#00aeef] uppercase font-semibold block tracking-wider">- Cash Paid Instantly</span>
+                <span className="text-[10px] text-[#00aeef] uppercase font-semibold block tracking-wider">- {t('purchase.newInvoice.cashPaid')}</span>
                 <div className="flex items-center mt-1">
                   <span className="text-[#00aeef] font-mono font-semibold mr-1.5 text-base">₹</span>
                   <input
@@ -423,7 +425,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 </div>
               </div>
               <div className="p-3.5 bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white rounded-xl shadow-lg flex flex-col justify-center font-semibold">
-                <span className="text-[10px] text-white/90 uppercase font-semibold block tracking-wider">Final Supplier Payable</span>
+                <span className="text-[10px] text-white/90 uppercase font-semibold block tracking-wider">{t('purchase.newInvoice.finalPayable')}</span>
                 <span className="text-2xl font-semibold font-mono text-white mt-1 block">
                   ₹ {remainingBalance.toLocaleString('en-IN')}
                 </span>
@@ -436,8 +438,8 @@ export const PurchaseBillingModule: React.FC = () => {
             <div className="px-5 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#00c896] animate-pulse"></div>
-                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#475569]">Purchased Fruit Items</span>
-                <span className="text-xs bg-[#f1f5f9] text-[#475569] px-2 py-0.5 rounded-full font-mono font-semibold border border-[#e2e8f0]">{items.length} items active</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#475569]">{t('purchase.newInvoice.purchasedItems')}</span>
+                <span className="text-xs bg-[#f1f5f9] text-[#475569] px-2 py-0.5 rounded-full font-mono font-semibold border border-[#e2e8f0]">{items.length} {t('purchase.newInvoice.activeItems')}</span>
               </div>
               <button
                 type="button"
@@ -445,7 +447,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 className="erp-btn-primary flex items-center space-x-1 px-3 py-1.5 text-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add Row (Alt+A)</span>
+                <span>{t('purchase.newInvoice.addRow')}</span>
               </button>
             </div>
 
@@ -453,13 +455,13 @@ export const PurchaseBillingModule: React.FC = () => {
               <table className="erp-table text-left text-xs sm:text-sm">
                 <thead>
                   <tr className="select-none">
-                    <th className="py-3 px-4 w-48 min-w-[160px]">Fruit Category</th>
-                    <th className="py-3 px-3 w-48 min-w-[160px]">Variety (Vakkal)</th>
-                    <th className="py-3 px-3 w-28 text-right min-w-[100px]">Carets Qty</th>
-                    <th className="py-3 px-3 w-32 text-right min-w-[100px]">Weight (KG)</th>
-                    <th className="py-3 px-3 w-32 text-right min-w-[100px]">Rate (₹/KG)</th>
-                    <th className="py-3 px-4 w-36 text-right font-black text-emerald-500 min-w-[140px]">Subtotal Amount</th>
-                    <th className="py-3 px-3 w-20 text-center min-w-[90px]">Actions</th>
+                    <th className="py-3 px-4 w-48 min-w-[160px]">{t('purchase.table.fruitCategory')}</th>
+                    <th className="py-3 px-3 w-48 min-w-[160px]">{t('purchase.table.variety')}</th>
+                    <th className="py-3 px-3 w-28 text-right min-w-[100px]">{t('purchase.table.caretsQty')}</th>
+                    <th className="py-3 px-3 w-32 text-right min-w-[100px]">{t('purchase.table.weight')}</th>
+                    <th className="py-3 px-3 w-32 text-right min-w-[100px]">{t('purchase.table.rate')}</th>
+                    <th className="py-3 px-4 w-36 text-right font-black text-emerald-500 min-w-[140px]">{t('purchase.table.subtotalAmount')}</th>
+                    <th className="py-3 px-3 w-20 text-center min-w-[90px]">{t('purchase.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="font-mono">
@@ -630,25 +632,25 @@ export const PurchaseBillingModule: React.FC = () => {
         <div className={`erp-table-wrap rounded-2xl p-6 space-y-6 font-sans ${isCompact ? 'table-compact' : ''}`}>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[#edf2f7] pb-4">
             <h2 className="text-base font-bold dark:text-white text-slate-900 flex items-center space-x-2">
-              <span>Direct Purchase Invoices Archive</span>
+              <span>{t('purchase.list.title')}</span>
               <span className="text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-mono px-2.5 py-0.5 rounded font-bold">
-                {filteredInvoices.length} Bills Synced
+                {purchaseTable.totalRecords} {t('purchase.list.billsSynced')}
               </span>
             </h2>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
-                onClick={() => setIsCompact(v => !v)}
+                onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')}
                 className="erp-btn-secondary px-3 py-2 text-xs"
               >
-                {isCompact ? 'Comfortable' : 'Compact'}
+                {density === 'compact' ? t('purchase.list.compact') : density === 'comfortable' ? t('purchase.list.comfortable') : t('purchase.list.spacious')}
               </button>
               <div className="relative w-full sm:w-72">
                 <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
               <input
                 ref={listSearchRef}
                 type="text"
-                placeholder="Search bill #, supplier name, fruit..."
+                placeholder={t('purchase.list.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="erp-input w-full pl-9 pr-4"
@@ -657,30 +659,44 @@ export const PurchaseBillingModule: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto scroll-smooth">
+          <DataTable
+            scrollClassName="scroll-smooth"
+            footer={
+              <Pagination
+                page={purchaseTable.page}
+                totalPages={purchaseTable.totalPages}
+                totalRecords={purchaseTable.totalRecords}
+                pageSize={purchaseTable.pageSize}
+                pageSizeOptions={purchaseTable.pageSizeOptions}
+                onPageChange={purchaseTable.setPage}
+                onPageSizeChange={purchaseTable.setPageSize}
+                label="purchase bills"
+              />
+            }
+          >
             <table className="erp-table text-left text-xs sm:text-sm">
               <thead>
                 <tr>
                   <th className="py-3.5 px-4">
-                    <button type="button" onClick={() => handleSort('billNo')} className="inline-flex items-center gap-1">
-                      Bill # / Date <ArrowUpDown className="w-3.5 h-3.5" />
+                    <button type="button" onClick={() => purchaseTable.toggleSort('billNo')} className="inline-flex items-center gap-1">
+                      {t('purchase.list.billDate')} <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3">Supplier / Orchard</th>
-                  <th className="py-3.5 px-3 text-right">Carets</th>
-                  <th className="py-3.5 px-3 text-right">Weight (KG)</th>
+                  <th className="py-3.5 px-3">{t('purchase.list.supplierOrchard')}</th>
+                  <th className="py-3.5 px-3 text-right">{t('purchase.list.carets')}</th>
+                  <th className="py-3.5 px-3 text-right">{t('purchase.table.weight')}</th>
                   <th className="py-3.5 px-3 text-right font-black text-emerald-500">
-                    <button type="button" onClick={() => handleSort('todayAmount')} className="inline-flex items-center gap-1 ml-auto">
-                      Bill Total <ArrowUpDown className="w-3.5 h-3.5" />
+                    <button type="button" onClick={() => purchaseTable.toggleSort('todayAmount')} className="inline-flex items-center gap-1 ml-auto">
+                      {t('purchase.list.billTotal')} <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 text-right text-indigo-500">Cash Paid Now</th>
+                  <th className="py-3.5 px-3 text-right text-indigo-500">{t('purchase.list.cashPaidNow')}</th>
                   <th className="py-3.5 px-3 text-right font-black dark:text-slate-100 text-slate-950">
-                    <button type="button" onClick={() => handleSort('remainingBalance')} className="inline-flex items-center gap-1 ml-auto">
-                      Final Balance <ArrowUpDown className="w-3.5 h-3.5" />
+                    <button type="button" onClick={() => purchaseTable.toggleSort('remainingBalance')} className="inline-flex items-center gap-1 ml-auto">
+                      {t('purchase.list.finalBalance')} <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-4 text-center sticky right-0 bg-[#f8fafc] z-[3]">Actions / View</th>
+                  <th className="py-3.5 px-4 text-center sticky right-0 bg-[#f8fafc] z-[3]">{t('purchase.list.actionsView')}</th>
                 </tr>
               </thead>
               <tbody className="font-mono">
@@ -690,7 +706,7 @@ export const PurchaseBillingModule: React.FC = () => {
                       <TableSkeleton rows={6} cols={8} compact={isCompact} />
                     </td>
                   </tr>
-                ) : filteredInvoices.length === 0 ? (
+                ) : purchaseTable.totalRecords === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-0">
                       <ModuleEmptyState
@@ -700,7 +716,7 @@ export const PurchaseBillingModule: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredInvoices.map(inv => {
+                  purchaseTable.pageRows.map(inv => {
                     const carets = inv.items.reduce((s, it) => s + (Number(it.caret) || 0), 0);
                     const weight = inv.items.reduce((s, it) => s + (Number(it.weight) || 0), 0);
 
@@ -763,7 +779,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
+          </DataTable>
         </div>
       )}
 

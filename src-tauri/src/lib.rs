@@ -25,6 +25,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .setup(|app| {
             // ── Database ──────────────────────────────────────────────────────
             let app_data_dir = app.path().app_data_dir()
@@ -115,6 +116,14 @@ pub fn run() {
                 commands::auth::auth_change_password,
                 // ── Database ─────────────────────────────────────────────────
                 commands::db::db_get_stats,
+                   // ── Backup ───────────────────────────────────────────────────
+                   commands::backup::backup_create,
+                   commands::backup::backup_list,
+                   commands::backup::backup_validate,
+                   commands::backup::backup_delete,
+                   commands::backup::backup_restore,
+                   commands::backup::backup_prune,
+                   commands::backup::backup_get_dir,
                 // ── Employee ─────────────────────────────────────────────────
                 commands::employee::employee_list,
                 commands::employee::employee_get,

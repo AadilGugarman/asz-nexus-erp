@@ -1,7 +1,7 @@
 {
-  "productName": "TFC ERP",
+  "productName": "Mango Nexus ERP",
   "version": "1.0.0",
-  "identifier": "in.talhafruit.erp",
+  "identifier": "in.mangonexus.erp",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "TFC ERP",
+        "title": "Mango Nexus ERP",
         "width": 1280,
         "height": 800,
         "minWidth": 960,
@@ -32,11 +32,11 @@
     },
     "trayIcon": {
       "id": "tfc-tray",
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true,
+      "iconPath": "icons/tray-icon.png",
+      "iconAsTemplate": false,
       "menuOnLeftClick": false,
-      "title": "TFC ERP",
-      "tooltip": "TFC ERP — Fruit Commission Management"
+      "title": "Mango Nexus ERP",
+      "tooltip": "Mango Nexus ERP"
     }
   },
   "bundle": {
@@ -46,7 +46,8 @@
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
-      "icons/icon.ico"
+      "icons/icon.ico",
+      "icons/icon.icns"
     ],
     "windows": {
       "digestAlgorithm": "sha256",
@@ -54,10 +55,10 @@
     },
     "resources": [],
     "externalBin": [],
-    "copyright": "© 2026 TFC",
+    "copyright": "© 2026 Mango Nexus",
     "category": "Business",
-    "shortDescription": "Fruit Commission ERP",
-    "longDescription": "TFC ERP — Fruit Commission Management System for APMC traders"
+    "shortDescription": "Mango-themed commission ERP",
+    "longDescription": "Mango Nexus ERP — desktop commission management for produce and APMC trading workflows"
   },
   "plugins": {
     "fs": {

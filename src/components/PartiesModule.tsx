@@ -8,6 +8,8 @@ import {
   Trash2, Building2, DollarSign, StickyNote,
   ArrowUpDown, ArrowLeft, ArrowUpRight, ArrowDownRight, Calendar
 } from 'lucide-react';
+import { useDataTable } from '../hooks/useDataTable';
+import { DataTable, Pagination } from './ui/table';
 
 type PartyType = 'CUSTOMER' | 'SUPPLIER' | 'BOTH';
 type ViewMode = 'GRID' | 'LIST';
@@ -33,7 +35,6 @@ export const PartiesModule: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<FilterTab>('ALL');
-  const [sortKey, setSortKey] = useState<SortKey>('name');
   const [viewMode, setViewMode] = useState<ViewMode>('GRID');
   const [showModal, setShowModal] = useState(false);
   const [editingParty, setEditingParty] = useState<UnifiedParty | null>(null);
@@ -63,9 +64,22 @@ export const PartiesModule: React.FC = () => {
     let list = allParties;
     if (filterTab !== 'ALL') list = list.filter(p => p.type === filterTab);
     if (search.trim()) { const q = search.toLowerCase(); list = list.filter(p => p.name.toLowerCase().includes(q) || p.phone.toLowerCase().includes(q) || p.email.toLowerCase().includes(q) || p.gstin.toLowerCase().includes(q) || p.city.toLowerCase().includes(q)); }
-    list.sort((a, b) => { if (sortKey === 'name') return a.name.localeCompare(b.name); if (sortKey === 'city') return (a.city || '').localeCompare(b.city || ''); if (sortKey === 'balance') return b.balance - a.balance; return 0; });
     return list;
-  }, [allParties, filterTab, search, sortKey]);
+  }, [allParties, filterTab, search]);
+
+  const partiesTable = useDataTable<UnifiedParty, SortKey>({
+    data: filtered,
+    initialSortBy: 'name',
+    initialSortDir: 'asc',
+    initialPageSize: 18,
+    pageSizeOptions: [12, 18, 30, 50],
+    sortComparators: {
+      name: (a, b) => a.name.localeCompare(b.name),
+      city: (a, b) => (a.city || '').localeCompare(b.city || ''),
+      balance: (a, b) => b.balance - a.balance,
+    },
+    resetPageOn: [filterTab, viewMode],
+  });
 
   const counts = useMemo(() => ({ ALL: allParties.length, CUSTOMER: allParties.filter(p => p.type === 'CUSTOMER').length, SUPPLIER: allParties.filter(p => p.type === 'SUPPLIER').length, BOTH: allParties.filter(p => p.type === 'BOTH').length }), [allParties]);
 
@@ -135,6 +149,34 @@ export const PartiesModule: React.FC = () => {
     return cust ? getCustomerLedger(cust.id) : [];
   }, [detailParty, customers, getCustomerLedger]);
 
+  const supplierLedgerTable = useDataTable<(typeof supLedger)[number], 'date' | 'amount' | 'runningBalance'>({
+    data: supLedger,
+    initialSortBy: 'date',
+    initialSortDir: 'desc',
+    initialPageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    sortComparators: {
+      date: (a, b) => a.date.localeCompare(b.date),
+      amount: (a, b) => a.amount - b.amount,
+      runningBalance: (a, b) => a.runningBalance - b.runningBalance,
+    },
+    resetPageOn: [detailParty?.id || ''],
+  });
+
+  const customerLedgerTable = useDataTable<(typeof custLedger)[number], 'date' | 'amount' | 'runningBalance'>({
+    data: custLedger,
+    initialSortBy: 'date',
+    initialSortDir: 'desc',
+    initialPageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    sortComparators: {
+      date: (a, b) => a.date.localeCompare(b.date),
+      amount: (a, b) => a.amount - b.amount,
+      runningBalance: (a, b) => a.runningBalance - b.runningBalance,
+    },
+    resetPageOn: [detailParty?.id || ''],
+  });
+
   // ═══════════════════════════════════════════
   // PARTY DETAIL PAGE VIEW
   // ═══════════════════════════════════════════
@@ -198,12 +240,12 @@ export const PartiesModule: React.FC = () => {
         {(p.type === 'SUPPLIER' || p.type === 'BOTH') && supLedger.length > 0 && (
           <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-xs font-bold dark:text-emerald-400 text-emerald-700 uppercase tracking-wider"><Users className="w-4 h-4" /><span>Supplier Ledger</span><span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-1.5 py-0.5 rounded ml-auto">{supLedger.length}</span></div>
-            <div className="overflow-x-auto"><table className="w-full text-left text-xs">
+            <DataTable footer={<Pagination page={supplierLedgerTable.page} totalPages={supplierLedgerTable.totalPages} totalRecords={supplierLedgerTable.totalRecords} pageSize={supplierLedgerTable.pageSize} pageSizeOptions={supplierLedgerTable.pageSizeOptions} onPageChange={supplierLedgerTable.setPage} onPageSizeChange={supplierLedgerTable.setPageSize} label="supplier ledger rows" />}><table className="erp-table w-full text-left text-xs">
               <thead><tr className="dark:bg-slate-950/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
                 <th className="py-2.5 px-4">Date</th><th className="py-2.5 px-3">Type</th><th className="py-2.5 px-3">Reference</th><th className="py-2.5 px-3 text-right">Debit</th><th className="py-2.5 px-3 text-right">Credit</th><th className="py-2.5 px-4 text-right font-black">Balance</th>
               </tr></thead>
               <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                {supLedger.map(e => {
+                {supplierLedgerTable.pageRows.map(e => {
                   const isPurch = e.type === 'PURCHASE_VEHICLE' || e.type === 'PURCHASE_BILL';
                   return (<tr key={e.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50 font-sans">
                     <td className="py-2.5 px-4 font-mono text-xs dark:text-slate-300 text-slate-700">{e.date}</td>
@@ -215,19 +257,19 @@ export const PartiesModule: React.FC = () => {
                   </tr>);
                 })}
               </tbody>
-            </table></div>
+            </table></DataTable>
           </div>
         )}
 
         {(p.type === 'CUSTOMER' || p.type === 'BOTH') && custLedger.length > 0 && (
           <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-xs font-bold dark:text-indigo-400 text-indigo-700 uppercase tracking-wider"><UserCheck className="w-4 h-4" /><span>Customer Ledger</span><span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-1.5 py-0.5 rounded ml-auto">{custLedger.length}</span></div>
-            <div className="overflow-x-auto"><table className="w-full text-left text-xs">
+            <DataTable footer={<Pagination page={customerLedgerTable.page} totalPages={customerLedgerTable.totalPages} totalRecords={customerLedgerTable.totalRecords} pageSize={customerLedgerTable.pageSize} pageSizeOptions={customerLedgerTable.pageSizeOptions} onPageChange={customerLedgerTable.setPage} onPageSizeChange={customerLedgerTable.setPageSize} label="customer ledger rows" />}><table className="erp-table w-full text-left text-xs">
               <thead><tr className="dark:bg-slate-950/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
                 <th className="py-2.5 px-4">Date</th><th className="py-2.5 px-3">Type</th><th className="py-2.5 px-3">Reference</th><th className="py-2.5 px-3 text-right">Debit</th><th className="py-2.5 px-3 text-right">Credit</th><th className="py-2.5 px-4 text-right font-black">Balance</th>
               </tr></thead>
               <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                {custLedger.map(e => (
+                {customerLedgerTable.pageRows.map(e => (
                   <tr key={e.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50 font-sans">
                     <td className="py-2.5 px-4 font-mono text-xs dark:text-slate-300 text-slate-700">{e.date}</td>
                     <td className="py-2.5 px-3">{e.type === 'INVOICE' ? <span className="text-[9px] font-bold text-indigo-500 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded flex items-center w-max"><ArrowUpRight className="w-3 h-3 mr-0.5" />Invoice</span> : e.type === 'PAYMENT' ? <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center w-max"><ArrowDownRight className="w-3 h-3 mr-0.5" />Payment</span> : <span className="text-[9px] font-bold dark:text-slate-400 text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Opening</span>}</td>
@@ -238,7 +280,7 @@ export const PartiesModule: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
-            </table></div>
+            </table></DataTable>
           </div>
         )}
 
@@ -302,17 +344,17 @@ export const PartiesModule: React.FC = () => {
         <div className="relative"><Search className="w-4 h-4 dark:text-slate-400 text-slate-500 absolute left-3 top-3" /><input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, email, GSTIN, city..." className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-10 pr-10 py-2.5 rounded-xl text-xs outline-none focus:border-indigo-500 transition-all" />{search && <button onClick={() => setSearch('')} className="absolute right-3 top-2.5 dark:text-slate-500 text-slate-400 cursor-pointer hover:text-rose-500"><X className="w-4 h-4" /></button>}</div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-1.5 flex-wrap gap-y-1.5">{([['ALL', 'All'], ['CUSTOMER', 'Customers'], ['SUPPLIER', 'Suppliers'], ['BOTH', 'Dual']] as [FilterTab, string][]).map(([key, label]) => (<button key={key} onClick={() => setFilterTab(key)} className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border ${filterTab === key ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'dark:bg-slate-950 bg-slate-50 dark:text-slate-300 text-slate-600 dark:border-slate-800 border-slate-200'}`}><span>{label}</span><span className={`text-[9px] font-mono px-1 py-0.5 rounded ${filterTab === key ? 'bg-white/20' : 'dark:bg-slate-800 bg-slate-200'}`}>{counts[key]}</span></button>))}</div>
-          <div className="flex items-center space-x-2"><div className="relative"><select value={sortKey} onChange={e => setSortKey(e.target.value as SortKey)} className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-slate-300 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold outline-none cursor-pointer pr-7 appearance-none"><option value="name">Name</option><option value="city">City</option><option value="balance">Balance</option></select><ArrowUpDown className="w-3 h-3 dark:text-slate-500 text-slate-400 absolute right-2 top-2 pointer-events-none" /></div><div className="flex items-center dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 rounded-lg p-0.5"><button onClick={() => setViewMode('GRID')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'GRID' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><LayoutGrid className="w-3.5 h-3.5" /></button><button onClick={() => setViewMode('LIST')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><List className="w-3.5 h-3.5" /></button></div></div>
+          <div className="flex items-center space-x-2"><div className="relative"><select value={partiesTable.sortBy} onChange={e => partiesTable.toggleSort(e.target.value as SortKey)} className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-slate-300 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold outline-none cursor-pointer pr-7 appearance-none"><option value="name">Name</option><option value="city">City</option><option value="balance">Balance</option></select><ArrowUpDown className="w-3 h-3 dark:text-slate-500 text-slate-400 absolute right-2 top-2 pointer-events-none" /></div><div className="flex items-center dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 rounded-lg p-0.5"><button onClick={() => setViewMode('GRID')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'GRID' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><LayoutGrid className="w-3.5 h-3.5" /></button><button onClick={() => setViewMode('LIST')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><List className="w-3.5 h-3.5" /></button></div></div>
         </div>
       </div>
 
       {/* Empty */}
-      {filtered.length === 0 && (<div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 py-16 text-center animate-fade-in"><Users className="w-12 h-12 dark:text-slate-700 text-slate-300 mx-auto mb-4" /><div className="text-sm font-bold dark:text-slate-400 text-slate-500">{search ? `No parties matching "${search}"` : 'No parties yet'}</div><p className="text-xs dark:text-slate-500 text-slate-400 mt-1">{search ? 'Try a different search' : 'Create your first party'}</p>{!search && <button onClick={openCreate} className="mt-4 inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs cursor-pointer"><Plus className="w-3.5 h-3.5" /><span>Add First Party</span></button>}</div>)}
+      {partiesTable.totalRecords === 0 && (<div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 py-16 text-center animate-fade-in"><Users className="w-12 h-12 dark:text-slate-700 text-slate-300 mx-auto mb-4" /><div className="text-sm font-bold dark:text-slate-400 text-slate-500">{search ? `No parties matching "${search}"` : 'No parties yet'}</div><p className="text-xs dark:text-slate-500 text-slate-400 mt-1">{search ? 'Try a different search' : 'Create your first party'}</p>{!search && <button onClick={openCreate} className="mt-4 inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs cursor-pointer"><Plus className="w-3.5 h-3.5" /><span>Add First Party</span></button>}</div>)}
 
       {/* GRID */}
-      {filtered.length > 0 && viewMode === 'GRID' && (
+      {partiesTable.totalRecords > 0 && viewMode === 'GRID' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
-          {filtered.map(p => (
+          {partiesTable.pageRows.map(p => (
             <div key={p.id + p.type} className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md dark:hover:border-slate-700 hover:border-slate-300 transition-all group overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start justify-between">
@@ -339,14 +381,14 @@ export const PartiesModule: React.FC = () => {
       )}
 
       {/* LIST */}
-      {filtered.length > 0 && viewMode === 'LIST' && (
+      {partiesTable.totalRecords > 0 && viewMode === 'LIST' && (
         <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-fade-in">
-          <div className="overflow-x-auto"><table className="w-full text-left text-xs">
+          <div className="overflow-x-auto"><table className="erp-table w-full text-left text-xs">
             <thead><tr className="dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
               <th className="py-3 px-4">Party</th><th className="py-3 px-3">Type</th><th className="py-3 px-3">Contact</th><th className="py-3 px-3 text-right">Balance</th><th className="py-3 px-4 text-center w-28">Actions</th>
             </tr></thead>
             <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-              {filtered.map(p => (
+              {partiesTable.pageRows.map(p => (
                 <tr key={p.id + p.type} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors group">
                   <td className="py-3.5 px-4"><div className="flex items-center space-x-3"><Av name={p.name} size="w-8 h-8 text-[10px]" /><div><div className="text-sm font-bold dark:text-white text-slate-900">{p.name}</div>{p.gstin && <div className="text-[10px] font-mono dark:text-slate-500 text-slate-400">{p.gstin}</div>}</div></div></td>
                   <td className="py-3.5 px-3"><TypeBadge type={p.type} /></td>
@@ -364,6 +406,19 @@ export const PartiesModule: React.FC = () => {
             </tbody>
           </table></div>
         </div>
+      )}
+
+      {partiesTable.totalRecords > 0 && (
+        <Pagination
+          page={partiesTable.page}
+          totalPages={partiesTable.totalPages}
+          totalRecords={partiesTable.totalRecords}
+          pageSize={partiesTable.pageSize}
+          pageSizeOptions={partiesTable.pageSizeOptions}
+          onPageChange={partiesTable.setPage}
+          onPageSizeChange={partiesTable.setPageSize}
+          label="parties"
+        />
       )}
 
       {/* Modal */}

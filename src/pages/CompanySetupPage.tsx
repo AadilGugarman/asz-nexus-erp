@@ -21,7 +21,7 @@ export const CompanySetupPage: React.FC = () => {
   const markCompanyCreated = useCompanyStore((s) => s.markCompanyCreated);
 
   const handleComplete = () => {
-    localStorage.setItem('apex_setup_done', '1');
+    // markCompanyCreated already writes apex_setup_done = '1' to localStorage
     markCompanyCreated(localStorage.getItem('apex_active_company') ?? undefined);
     navigate(ROUTES.dashboard, { replace: true });
   };

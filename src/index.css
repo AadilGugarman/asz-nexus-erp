@@ -368,9 +368,14 @@
   .p-5 { padding: calc(1.25rem * var(--card-padding-scale)); }
   .p-4 { padding: calc(1rem * var(--card-padding-scale)); }
   .p-3 { padding: calc(0.75rem * var(--card-padding-scale)); }
+  .p-2 { padding: calc(0.5rem * var(--density-scale)); }
+  .p-1\.5 { padding: calc(0.375rem * var(--density-scale)); }
+  .p-1 { padding: calc(0.25rem * var(--density-scale)); }
   .py-4 { padding-top: calc(1rem * var(--density-scale)); padding-bottom: calc(1rem * var(--density-scale)); }
+  .py-3\.5 { padding-top: calc(0.875rem * var(--density-scale)); padding-bottom: calc(0.875rem * var(--density-scale)); }
   .py-3 { padding-top: calc(0.75rem * var(--density-scale)); padding-bottom: calc(0.75rem * var(--density-scale)); }
   .py-2\.5 { padding-top: calc(0.625rem * var(--density-scale)); padding-bottom: calc(0.625rem * var(--density-scale)); }
+  .py-2 { padding-top: calc(0.5rem * var(--density-scale)); padding-bottom: calc(0.5rem * var(--density-scale)); }
   .px-4 { padding-left: calc(1rem * var(--density-scale)); padding-right: calc(1rem * var(--density-scale)); }
   .px-3 { padding-left: calc(0.75rem * var(--density-scale)); padding-right: calc(0.75rem * var(--density-scale)); }
 

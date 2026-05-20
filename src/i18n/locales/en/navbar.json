@@ -1,0 +1,29 @@
+{
+  "groups": {
+    "overview": "Overview",
+    "transactions": "Transactions",
+    "data": "Data",
+    "system": "System"
+  },
+  "items": {
+    "dashboard": "Dashboard",
+    "arrival": "Vehicle Inward",
+    "purchase": "Purchase Billing",
+    "sales": "Sales Billing",
+    "payments": "Payments",
+    "inventory": "Inventory",
+    "parties": "Parties",
+    "suppliers": "Suppliers",
+    "customers": "Customers",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "actions": {
+    "shortcuts": "Shortcuts"
+  },
+  "tooltips": {
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "keyboardShortcuts": "Keyboard shortcuts"
+  }
+}

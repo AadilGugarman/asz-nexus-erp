@@ -41,8 +41,8 @@ export const ChangePasswordForm: React.FC<Props> = ({ onSuccess, onCancel }) => 
       await changePassword({ current_password: current, new_password: next });
       setSuccess(true);
       onSuccess?.();
-    } catch {
-      // error in store
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('[ChangePasswordForm] Password change failed:', err);
     }
   };
 

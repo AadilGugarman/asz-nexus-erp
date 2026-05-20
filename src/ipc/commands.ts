@@ -128,6 +128,17 @@ export const CMD = {
     delete:       'payment_delete',
     totalByParty: 'payment_total_by_party',
   },
+
+    /** SQLite backup & restore commands. */
+    backup: {
+      create:   'backup_create',
+      list:     'backup_list',
+      validate: 'backup_validate',
+      delete:   'backup_delete',
+      restore:  'backup_restore',
+      prune:    'backup_prune',
+      getDir:   'backup_get_dir',
+    },
 } as const;
 
 /** Flat union of all command strings — useful for type-checking. */

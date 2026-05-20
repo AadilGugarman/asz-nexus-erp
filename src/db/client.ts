@@ -65,7 +65,7 @@ export async function getDb(): Promise<DrizzleDb | null> {
           rows: rows.map((row: Record<string, unknown>) => keys.map((k) => row[k])),
         };
       } catch (err) {
-        console.error('[db] Query error:', err);
+        if (import.meta.env.DEV) console.error('[db] Query error:', err);
         throw err;
       }
     },

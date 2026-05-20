@@ -1,0 +1,85 @@
+{
+  "sales": {
+    "header": {
+      "title": "વેચાણ અને બિલિંગ",
+      "subtitle": "કેશ મેમો એન્ટ્રી, ગ્રાહક બેલેન્સ ટ્રેકિંગ અને લાઇવ બિલિંગ",
+      "newInvoice": "નવું ઇન્વૉઇસ",
+      "invoices": "ઇન્વૉઇસ"
+    },
+    "newInvoice": {
+      "date": "તારીખ:",
+      "buyer": "ખરીદદાર:",
+      "hideCharges": "ચાર્જ છુપાવો",
+      "showCharges": "હમાલી અને ડિસ્કાઉન્ટ",
+      "previousOutstanding": "પહેલાનું બાકી",
+      "netTodayBill": "આજનું નેટ બિલ",
+      "cashPaid": "ચુકવેલ નગદ",
+      "finalBalance": "અંતિમ બેલેન્સ",
+      "items": "આઇટમ્સ",
+      "addRow": "પંક્તિ ઉમેરો"
+    },
+    "table": {
+      "fruit": "ફળ",
+      "variety": "જાત",
+      "carets": "કેરેટ",
+      "weight": "વજન",
+      "rate": "દર",
+      "amount": "રકમ",
+      "actions": "ક્રિયાઓ"
+    },
+    "list": {
+      "title": "વેચાણ ઇન્વૉઇસ",
+      "searchPlaceholder": "ઇન્વૉઇસ નંબર, ખરીદદાર નામ શોધો...",
+      "invoiceDate": "ઇન્વૉઇસ / તારીખ",
+      "customer": "ગ્રાહક",
+      "total": "કુલ",
+      "paid": "ચૂકવેલ",
+      "balance": "બાકી"
+    }
+  },
+  "purchase": {
+    "header": {
+      "title": "સીધી ખરીદી બિલિંગ અને ઇન્વૉઇસ",
+      "subtitle": "ઝડપી સપ્લાયર ખરીદી બિલ એન્ટ્રી, ઓટો સ્ટોક વધારો અને સપ્લાયર બેલેન્સ સમન્વય",
+      "newBill": "નવું ખરીદી બિલ",
+      "purchaseBills": "ખરીદી બિલ"
+    },
+    "newInvoice": {
+      "date": "તારીખ:",
+      "hideCharges": "ફ્રેઇટ/હમાલી છુપાવો",
+      "showCharges": "ફ્રેઇટ અને હમાલી ઉમેરો",
+      "supplierOrchard": "સપ્લાયર / બાગાયત:",
+      "previousOutstanding": "પહેલાનું બાકી",
+      "netTodayBill": "આજનું નેટ બિલ",
+      "cashPaid": "તત્કાલ નગદ ચુકવણી",
+      "finalPayable": "અંતિમ સપ્લાયર ચૂકવવાનું",
+      "purchasedItems": "ખરીદેલા ફળ આઇટમ્સ",
+      "activeItems": "સક્રિય આઇટમ્સ",
+      "addRow": "પંક્તિ ઉમેરો (Alt+A)"
+    },
+    "table": {
+      "fruitCategory": "ફળ વર્ગ",
+      "variety": "જાત (વક્કલ)",
+      "caretsQty": "કેરેટ જથ્થો",
+      "weight": "વજન (KG)",
+      "rate": "દર (રૂ./KG)",
+      "subtotalAmount": "ઉપકુલ રકમ",
+      "actions": "ક્રિયાઓ"
+    },
+    "list": {
+      "title": "સીધી ખરીદી ઇન્વૉઇસ આર્કાઇવ",
+      "billsSynced": "બિલ સમન્વિત",
+      "comfortable": "આરામદાયક",
+      "compact": "કોમ્પેક્ટ",
+      "spacious": "વિસ્તૃત",
+      "searchPlaceholder": "બિલ નંબર, સપ્લાયર નામ, ફળ શોધો...",
+      "billDate": "બિલ # / તારીખ",
+      "supplierOrchard": "સપ્લાયર / બાગાયત",
+      "carets": "કેરેટ",
+      "billTotal": "બિલ કુલ",
+      "cashPaidNow": "હવે ચુકવેલ નગદ",
+      "finalBalance": "અંતિમ બેલેન્સ",
+      "actionsView": "ક્રિયાઓ / જુઓ"
+    }
+  }
+}

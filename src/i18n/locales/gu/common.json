@@ -1,0 +1,12 @@
+{
+  "app": {
+    "name": "TFC ERP"
+  },
+  "language": {
+    "english": "અંગ્રેજી",
+    "gujarati": "ગુજરાતી"
+  },
+  "labels": {
+    "default": "મૂળભૂત"
+  }
+}

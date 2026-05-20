@@ -2,15 +2,19 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   FileBarChart2, Calendar, Printer, Filter, TrendingUp,
-  ArrowUpRight, ArrowDownRight, Package, Users, UserCheck, DollarSign, Layers, Banknote
+  ArrowUpRight, ArrowDownRight, Package, Users, UserCheck, DollarSign, Layers, Banknote, ArrowUpDown
 } from 'lucide-react';
 import { StatementPreview } from './ui/StatementPreview';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
+import { useDataTable } from '../hooks/useDataTable';
+import { DataTable, Pagination } from './ui/table';
+import { useAppearance } from '@/hooks';
 
 type ReportTab = 'DAILY' | 'DATERANGE' | 'PARTY' | 'FRUIT' | 'OUTSTANDING' | 'PNL';
 
 export const ReportsModule: React.FC = () => {
   const { vehicles, invoices, purchaseInvoices, payments, suppliers, customers, settings } = useApp();
+  const { density, setDensity } = useAppearance();
   const [showReportPreview, setShowReportPreview] = useState(false);
   const reportContentRef = useRef<HTMLDivElement>(null);
 
@@ -18,8 +22,8 @@ export const ReportsModule: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dateFrom, setDateFrom] = useState('2026-05-01');
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
-  const [isCompact, setIsCompact] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const isCompact = density === 'compact';
 
   const reportTabs: { id: ReportTab; label: string; icon: React.ReactNode }[] = [
     { id: 'DAILY', label: 'Daily Summary', icon: <Calendar className="w-4 h-4" /> },
@@ -62,6 +66,29 @@ export const ReportsModule: React.FC = () => {
     return { veh, pinv, sinv, pay, totalPurchaseVehicle, totalPurchaseBill, totalSales, totalPaidOut, totalReceived, totalWeightIn, totalWeightOut };
   }, [selectedDate, savedVehicles, purchaseInvoices, invoices, payments]);
 
+  const dailyTransactions = useMemo(() => {
+    const veh = daily.veh.map(v => ({ id: `veh-${v.id}`, type: 'Vehicle Inward', reference: v.arrivalNo, party: v.rows.map(r => r.supplierName).filter((v2, i, a) => a.indexOf(v2) === i).join(', '), amount: v.totalAmount, direction: 'OUT' as const }));
+    const pinv = daily.pinv.map(i => ({ id: `pinv-${i.id}`, type: 'Purchase Bill', reference: i.billNo, party: i.supplierName, amount: i.todayAmount, direction: 'OUT' as const }));
+    const sinv = daily.sinv.map(i => ({ id: `sinv-${i.id}`, type: 'Sales Invoice', reference: i.invoiceNo, party: i.customerName, amount: i.todayAmount, direction: 'IN' as const }));
+    const pay = daily.pay.map(p => ({ id: `pay-${p.id}`, type: `Payment ${p.partyType === 'SUPPLIER' ? 'Out' : 'In'}`, reference: p.referenceNo || '-', party: p.partyName, amount: p.amount, direction: p.partyType === 'SUPPLIER' ? 'OUT' as const : 'IN' as const }));
+    return [...veh, ...pinv, ...sinv, ...pay];
+  }, [daily]);
+
+  const dailyTable = useDataTable<(typeof dailyTransactions)[number], 'type' | 'reference' | 'party' | 'amount'>({
+    data: dailyTransactions,
+    initialSortBy: 'amount',
+    initialSortDir: 'desc',
+    initialPageSize: 12,
+    pageSizeOptions: [8, 12, 20, 50],
+    sortComparators: {
+      type: (a, b) => a.type.localeCompare(b.type),
+      reference: (a, b) => a.reference.localeCompare(b.reference),
+      party: (a, b) => a.party.localeCompare(b.party),
+      amount: (a, b) => a.amount - b.amount,
+    },
+    resetPageOn: [activeReport, selectedDate],
+  });
+
   // ══════════════════════════════════════════════
   // REPORT 2: DATE RANGE
   // ══════════════════════════════════════════════
@@ -98,6 +125,24 @@ export const ReportsModule: React.FC = () => {
     return { totalPurchase, totalSales, totalPaidOut, totalReceived, days, vehCount: veh.length, pinvCount: pinv.length, sinvCount: sinv.length, payCount: pay.length };
   }, [dateFrom, dateTo, savedVehicles, purchaseInvoices, invoices, payments]);
 
+  const rangeRows = useMemo(() => rangeData.days.map(([date, d]) => ({ date, ...d, net: d.received - d.paidOut })), [rangeData.days]);
+  const rangeTable = useDataTable<(typeof rangeRows)[number], 'date' | 'purchase' | 'sales' | 'paidOut' | 'received' | 'net'>({
+    data: rangeRows,
+    initialSortBy: 'date',
+    initialSortDir: 'asc',
+    initialPageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    sortComparators: {
+      date: (a, b) => a.date.localeCompare(b.date),
+      purchase: (a, b) => a.purchase - b.purchase,
+      sales: (a, b) => a.sales - b.sales,
+      paidOut: (a, b) => a.paidOut - b.paidOut,
+      received: (a, b) => a.received - b.received,
+      net: (a, b) => a.net - b.net,
+    },
+    resetPageOn: [activeReport, dateFrom, dateTo],
+  });
+
   // ══════════════════════════════════════════════
   // REPORT 3: PARTY-WISE
   // ══════════════════════════════════════════════
@@ -127,6 +172,36 @@ export const ReportsModule: React.FC = () => {
     };
   }, [suppliers, customers, savedVehicles, purchaseInvoices, invoices, payments]);
 
+  const supplierTable = useDataTable<(typeof partyData.suppliers)[number], 'name' | 'purchase' | 'paid' | 'balance'>({
+    data: partyData.suppliers,
+    initialSortBy: 'balance',
+    initialSortDir: 'desc',
+    initialPageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    sortComparators: {
+      name: (a, b) => a.name.localeCompare(b.name),
+      purchase: (a, b) => a.purchase - b.purchase,
+      paid: (a, b) => a.paid - b.paid,
+      balance: (a, b) => a.balance - b.balance,
+    },
+    resetPageOn: [activeReport],
+  });
+
+  const customerTable = useDataTable<(typeof partyData.customers)[number], 'name' | 'sales' | 'received' | 'balance'>({
+    data: partyData.customers,
+    initialSortBy: 'balance',
+    initialSortDir: 'desc',
+    initialPageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+    sortComparators: {
+      name: (a, b) => a.name.localeCompare(b.name),
+      sales: (a, b) => a.sales - b.sales,
+      received: (a, b) => a.received - b.received,
+      balance: (a, b) => a.balance - b.balance,
+    },
+    resetPageOn: [activeReport],
+  });
+
   // ══════════════════════════════════════════════
   // REPORT 4: FRUIT & VARIETY
   // ══════════════════════════════════════════════
@@ -150,6 +225,24 @@ export const ReportsModule: React.FC = () => {
     map.forEach(v => { v.stock = v.purchased - v.sold; });
     return Array.from(map.values()).sort((a, b) => b.purchaseAmt + b.salesAmt - a.purchaseAmt - a.salesAmt);
   }, [savedVehicles, purchaseInvoices, invoices]);
+
+  const fruitTable = useDataTable<(typeof fruitData)[number], 'fruit' | 'variety' | 'purchased' | 'purchaseAmt' | 'sold' | 'salesAmt' | 'stock'>({
+    data: fruitData,
+    initialSortBy: 'salesAmt',
+    initialSortDir: 'desc',
+    initialPageSize: 12,
+    pageSizeOptions: [10, 12, 25, 50],
+    sortComparators: {
+      fruit: (a, b) => a.fruit.localeCompare(b.fruit),
+      variety: (a, b) => a.variety.localeCompare(b.variety),
+      purchased: (a, b) => a.purchased - b.purchased,
+      purchaseAmt: (a, b) => a.purchaseAmt - b.purchaseAmt,
+      sold: (a, b) => a.sold - b.sold,
+      salesAmt: (a, b) => a.salesAmt - b.salesAmt,
+      stock: (a, b) => a.stock - b.stock,
+    },
+    resetPageOn: [activeReport],
+  });
 
   // ══════════════════════════════════════════════
   // REPORT 5: OUTSTANDING
@@ -201,8 +294,8 @@ export const ReportsModule: React.FC = () => {
           <p className="erp-subtitle mt-1">Daily summaries, date-range analysis, party ledgers, fruit performance, outstanding and P&L</p>
         </div>
         <div className="flex items-center gap-2 no-print">
-          <button onClick={() => setIsCompact(v => !v)} className="erp-btn-secondary px-3 py-2 text-xs cursor-pointer">
-            {isCompact ? 'Comfortable' : 'Compact'}
+          <button onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')} className="erp-btn-secondary px-3 py-2 text-xs cursor-pointer">
+            {density === 'compact' ? 'Compact' : density === 'comfortable' ? 'Comfortable' : 'Spacious'}
           </button>
           <button onClick={() => setShowReportPreview(true)} className="erp-btn-secondary flex items-center space-x-1.5 px-4 py-2 text-xs cursor-pointer">
             <Printer className="w-4 h-4" /><span>Print Report</span>
@@ -262,19 +355,29 @@ export const ReportsModule: React.FC = () => {
           ) : (daily.veh.length > 0 || daily.sinv.length > 0 || daily.pinv.length > 0 || daily.pay.length > 0) ? (
             <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
               <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">All Transactions — {selectedDate}</div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+              <DataTable
+                footer={
+                  <Pagination
+                    page={dailyTable.page}
+                    totalPages={dailyTable.totalPages}
+                    totalRecords={dailyTable.totalRecords}
+                    pageSize={dailyTable.pageSize}
+                    pageSizeOptions={dailyTable.pageSizeOptions}
+                    onPageChange={dailyTable.setPage}
+                    onPageSizeChange={dailyTable.setPageSize}
+                    label="transactions"
+                  />
+                }
+              >
+                <table className="erp-table w-full text-left text-xs">
                   <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                    <th className="py-2.5 px-4">Type</th><th className="py-2.5 px-3">Reference</th><th className="py-2.5 px-3">Party</th><th className="py-2.5 px-3 text-right">Amount</th>
+                    <th className="py-2.5 px-4"><button type="button" onClick={() => dailyTable.toggleSort('type')} className="inline-flex items-center gap-1">Type <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3"><button type="button" onClick={() => dailyTable.toggleSort('reference')} className="inline-flex items-center gap-1">Reference <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3"><button type="button" onClick={() => dailyTable.toggleSort('party')} className="inline-flex items-center gap-1">Party <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => dailyTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">Amount <ArrowUpDown className="w-3 h-3" /></button></th>
                   </tr></thead>
                   <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                    {daily.veh.map(v => <tr key={v.id} className="dark:hover:bg-slate-800/40 hover:bg-slate-50"><td className="py-2.5 px-4"><span className="text-emerald-600 dark:text-emerald-400 font-bold">🚛 Vehicle Inward</span></td><td className="py-2.5 px-3 font-mono font-bold dark:text-white text-slate-900">{v.arrivalNo}</td><td className="py-2.5 px-3 dark:text-slate-300 text-slate-700">{v.rows.map(r => r.supplierName).filter((v2,i,a) => a.indexOf(v2)===i).join(', ')}</td><td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">₹ {v.totalAmount.toLocaleString('en-IN')}</td></tr>)}
-                    {daily.pinv.map(i => <tr key={i.id} className="dark:hover:bg-slate-800/40 hover:bg-slate-50"><td className="py-2.5 px-4"><span className="text-teal-600 dark:text-teal-400 font-bold">📄 Purchase Bill</span></td><td className="py-2.5 px-3 font-mono font-bold dark:text-white text-slate-900">{i.billNo}</td><td className="py-2.5 px-3 dark:text-slate-300 text-slate-700">{i.supplierName}</td><td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">₹ {i.todayAmount.toLocaleString('en-IN')}</td></tr>)}
-                    {daily.sinv.map(i => <tr key={i.id} className="dark:hover:bg-slate-800/40 hover:bg-slate-50"><td className="py-2.5 px-4"><span className="text-indigo-600 dark:text-indigo-400 font-bold">📤 Sales Invoice</span></td><td className="py-2.5 px-3 font-mono font-bold dark:text-white text-slate-900">{i.invoiceNo}</td><td className="py-2.5 px-3 dark:text-slate-300 text-slate-700">{i.customerName}</td><td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">₹ {i.todayAmount.toLocaleString('en-IN')}</td></tr>)}
-                    {daily.pay.map(p => <tr key={p.id} className="dark:hover:bg-slate-800/40 hover:bg-slate-50"><td className="py-2.5 px-4"><span className="text-amber-600 dark:text-amber-400 font-bold">💰 Payment {p.partyType === 'SUPPLIER' ? 'Out' : 'In'}</span></td><td className="py-2.5 px-3 font-mono font-bold dark:text-white text-slate-900">{p.referenceNo || '—'}</td><td className="py-2.5 px-3 dark:text-slate-300 text-slate-700">{p.partyName}</td><td className={`py-2.5 px-3 text-right font-mono font-bold ${p.partyType === 'SUPPLIER' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>₹ {p.amount.toLocaleString('en-IN')}</td></tr>)}
+                    {dailyTable.pageRows.map(tx => <tr key={tx.id} className="dark:hover:bg-slate-800/40 hover:bg-slate-50"><td className="py-2.5 px-4"><span className={`font-bold ${tx.direction === 'OUT' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{tx.type}</span></td><td className="py-2.5 px-3 font-mono font-bold dark:text-white text-slate-900">{tx.reference}</td><td className="py-2.5 px-3 dark:text-slate-300 text-slate-700">{tx.party}</td><td className={`py-2.5 px-3 text-right font-mono font-bold ${tx.direction === 'OUT' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>₹ {tx.amount.toLocaleString('en-IN')}</td></tr>)}
                   </tbody>
                 </table>
-              </div>
+              </DataTable>
             </div>
           ) : (
             <div className="erp-table-wrap rounded-xl">
@@ -312,16 +415,29 @@ export const ReportsModule: React.FC = () => {
           ) : rangeData.days.length > 0 ? (
             <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
               <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">Day-wise Breakdown</div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+              <DataTable
+                footer={
+                  <Pagination
+                    page={rangeTable.page}
+                    totalPages={rangeTable.totalPages}
+                    totalRecords={rangeTable.totalRecords}
+                    pageSize={rangeTable.pageSize}
+                    pageSizeOptions={rangeTable.pageSizeOptions}
+                    onPageChange={rangeTable.setPage}
+                    onPageSizeChange={rangeTable.setPageSize}
+                    label="days"
+                  />
+                }
+              >
+                <table className="erp-table w-full text-left text-xs">
                   <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                    <th className="py-2.5 px-4">Date</th><th className="py-2.5 px-3 text-right">Purchase</th><th className="py-2.5 px-3 text-right">Sales</th><th className="py-2.5 px-3 text-right">Paid Out</th><th className="py-2.5 px-3 text-right">Received</th><th className="py-2.5 px-4 text-right">Net Cash Flow</th>
+                    <th className="py-2.5 px-4"><button type="button" onClick={() => rangeTable.toggleSort('date')} className="inline-flex items-center gap-1">Date <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => rangeTable.toggleSort('purchase')} className="inline-flex items-center gap-1 ml-auto">Purchase <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => rangeTable.toggleSort('sales')} className="inline-flex items-center gap-1 ml-auto">Sales <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => rangeTable.toggleSort('paidOut')} className="inline-flex items-center gap-1 ml-auto">Paid Out <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => rangeTable.toggleSort('received')} className="inline-flex items-center gap-1 ml-auto">Received <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-4 text-right"><button type="button" onClick={() => rangeTable.toggleSort('net')} className="inline-flex items-center gap-1 ml-auto">Net Cash Flow <ArrowUpDown className="w-3 h-3" /></button></th>
                   </tr></thead>
                   <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100 font-mono">
-                    {rangeData.days.map(([date, d]) => {
-                      const net = d.received - d.paidOut;
-                      return (<tr key={date} className="dark:hover:bg-slate-800/40 hover:bg-slate-50">
-                        <td className="py-2.5 px-4 font-semibold dark:text-slate-200 text-slate-800">{date}</td>
+                    {rangeTable.pageRows.map((d) => {
+                      const net = d.net;
+                      return (<tr key={d.date} className="dark:hover:bg-slate-800/40 hover:bg-slate-50">
+                        <td className="py-2.5 px-4 font-semibold dark:text-slate-200 text-slate-800">{d.date}</td>
                         <td className="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400 font-semibold">{d.purchase > 0 ? `₹ ${d.purchase.toLocaleString('en-IN')}` : '—'}</td>
                         <td className="py-2.5 px-3 text-right text-emerald-600 dark:text-emerald-400 font-semibold">{d.sales > 0 ? `₹ ${d.sales.toLocaleString('en-IN')}` : '—'}</td>
                         <td className="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400">{d.paidOut > 0 ? `₹ ${d.paidOut.toLocaleString('en-IN')}` : '—'}</td>
@@ -331,7 +447,7 @@ export const ReportsModule: React.FC = () => {
                     })}
                   </tbody>
                 </table>
-              </div>
+              </DataTable>
             </div>
           ) : (
             <div className="erp-table-wrap rounded-xl">
@@ -354,13 +470,15 @@ export const ReportsModule: React.FC = () => {
             <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-xs font-bold dark:text-emerald-400 text-emerald-700 uppercase tracking-wider">
               <Users className="w-4 h-4" /><span>Supplier-wise Summary (Payables)</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <DataTable
+              footer={<Pagination page={supplierTable.page} totalPages={supplierTable.totalPages} totalRecords={supplierTable.totalRecords} pageSize={supplierTable.pageSize} pageSizeOptions={supplierTable.pageSizeOptions} onPageChange={supplierTable.setPage} onPageSizeChange={supplierTable.setPageSize} label="suppliers" />}
+            >
+              <table className="erp-table w-full text-left text-xs">
                 <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                  <th className="py-2.5 px-4">Supplier Name</th><th className="py-2.5 px-3 text-right">Total Purchase</th><th className="py-2.5 px-3 text-right">Total Paid</th><th className="py-2.5 px-4 text-right font-black">Outstanding</th>
+                  <th className="py-2.5 px-4"><button type="button" onClick={() => supplierTable.toggleSort('name')} className="inline-flex items-center gap-1">Supplier Name <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => supplierTable.toggleSort('purchase')} className="inline-flex items-center gap-1 ml-auto">Total Purchase <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => supplierTable.toggleSort('paid')} className="inline-flex items-center gap-1 ml-auto">Total Paid <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-4 text-right font-black"><button type="button" onClick={() => supplierTable.toggleSort('balance')} className="inline-flex items-center gap-1 ml-auto">Outstanding <ArrowUpDown className="w-3 h-3" /></button></th>
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                  {partyData.suppliers.map(s => (
+                  {supplierTable.pageRows.map(s => (
                     <tr key={s.name} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
                       <td className="py-2.5 px-4 font-bold dark:text-white text-slate-900">{s.name}</td>
                       <td className="py-2.5 px-3 text-right font-mono font-semibold text-rose-600 dark:text-rose-400">₹ {s.purchase.toLocaleString('en-IN')}</td>
@@ -376,7 +494,7 @@ export const ReportsModule: React.FC = () => {
                   <td className="py-2.5 px-4 text-right font-mono font-black dark:text-white text-slate-900 text-sm">₹ {partyData.suppliers.reduce((s,x)=>s+x.balance,0).toLocaleString('en-IN')}</td>
                 </tr></tfoot>
               </table>
-            </div>
+            </DataTable>
           </div>
 
           {/* Customers */}
@@ -384,13 +502,15 @@ export const ReportsModule: React.FC = () => {
             <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-xs font-bold dark:text-indigo-400 text-indigo-700 uppercase tracking-wider">
               <UserCheck className="w-4 h-4" /><span>Customer-wise Summary (Receivables)</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <DataTable
+              footer={<Pagination page={customerTable.page} totalPages={customerTable.totalPages} totalRecords={customerTable.totalRecords} pageSize={customerTable.pageSize} pageSizeOptions={customerTable.pageSizeOptions} onPageChange={customerTable.setPage} onPageSizeChange={customerTable.setPageSize} label="customers" />}
+            >
+              <table className="erp-table w-full text-left text-xs">
                 <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                  <th className="py-2.5 px-4">Customer Name</th><th className="py-2.5 px-3 text-right">Total Sales</th><th className="py-2.5 px-3 text-right">Total Received</th><th className="py-2.5 px-4 text-right font-black">Outstanding</th>
+                  <th className="py-2.5 px-4"><button type="button" onClick={() => customerTable.toggleSort('name')} className="inline-flex items-center gap-1">Customer Name <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => customerTable.toggleSort('sales')} className="inline-flex items-center gap-1 ml-auto">Total Sales <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => customerTable.toggleSort('received')} className="inline-flex items-center gap-1 ml-auto">Total Received <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-4 text-right font-black"><button type="button" onClick={() => customerTable.toggleSort('balance')} className="inline-flex items-center gap-1 ml-auto">Outstanding <ArrowUpDown className="w-3 h-3" /></button></th>
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                  {partyData.customers.map(c => (
+                  {customerTable.pageRows.map(c => (
                     <tr key={c.name} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
                       <td className="py-2.5 px-4 font-bold dark:text-white text-slate-900">{c.name}</td>
                       <td className="py-2.5 px-3 text-right font-mono font-semibold text-indigo-600 dark:text-indigo-400">₹ {c.sales.toLocaleString('en-IN')}</td>
@@ -406,7 +526,7 @@ export const ReportsModule: React.FC = () => {
                   <td className="py-2.5 px-4 text-right font-mono font-black dark:text-white text-slate-900 text-sm">₹ {partyData.customers.reduce((s,x)=>s+x.balance,0).toLocaleString('en-IN')}</td>
                 </tr></tfoot>
               </table>
-            </div>
+            </DataTable>
           </div>
         </div>
       )}
@@ -420,17 +540,19 @@ export const ReportsModule: React.FC = () => {
             <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-xs font-bold dark:text-teal-400 text-teal-700 uppercase tracking-wider">
               <Package className="w-4 h-4" /><span>Fruit & Variety Performance — Purchase vs Sales vs Stock</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <DataTable
+              footer={<Pagination page={fruitTable.page} totalPages={fruitTable.totalPages} totalRecords={fruitTable.totalRecords} pageSize={fruitTable.pageSize} pageSizeOptions={fruitTable.pageSizeOptions} onPageChange={fruitTable.setPage} onPageSizeChange={fruitTable.setPageSize} label="fruit lines" />}
+            >
+              <table className="erp-table w-full text-left text-xs">
                 <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                  <th className="py-2.5 px-4">Fruit</th><th className="py-2.5 px-3">Variety</th>
-                  <th className="py-2.5 px-3 text-right">Purchased (KG)</th><th className="py-2.5 px-3 text-right">Purchase ₹</th>
-                  <th className="py-2.5 px-3 text-right">Sold (KG)</th><th className="py-2.5 px-3 text-right">Sales ₹</th>
+                  <th className="py-2.5 px-4"><button type="button" onClick={() => fruitTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Fruit <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3"><button type="button" onClick={() => fruitTable.toggleSort('variety')} className="inline-flex items-center gap-1">Variety <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 text-right"><button type="button" onClick={() => fruitTable.toggleSort('purchased')} className="inline-flex items-center gap-1 ml-auto">Purchased (KG) <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => fruitTable.toggleSort('purchaseAmt')} className="inline-flex items-center gap-1 ml-auto">Purchase ₹ <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 text-right"><button type="button" onClick={() => fruitTable.toggleSort('sold')} className="inline-flex items-center gap-1 ml-auto">Sold (KG) <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => fruitTable.toggleSort('salesAmt')} className="inline-flex items-center gap-1 ml-auto">Sales ₹ <ArrowUpDown className="w-3 h-3" /></button></th>
                   <th className="py-2.5 px-3 text-right">Avg Buy/KG</th><th className="py-2.5 px-3 text-right">Avg Sell/KG</th>
-                  <th className="py-2.5 px-4 text-right font-black">Stock (KG)</th>
+                  <th className="py-2.5 px-4 text-right font-black"><button type="button" onClick={() => fruitTable.toggleSort('stock')} className="inline-flex items-center gap-1 ml-auto">Stock (KG) <ArrowUpDown className="w-3 h-3" /></button></th>
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                  {fruitData.map((f, i) => {
+                  {fruitTable.pageRows.map((f, i) => {
                     const avgBuy = f.purchased > 0 ? f.purchaseAmt / f.purchased : 0;
                     const avgSell = f.sold > 0 ? f.salesAmt / f.sold : 0;
                     return (
@@ -458,7 +580,7 @@ export const ReportsModule: React.FC = () => {
                   <td className="py-2.5 px-4 text-right font-mono font-black dark:text-teal-400 text-teal-700 text-sm">{fruitData.reduce((s,f)=>s+f.stock,0).toLocaleString()}</td>
                 </tr></tfoot>
               </table>
-            </div>
+            </DataTable>
           </div>
         </div>
       )}
@@ -530,7 +652,7 @@ export const ReportsModule: React.FC = () => {
               <Banknote className="w-5 h-5 text-amber-500" /><span>Trading Profit & Loss Statement — {settings.company.name}</span>
             </div>
             <div className="p-6">
-              <table className="w-full text-sm">
+              <table className="erp-table w-full text-sm">
                 <tbody>
                   {/* Revenue */}
                   <tr className="border-b dark:border-slate-800 border-slate-200">

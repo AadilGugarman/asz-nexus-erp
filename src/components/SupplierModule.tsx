@@ -5,18 +5,19 @@ import { PaymentReceipt } from '../types';
 import { useToast } from './ui/Toast';
 import { StatementPreview } from './ui/StatementPreview';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
+import { useDataTable } from '../hooks/useDataTable';
+import { DataTable, Pagination } from './ui/table';
+import { useAppearance } from '@/hooks';
 
 export const SupplierModule: React.FC = () => {
   const { suppliers, getSupplierLedger, addPayment } = useApp();
+  const { density, setDensity } = useAppearance();
   const toast = useToast();
 
   const [selectedSupplierId, setSelectedSupplierId] = useState(suppliers[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
   const [showStatement, setShowStatement] = useState(false);
-  const [isCompact, setIsCompact] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'runningBalance'>('date');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -37,16 +38,22 @@ export const SupplierModule: React.FC = () => {
     return getSupplierLedger(selectedSupplier.id);
   }, [selectedSupplier, getSupplierLedger]);
 
-  const sortedLedgerEntries = useMemo(() => {
-    return [...ledgerEntries].sort((a, b) => {
-      const factor = sortDir === 'asc' ? 1 : -1;
-      if (sortBy === 'amount') return (a.amount - b.amount) * factor;
-      if (sortBy === 'runningBalance') return (a.runningBalance - b.runningBalance) * factor;
-      return a.date.localeCompare(b.date) * factor;
-    });
-  }, [ledgerEntries, sortBy, sortDir]);
+  const ledgerTable = useDataTable<(typeof ledgerEntries)[number], 'date' | 'amount' | 'runningBalance'>({
+    data: ledgerEntries,
+    initialSortBy: 'date',
+    initialSortDir: 'desc',
+    initialPageSize: 20,
+    pageSizeOptions: [10, 20, 50, 100],
+    sortComparators: {
+      date: (a, b) => a.date.localeCompare(b.date),
+      amount: (a, b) => a.amount - b.amount,
+      runningBalance: (a, b) => a.runningBalance - b.runningBalance,
+    },
+    resetPageOn: [selectedSupplierId],
+  });
 
   const outstandingBalance = ledgerEntries.length > 0 ? ledgerEntries[0].runningBalance : (selectedSupplier?.previousBalance || 0);
+  const isCompact = density === 'compact';
 
   const handleAddPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,16 +128,7 @@ export const SupplierModule: React.FC = () => {
     setIsLoading(true);
     const t = window.setTimeout(() => setIsLoading(false), 180);
     return () => window.clearTimeout(t);
-  }, [searchTerm, selectedSupplierId, sortBy, sortDir]);
-
-  const handleSort = (key: 'date' | 'amount' | 'runningBalance') => {
-    if (sortBy === key) {
-      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setSortBy(key);
-    setSortDir('desc');
-  };
+  }, [searchTerm, selectedSupplierId, ledgerTable.sortBy, ledgerTable.sortDir]);
 
   return (
     <div className="space-y-6 font-sans">
@@ -243,16 +241,34 @@ export const SupplierModule: React.FC = () => {
 
               {/* Ledger Statement Table */}
               <div className="flex items-center justify-end">
-                <button type="button" onClick={() => setIsCompact(v => !v)} className="erp-btn-secondary px-3 py-2 text-xs">
-                  {isCompact ? 'Comfortable' : 'Compact'}
+                <button
+                  type="button"
+                  onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')}
+                  className="erp-btn-secondary px-3 py-2 text-xs"
+                >
+                  {density === 'compact' ? 'Compact' : density === 'comfortable' ? 'Comfortable' : 'Spacious'}
                 </button>
               </div>
-              <div className="erp-table-wrap overflow-x-auto font-sans">
+              <DataTable
+                className="font-sans"
+                footer={
+                  <Pagination
+                    page={ledgerTable.page}
+                    totalPages={ledgerTable.totalPages}
+                    totalRecords={ledgerTable.totalRecords}
+                    pageSize={ledgerTable.pageSize}
+                    pageSizeOptions={ledgerTable.pageSizeOptions}
+                    onPageChange={ledgerTable.setPage}
+                    onPageSizeChange={ledgerTable.setPageSize}
+                    label="ledger entries"
+                  />
+                }
+              >
                 <table className="erp-table text-left text-xs sm:text-sm font-sans">
                   <thead>
                     <tr>
                       <th className="py-3.5 px-4 w-28">
-                        <button type="button" onClick={() => handleSort('date')} className="inline-flex items-center gap-1">
+                        <button type="button" onClick={() => ledgerTable.toggleSort('date')} className="inline-flex items-center gap-1">
                           Date <ArrowUpDown className="w-3.5 h-3.5" />
                         </button>
                       </th>
@@ -261,13 +277,13 @@ export const SupplierModule: React.FC = () => {
                       <th className="py-3.5 px-3 text-right">Weight / Qty</th>
                       <th className="py-3.5 px-3 text-right">Rate</th>
                       <th className="py-3.5 px-3 text-right text-rose-600 dark:text-rose-400">
-                        <button type="button" onClick={() => handleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
+                        <button type="button" onClick={() => ledgerTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
                           Purchase (Dr) <ArrowUpDown className="w-3.5 h-3.5" />
                         </button>
                       </th>
                       <th className="py-3.5 px-3 text-right text-emerald-600 dark:text-emerald-400">Payment (Cr)</th>
                       <th className="py-3.5 px-4 text-right font-black text-teal-600 dark:text-teal-400">
-                        <button type="button" onClick={() => handleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
+                        <button type="button" onClick={() => ledgerTable.toggleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
                           Running Balance <ArrowUpDown className="w-3.5 h-3.5" />
                         </button>
                       </th>
@@ -278,13 +294,13 @@ export const SupplierModule: React.FC = () => {
                       <tr>
                         <td colSpan={8} className="p-0"><TableSkeleton rows={8} cols={8} compact={isCompact} /></td>
                       </tr>
-                    ) : sortedLedgerEntries.length === 0 ? (
+                    ) : ledgerTable.totalRecords === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-0">
                           <ModuleEmptyState title="No ledger entries" subtitle="Supplier transactions will appear here once purchases or payments are recorded." />
                         </td>
                       </tr>
-                    ) : sortedLedgerEntries.map(entry => {
+                    ) : ledgerTable.pageRows.map(entry => {
                       const isPurchase = entry.type === 'PURCHASE_VEHICLE' || entry.type === 'PURCHASE_BILL';
                       const isPayment = entry.type === 'PAYMENT';
                       const isOpening = entry.type === 'OPENING';
@@ -321,7 +337,7 @@ export const SupplierModule: React.FC = () => {
                     })}
                   </tbody>
                 </table>
-              </div>
+              </DataTable>
             </>
           ) : (
             <ModuleEmptyState

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useAuthStore } from './auth.store';
 import { useCompanyStore } from './company.store';
 import { useLockStore } from './lock.store';
+import { dbService } from '@/db/services';
 
 interface StartupState {
   phase: 'idle' | 'initializing' | 'ready' | 'error';
@@ -31,10 +32,22 @@ export const useStartupStore = create<StartupState>()((set, get) => ({
       await useAuthStore.getState().initialize();
 
       set({ message: 'Checking company onboarding...' });
+      // Fast synchronous bootstrap from localStorage cache
       useCompanyStore.getState().bootstrap();
 
-      set({ message: 'Applying security checks...' });
+      // Reconcile with DB as source of truth (only when authenticated)
       const isAuthenticated = useAuthStore.getState().isAuthenticated;
+      if (isAuthenticated) {
+        try {
+          // Ensure DB is ready (idempotent — safe if warmDb() already ran)
+          await dbService.init();
+          await useCompanyStore.getState().bootstrapFromDb();
+        } catch {
+          // Non-fatal — localStorage cache already applied above
+        }
+      }
+
+      set({ message: 'Applying security checks...' });
       useLockStore.getState().bootstrapForStartup(isAuthenticated);
 
       set({

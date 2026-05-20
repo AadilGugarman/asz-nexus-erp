@@ -13,6 +13,7 @@
  */
 
 import { APP_CONFIG } from '@/config';
+import { useProductionStartup } from './production.service';
 
 // ── Timing helpers ────────────────────────────────────────────────────────────
 
@@ -60,20 +61,37 @@ async function warmDb(): Promise<void> {
   }
 }
 
+/** Initialise the backup service — loads backup list and restarts scheduler. */
+async function initBackup(): Promise<void> {
+  try {
+    const { backupService } = await import('./backup.service');
+    await backupService.init();
+    log('backup service ready');
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn('[startup] initBackup failed:', e);
+  }
+}
+
 /** Preload the most-visited chunk (dashboard) during idle time. */
 function schedulePreloads(): void {
   if (typeof requestIdleCallback === 'undefined') return;
 
   requestIdleCallback(() => {
     // Preload dashboard — the first screen after login
-    import('@/components/ExecutiveDashboard').catch(() => {});
+    import('@/components/ExecutiveDashboard').catch((err) => {
+    if (import.meta.env.DEV) console.warn('[startup] Failed to preload ExecutiveDashboard:', err);
+  });
     log('dashboard preloaded');
   }, { timeout: 3000 });
 
   requestIdleCallback(() => {
     // Preload the two most-used billing modules
-    import('@/components/SalesBillingModule').catch(() => {});
-    import('@/components/PurchaseBillingModule').catch(() => {});
+    void import('@/components/SalesBillingModule').catch((err) => {
+      if (import.meta.env.DEV) console.warn('[startup] Failed to preload SalesBillingModule:', err);
+    });
+    void import('@/components/PurchaseBillingModule').catch((err) => {
+      if (import.meta.env.DEV) console.warn('[startup] Failed to preload PurchaseBillingModule:', err);
+    });
     log('billing modules preloaded');
   }, { timeout: 5000 });
 }
@@ -94,6 +112,15 @@ export const startup = {
     log('parallel tasks launched');
   },
 
+    /**
+     * Called after the user has logged in and the app is fully interactive.
+     * Backup init is deferred until here so the pool is ready.
+     */
+    async afterLogin(): Promise<void> {
+      void initBackup();
+      log('post-login tasks launched');
+    },
+
   /**
    * Called after the first React render completes.
    * Shows the window and schedules idle-time preloads.
@@ -102,6 +129,7 @@ export const startup = {
     // Show window on next microtask so React has committed the DOM
     void showWindow();
     schedulePreloads();
+    useProductionStartup();
     log('first paint complete');
   },
 };

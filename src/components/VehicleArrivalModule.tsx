@@ -70,7 +70,9 @@ export const VehicleArrivalModule: React.FC = () => {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         setDay(days[d.getDay()]);
       }
-    } catch (e) {}
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('[VehicleArrivalModule] Date parsing failed:', err);
+    }
   }, [date]);
 
   // Load a vehicle into draft edit mode
@@ -503,7 +505,7 @@ export const VehicleArrivalModule: React.FC = () => {
 
           {/* List Table */}
           <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700">
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <table className="erp-table w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
                 <tr className="bg-slate-950 dark:bg-slate-950 bg-slate-100 dark:text-slate-300 text-slate-900 uppercase font-bold border-b border-slate-800 dark:border-slate-800 border-slate-200 text-[11px]">
                   <th className="py-3.5 px-4">Arrival # / Date</th>

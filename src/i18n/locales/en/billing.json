@@ -1,0 +1,85 @@
+{
+  "sales": {
+    "header": {
+      "title": "Sales & Billing",
+      "subtitle": "Cash memo entry, customer balance tracking & live billing",
+      "newInvoice": "New Invoice",
+      "invoices": "Invoices"
+    },
+    "newInvoice": {
+      "date": "Date:",
+      "buyer": "Buyer:",
+      "hideCharges": "Hide Charges",
+      "showCharges": "Hamali & Discounts",
+      "previousOutstanding": "Previous Outstanding",
+      "netTodayBill": "Net Today Bill",
+      "cashPaid": "Cash Paid",
+      "finalBalance": "Final Balance",
+      "items": "Items",
+      "addRow": "Add Row"
+    },
+    "table": {
+      "fruit": "Fruit",
+      "variety": "Variety",
+      "carets": "Carets",
+      "weight": "Weight",
+      "rate": "Rate",
+      "amount": "Amount",
+      "actions": "Actions"
+    },
+    "list": {
+      "title": "Sales Invoices",
+      "searchPlaceholder": "Search invoice #, buyer name...",
+      "invoiceDate": "Invoice / Date",
+      "customer": "Customer",
+      "total": "Total",
+      "paid": "Paid",
+      "balance": "Balance"
+    }
+  },
+  "purchase": {
+    "header": {
+      "title": "Direct Purchase Billing & Invoices",
+      "subtitle": "Premium fast supplier purchase bill entry, auto stock increment, and supplier balance sync",
+      "newBill": "New Purchase Bill",
+      "purchaseBills": "Purchase Bills"
+    },
+    "newInvoice": {
+      "date": "Date:",
+      "hideCharges": "Hide Freight/Hamali",
+      "showCharges": "Add Freight & Hamali",
+      "supplierOrchard": "Supplier / Orchard:",
+      "previousOutstanding": "Previous Outstanding",
+      "netTodayBill": "Net Today Bill",
+      "cashPaid": "Cash Paid Instantly",
+      "finalPayable": "Final Supplier Payable",
+      "purchasedItems": "Purchased Fruit Items",
+      "activeItems": "items active",
+      "addRow": "Add Row (Alt+A)"
+    },
+    "table": {
+      "fruitCategory": "Fruit Category",
+      "variety": "Variety (Vakkal)",
+      "caretsQty": "Carets Qty",
+      "weight": "Weight (KG)",
+      "rate": "Rate (Rs/KG)",
+      "subtotalAmount": "Subtotal Amount",
+      "actions": "Actions"
+    },
+    "list": {
+      "title": "Direct Purchase Invoices Archive",
+      "billsSynced": "Bills Synced",
+      "comfortable": "Comfortable",
+      "compact": "Compact",
+      "spacious": "Spacious",
+      "searchPlaceholder": "Search bill #, supplier name, fruit...",
+      "billDate": "Bill # / Date",
+      "supplierOrchard": "Supplier / Orchard",
+      "carets": "Carets",
+      "billTotal": "Bill Total",
+      "cashPaidNow": "Cash Paid Now",
+      "finalBalance": "Final Balance",
+      "actionsView": "Actions / View"
+    }
+  }
+}

@@ -9,6 +9,7 @@
 
 pub mod app;
 pub mod auth;
+pub mod backup;
 pub mod customer;
 pub mod db;
 pub mod employee;

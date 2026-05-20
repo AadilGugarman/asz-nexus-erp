@@ -9,7 +9,13 @@ interface CompanyState {
   activeCompanyId: string | null;
   initialized: boolean;
 
+  /** Fast synchronous bootstrap from localStorage cache. */
   bootstrap: () => void;
+  /**
+   * Async reconciliation — checks SQLite as source of truth.
+   * Call after dbService.init() resolves.
+   */
+  bootstrapFromDb: () => Promise<void>;
   markCompanyCreated: (companyId?: string) => void;
 }
 
@@ -47,12 +53,30 @@ export const useCompanyStore = create<CompanyState>()((set) => ({
   initialized: false,
 
   bootstrap: () => {
-    const hasCompany = readCompanyReadyFlag() || readCompaniesCount() > 1;
+    // Fix: was `> 1`, should be `> 0` — one company is enough
+    const hasCompany = readCompanyReadyFlag() || readCompaniesCount() > 0;
     set({
       hasCompany,
       activeCompanyId: readActiveCompanyId(),
       initialized: true,
     });
+  },
+
+  bootstrapFromDb: async () => {
+    try {
+      // Lazy import to avoid circular deps and keep startup fast
+      const { dbService } = await import('@/db/services');
+      if (!dbService.isReady) return;
+
+      const company = await dbService.settings.get<{ name: string }>('company');
+      if (company?.name) {
+        // DB confirms company exists — update localStorage cache and state
+        try { localStorage.setItem(COMPANY_READY_KEY, '1'); } catch { /* ignore */ }
+        set({ hasCompany: true });
+      }
+    } catch {
+      // Non-fatal — localStorage state already applied by bootstrap()
+    }
   },
 
   markCompanyCreated: (companyId) => {

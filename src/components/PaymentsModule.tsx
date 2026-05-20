@@ -10,6 +10,9 @@ import {
   Printer, X, Building2, Users, UserCheck, ArrowUpDown
 } from 'lucide-react';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
+import { useDataTable } from '../hooks/useDataTable';
+import { DataTable, Pagination } from './ui/table';
+import { useAppearance } from '@/hooks';
 
 const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   CASH: { label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" />, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
@@ -20,16 +23,14 @@ const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode
 
 export const PaymentsModule: React.FC = () => {
   const { payments, suppliers, customers, addPayment, deletePayment, settings } = useApp();
+  const { density, setDensity } = useAppearance();
   const cs = settings.company;
   const toast = useToast();
   const dialog = useConfirmDialog();
 
   const [activeTab, setActiveTab] = useState<'NEW' | 'LIST'>('LIST');
   const [previewPayment, setPreviewPayment] = useState<PaymentReceipt | null>(null);
-  const [isCompact, setIsCompact] = useState(false);
   const [isListLoading, setIsListLoading] = useState(false);
-  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'partyName'>('date');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // ── New Payment Form State ──────────
   const [direction, setDirection] = useState<'PAID_TO_SUPPLIER' | 'RECEIVED_FROM_CUSTOMER'>('PAID_TO_SUPPLIER');
@@ -72,7 +73,7 @@ export const PaymentsModule: React.FC = () => {
 
   // ── Filtered Payments ───────────────
   const filteredPayments = useMemo(() => {
-    const filtered = payments.filter(p => {
+    return payments.filter(p => {
       const matchSearch =
         p.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.referenceNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,21 +83,28 @@ export const PaymentsModule: React.FC = () => {
       const matchMode = filterMode === 'ALL' || p.paymentMode === filterMode;
       return matchSearch && matchType && matchMode;
     });
+  }, [payments, searchTerm, filterType, filterMode]);
 
-    return [...filtered].sort((a, b) => {
-      const factor = sortDir === 'asc' ? 1 : -1;
-      if (sortBy === 'amount') return (a.amount - b.amount) * factor;
-      if (sortBy === 'partyName') return a.partyName.localeCompare(b.partyName) * factor;
-      return a.date.localeCompare(b.date) * factor;
-    });
-  }, [payments, searchTerm, filterType, filterMode, sortBy, sortDir]);
+  const paymentsTable = useDataTable<PaymentReceipt, 'date' | 'amount' | 'partyName'>({
+    data: filteredPayments,
+    initialSortBy: 'date',
+    initialSortDir: 'desc',
+    initialPageSize: 20,
+    pageSizeOptions: [10, 20, 50, 100],
+    sortComparators: {
+      date: (a, b) => a.date.localeCompare(b.date),
+      amount: (a, b) => a.amount - b.amount,
+      partyName: (a, b) => a.partyName.localeCompare(b.partyName),
+    },
+    resetPageOn: [activeTab, filterType, filterMode],
+  });
 
   useEffect(() => {
     if (activeTab !== 'LIST') return;
     setIsListLoading(true);
     const t = window.setTimeout(() => setIsListLoading(false), 180);
     return () => window.clearTimeout(t);
-  }, [activeTab, searchTerm, filterType, filterMode, sortBy, sortDir]);
+  }, [activeTab, searchTerm, filterType, filterMode, paymentsTable.sortBy, paymentsTable.sortDir]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -118,14 +126,7 @@ export const PaymentsModule: React.FC = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeTab, direction, selectedPartyName, amount, paymentMode, referenceNo, notes, payDate]);
 
-  const handleSort = (field: 'date' | 'amount' | 'partyName') => {
-    if (sortBy === field) {
-      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setSortBy(field);
-    setSortDir('desc');
-  };
+  const isCompact = density === 'compact';
 
   // ── Form Submit ─────────────────────
   const handleSavePayment = () => {
@@ -478,10 +479,10 @@ export const PaymentsModule: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
               <button
                 type="button"
-                onClick={() => setIsCompact(v => !v)}
+                onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')}
                 className="erp-btn-secondary px-3 py-2 text-xs"
               >
-                {isCompact ? 'Comfortable' : 'Compact'}
+                {density === 'compact' ? 'Compact' : density === 'comfortable' ? 'Comfortable' : 'Spacious'}
               </button>
               {/* Search */}
               <div className="relative flex-1 md:w-64">
@@ -521,23 +522,36 @@ export const PaymentsModule: React.FC = () => {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <DataTable
+            footer={
+              <Pagination
+                page={paymentsTable.page}
+                totalPages={paymentsTable.totalPages}
+                totalRecords={paymentsTable.totalRecords}
+                pageSize={paymentsTable.pageSize}
+                pageSizeOptions={paymentsTable.pageSizeOptions}
+                onPageChange={paymentsTable.setPage}
+                onPageSizeChange={paymentsTable.setPageSize}
+                label="payments"
+              />
+            }
+          >
             <table className="erp-table text-left text-xs sm:text-sm">
               <thead>
                 <tr>
                   <th className="py-3 px-4">
-                    <button type="button" onClick={() => handleSort('date')} className="inline-flex items-center gap-1">
+                    <button type="button" onClick={() => paymentsTable.toggleSort('date')} className="inline-flex items-center gap-1">
                       Date <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
                   <th className="py-3 px-3">Direction</th>
                   <th className="py-3 px-3">
-                    <button type="button" onClick={() => handleSort('partyName')} className="inline-flex items-center gap-1">
+                    <button type="button" onClick={() => paymentsTable.toggleSort('partyName')} className="inline-flex items-center gap-1">
                       Party Name <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
                   <th className="py-3 px-3 text-right font-black dark:text-amber-400 text-amber-700">
-                    <button type="button" onClick={() => handleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
+                    <button type="button" onClick={() => paymentsTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
                       Amount <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
@@ -554,7 +568,7 @@ export const PaymentsModule: React.FC = () => {
                       <TableSkeleton rows={7} cols={8} compact={isCompact} />
                     </td>
                   </tr>
-                ) : filteredPayments.length === 0 ? (
+                ) : paymentsTable.totalRecords === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-0">
                       <ModuleEmptyState
@@ -564,7 +578,7 @@ export const PaymentsModule: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredPayments.map(p => {
+                  paymentsTable.pageRows.map(p => {
                     const isSupplier = p.partyType === 'SUPPLIER';
                     const modeMeta = PAYMENT_MODE_LABELS[p.paymentMode];
 
@@ -641,20 +655,20 @@ export const PaymentsModule: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
+          </DataTable>
 
           {/* Footer Summary */}
-          {filteredPayments.length > 0 && (
+          {paymentsTable.totalRecords > 0 && (
             <div className="px-6 py-3 bg-[#f8fafc] border-t border-[#edf2f7] flex items-center justify-between text-xs font-semibold">
               <span className="text-[#64748b]">
-                Showing {filteredPayments.length} of {payments.length} payments
+                Showing {paymentsTable.totalRecords} of {payments.length} payments
               </span>
               <div className="flex items-center space-x-4 font-mono">
                 <span className="text-rose-600 dark:text-rose-400">
-                  Paid: ₹{filteredPayments.filter(p => p.partyType === 'SUPPLIER').reduce((s, p) => s + p.amount, 0).toLocaleString('en-IN')}
+                  Paid: ₹{paymentsTable.rows.filter(p => p.partyType === 'SUPPLIER').reduce((s, p) => s + p.amount, 0).toLocaleString('en-IN')}
                 </span>
                 <span className="text-emerald-600 dark:text-emerald-400">
-                  Recd: ₹{filteredPayments.filter(p => p.partyType === 'CUSTOMER').reduce((s, p) => s + p.amount, 0).toLocaleString('en-IN')}
+                  Recd: ₹{paymentsTable.rows.filter(p => p.partyType === 'CUSTOMER').reduce((s, p) => s + p.amount, 0).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>

@@ -20,6 +20,7 @@
 
 import { create } from 'zustand';
 import { ipc } from '@/ipc';
+import { startup } from '@/services/startup';
 import { useLockStore } from './lock.store';
 import type {
   AuthTokenResponse,
@@ -278,6 +279,8 @@ function _applyTokens(set: SetFn, resp: AuthTokenResponse): void {
     isLoading:       false,
     error:           null,
   });
+
+  void startup.afterLogin();
 }
 
 function _msg(err: unknown): string {

@@ -116,6 +116,56 @@ export interface DbStats {
 
 // ── Employee domain types ─────────────────────────────────────────────────────
 
+  // ── Backup domain types ───────────────────────────────────────────────────────
+
+  /** Metadata for a single backup file on disk. */
+  export interface BackupEntry {
+    /** Filename without the .db extension — used as the unique ID. */
+    id: string;
+    /** Bare filename, e.g. "backup_Manual_20260521_143022_123.db". */
+    filename: string;
+    /** Human-readable label: "Manual" | "Auto" | "PreRestore". */
+    label: string;
+    /** Raw byte size of the backup file. */
+    size_bytes: number;
+    /** Human-readable size string, e.g. "2.4 MB". */
+    size_display: string;
+    /** ISO-8601 UTC timestamp when the file was last modified. */
+    created_at: string;
+    /** Absolute path — for display/reference only. */
+    path: string;
+    /** Whether `PRAGMA quick_check` passed. */
+    is_valid: boolean;
+  }
+
+  export interface BackupCreateRequest {
+    label?: string;
+    retain?: number;
+  }
+
+  export interface BackupDeleteRequest {
+    filename: string;
+  }
+
+  export interface BackupValidateRequest {
+    filename: string;
+  }
+
+  export interface BackupRestoreRequest {
+    filename: string;
+  }
+
+  export interface BackupPruneRequest {
+    keep: number;
+  }
+
+  export interface RestoreResult {
+    success: boolean;
+    rollback_filename: string | null;
+    message: string;
+  }
+
+
 export type EmployeeRole = 'admin' | 'manager' | 'staff';
 
 export interface Employee {

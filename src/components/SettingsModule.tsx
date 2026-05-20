@@ -12,16 +12,14 @@ const getCompanyInitials = (name: string) => {
     .toUpperCase();
 };
 import { useApp } from '../context/AppContext';
-import { useAppearance } from '@/hooks';
+import { useAppearance, useAppTranslation } from '@/hooks';
+import { useDataTable } from '@/hooks/useDataTable';
 import {
   loadBackupLocalPreferences,
-    setBackupAutoBackup as persistBackupAutoBackup,
-    setBackupEncryptBackups as persistBackupEncryptBackups,
-    setBackupFrequency as persistBackupFrequency,
-    setBackupHistory as persistBackupHistory,
-    setBackupLocation as persistBackupLocation,
-    setBackupRetention as persistBackupRetention,
+  setBackupLocation as persistBackupLocation,
 } from '@/lib/settings-backup.storage';
+import { backupService } from '@/services/backup.service';
+import { useBackupStore } from '@/store';
 import {
   loadSecurityLocalPreferences,
   setSecurityAllowExport,
@@ -37,15 +35,19 @@ import {
   Settings, Building2, DollarSign, FileText, Database, Palette, ShieldCheck,
   Save, Download, Upload, Trash2, Sun, Moon, RotateCcw, Eye, EyeOff, Lock,
   Check, AlertTriangle, HardDrive, Info, Plus, Star, Briefcase, X, MapPin, Phone, Mail, Sparkles,
-  Printer, Share2, Image, QrCode, PenTool
+  Printer, Share2, Image, QrCode, PenTool, Search, ArrowUpDown
 } from 'lucide-react';
 import { CompanyProfile, Invoice } from '../types';
+import type { AppLanguage } from '@/types/language';
 import { formatInvoiceNumber } from '../utils/invoice-number';
 import { InvoiceTemplateRenderer } from './invoice/InvoiceTemplateRenderer';
+import { DataTable, Pagination } from './ui/table';
 
 type Section = 'COMPANIES' | 'FINANCIAL' | 'INVOICE' | 'MASTERS' | 'BACKUP' | 'APPEARANCE' | 'SECURITY';
 
 export const SettingsModule: React.FC = () => {
+  const { t } = useAppTranslation('settings');
+  const { t: tCommon } = useAppTranslation('common');
   const { settings, updateSettings, resetAllData, importData, getExportData,
     vehicles, invoices, purchaseInvoices, payments, suppliers, customers, fruits,
     companies, activeCompanyId, addCompany, updateCompany, deleteCompany, switchCompany,
@@ -102,56 +104,88 @@ export const SettingsModule: React.FC = () => {
   React.useEffect(() => { setSecurityAuditLog(auditLog); }, [auditLog]);
   React.useEffect(() => { setSecurityDbEncryption(dbEncryption); }, [dbEncryption]);
 
-  // ── Backup State ────────────────────────────
-  const [autoBackup, setAutoBackup] = useState(() => backupDefaults.autoBackup);
-  const [backupFreq, setBackupFreq] = useState(() => backupDefaults.backupFreq);
-  const [backupLocation, setBackupLocation] = useState(() => backupDefaults.backupLocation);
-  const [backupRetention, setBackupRetention] = useState(() => backupDefaults.backupRetention);
-  const [encryptBackups, setEncryptBackups] = useState(() => backupDefaults.encryptBackups);
-  const [backupHistory, setBackupHistory] = useState<{ id: string; name: string; type: string; size: string; date: string; encrypted: boolean }[]>(() => backupDefaults.backupHistory);
-  const [backupCreating, setBackupCreating] = useState(false);
-  const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
+  // -- Backup State � powered by backupService + useBackupStore -------------
+  const {
+    autoBackup,      setAutoBackup,
+    backupFreq,      setBackupFreq:      _setBackupFreq,
+    backupRetention, setBackupRetention: _setBackupRetention,
+    encryptBackups,  setEncryptBackups,
+    entries:     backupEntries,
+    isCreating:  backupCreating,
+  } = useBackupStore();
 
-  React.useEffect(() => { persistBackupAutoBackup(autoBackup); }, [autoBackup]);
-  React.useEffect(() => { persistBackupFrequency(backupFreq); }, [backupFreq]);
+  // Map Zustand entries to the shape expected by the existing UI
+  type BackupHistoryItem = {
+    id: string; name: string; type: string; size: string;
+    date: string; encrypted: boolean; filename: string; is_valid: boolean;
+  };
+  const backupHistory: BackupHistoryItem[] = backupEntries.map(e => ({
+    id:        e.id,
+    name:      e.id,
+    type:      e.label,
+    size:      e.size_display,
+    date:      e.created_at,
+    encrypted: encryptBackups,
+    filename:  e.filename,
+    is_valid:  e.is_valid,
+  }));
+
+  const [backupLocation, setBackupLocation] = React.useState(() => backupDefaults.backupLocation);
+  const [restoreConfirm, setRestoreConfirm]  = React.useState<string | null>(null);
+  const [backupSearch, setBackupSearch] = React.useState('');
+
+  const backupHistoryTable = useDataTable<BackupHistoryItem, 'name' | 'type' | 'size' | 'date'>({
+    data: backupHistory,
+    initialSortBy: 'date',
+    initialSortDir: 'desc',
+    initialPageSize: 8,
+    pageSizeOptions: [5, 8, 15, 30],
+    searchTerm: backupSearch,
+    searchFn: (row, query) =>
+      row.name.toLowerCase().includes(query) ||
+      row.type.toLowerCase().includes(query) ||
+      row.size.toLowerCase().includes(query) ||
+      new Date(row.date).toLocaleDateString().toLowerCase().includes(query),
+    sortComparators: {
+      name: (a, b) => a.name.localeCompare(b.name),
+      type: (a, b) => a.type.localeCompare(b.type),
+      size: (a, b) => parseFloat(a.size) - parseFloat(b.size),
+      date: (a, b) => a.date.localeCompare(b.date),
+    },
+    resetPageOn: [activeSection, backupHistory.length],
+  });
+
+  // Keep backupLocation in localStorage (not owned by the Zustand store)
   React.useEffect(() => { persistBackupLocation(backupLocation); }, [backupLocation]);
-  React.useEffect(() => { persistBackupRetention(backupRetention); }, [backupRetention]);
-  React.useEffect(() => { persistBackupEncryptBackups(encryptBackups); }, [encryptBackups]);
-  React.useEffect(() => { persistBackupHistory(backupHistory); }, [backupHistory]);
+
+  // Restart/stop auto-backup scheduler whenever preferences change
+  React.useEffect(() => {
+    backupService.applyAutoBackupPreference(
+      autoBackup,
+      backupFreq as import('@/store').BackupFrequency,
+    );
+  }, [autoBackup, backupFreq]);
+
+  const setBackupFreq      = (v: string) => _setBackupFreq(v as import('@/store').BackupFrequency);
+  const setBackupRetention = (v: number) => _setBackupRetention(v);
 
   const lastBackup = backupHistory.length > 0 ? backupHistory[0] : null;
 
   const handleCreateManualBackup = () => {
-    setBackupCreating(true);
-    setTimeout(() => {
-      const data = getExportData();
-      const size = (new Blob([data]).size / 1024).toFixed(1);
-      const entry = { id: `bk-${Date.now()}`, name: `backup-${new Date().toISOString().split('T')[0]}-${Date.now().toString(36)}`, type: 'Manual', size: `${size} KB`, date: new Date().toISOString(), encrypted: encryptBackups };
-      setBackupHistory(prev => [entry, ...prev]);
-      // Also trigger download
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `${entry.name}.json`; a.click(); URL.revokeObjectURL(url);
-      setBackupCreating(false);
-      toast.success('Backup Created', `${entry.name} (${entry.size}) saved and downloaded.`);
-    }, 800);
+    void backupService.createBackup({ label: 'Manual' });
   };
 
   const handleDeleteBackup = (id: string) => {
-    setBackupHistory(prev => prev.filter(b => b.id !== id));
-    toast.info('Backup Removed', 'Backup entry deleted from history.');
+    const entry = backupHistory.find(b => b.id === id);
+    if (entry) void backupService.deleteBackup(entry.filename);
   };
 
-  const handleRestoreBackup = (bk: typeof backupHistory[0]) => {
-    // Trigger file import flow for actual restore
-    handleExport(); // first save current state
-    toast.success('Restore Initiated', `Restoring from ${bk.name}. Use Import to load the actual file.`);
+  const handleRestoreBackup = (bk: BackupHistoryItem) => {
+    void backupService.restoreBackup(bk.filename);
     setRestoreConfirm(null);
   };
-
   const handleDangerReset = () => {
     resetAllData();
-    setBackupHistory([]);
     setConfirmResetDialog(false);
     toast.warning('Database Reset', 'All data erased. App restored to factory defaults.');
   };
@@ -298,6 +332,24 @@ export const SettingsModule: React.FC = () => {
     { id: 'APPEARANCE', label: 'Appearance', icon: <Palette className="w-4 h-4" />, desc: 'Theme, display preferences' },
     { id: 'SECURITY', label: 'Security & Lock', icon: <ShieldCheck className="w-4 h-4" />, desc: 'App PIN, auto-lock timer' },
   ];
+
+  const languageOptions: Array<{ id: AppLanguage; flag: string; label: string; desc: string }> = React.useMemo(
+    () => [
+      {
+        id: 'en',
+        flag: '🇬🇧',
+        label: tCommon('language.english'),
+        desc: t('appearance.languageRegion.englishDescription'),
+      },
+      {
+        id: 'gu',
+        flag: '🇮🇳',
+        label: tCommon('language.gujarati'),
+        desc: t('appearance.languageRegion.gujaratiDescription'),
+      },
+    ],
+    [t, tCommon],
+  );
 
   // ── Input helper ──
   const Inp = ({ label, value, onChange, placeholder = '', type = 'text', mono = false, disabled = false }: { label: string; value: string | number; onChange: (v: string) => void; placeholder?: string; type?: string; mono?: boolean; disabled?: boolean }) => (
@@ -986,39 +1038,72 @@ export const SettingsModule: React.FC = () => {
 
               {/* ── 2. BACKUP HISTORY ─────────────── */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
+                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                   <div className="flex items-center space-x-2"><Database className="w-4 h-4 text-cyan-500" /><span className="text-sm font-bold dark:text-white text-slate-900">Backup History</span><span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-2 py-0.5 rounded-full font-bold">{backupHistory.length}</span></div>
+                  <div className="relative w-full sm:w-72">
+                    <Search className="w-4 h-4 dark:text-slate-500 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={backupSearch}
+                      onChange={(e) => setBackupSearch(e.target.value)}
+                      placeholder="Search backups..."
+                      className="erp-input w-full pl-9 pr-3 py-2 text-xs"
+                    />
+                  </div>
                 </div>
-                {backupHistory.length === 0 ? (
+                {backupHistoryTable.totalRecords === 0 ? (
                   <div className="p-10 text-center">
                     <Database className="w-10 h-10 dark:text-slate-700 text-slate-300 mx-auto mb-3" />
-                    <div className="text-sm font-bold dark:text-slate-400 text-slate-500">No backups found</div>
-                    <p className="text-xs dark:text-slate-500 text-slate-400 mt-1">Create your first backup to see it here.</p>
+                    <div className="text-sm font-bold dark:text-slate-400 text-slate-500">{backupHistory.length === 0 ? 'No backups found' : 'No backups match your search'}</div>
+                    <p className="text-xs dark:text-slate-500 text-slate-400 mt-1">{backupHistory.length === 0 ? 'Create your first backup to see it here.' : 'Try a different keyword.'}</p>
                     <button onClick={handleCreateManualBackup} className="mt-3 inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl font-bold text-xs cursor-pointer transition-colors"><Download className="w-3.5 h-3.5" /><span>Create Backup</span></button>
                   </div>
                 ) : (
-                  <div className="divide-y dark:divide-slate-800/60 divide-slate-100 max-h-72 overflow-y-auto">
-                    {backupHistory.map(bk => (
-                      <div key={bk.id} className="flex items-center justify-between px-6 py-3.5 dark:hover:bg-slate-800/30 hover:bg-slate-50 transition-colors group">
-                        <div className="flex items-center space-x-3 min-w-0">
-                          <div className="p-1.5 dark:bg-slate-800 bg-slate-100 rounded-lg shrink-0"><Database className="w-4 h-4 dark:text-slate-400 text-slate-500" /></div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold dark:text-white text-slate-900 truncate font-mono">{bk.name}</div>
-                            <div className="flex items-center space-x-2 mt-0.5 text-[10px] dark:text-slate-500 text-slate-400">
-                              <span className={`font-bold px-1.5 py-0.5 rounded border font-mono ${bk.type === 'Manual' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'}`}>{bk.type}</span>
-                              <span className="font-mono">{bk.size}</span>
-                              <span>{new Date(bk.date).toLocaleDateString()}</span>
-                              {bk.encrypted && <span className="flex items-center space-x-0.5 text-amber-500"><Lock className="w-3 h-3" /><span>Encrypted</span></span>}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-3">
-                          <button onClick={() => setRestoreConfirm(bk.id)} className="p-1.5 dark:text-slate-400 text-slate-500 hover:text-blue-500 dark:hover:bg-slate-800 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors" title="Restore"><RotateCcw className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => handleDeleteBackup(bk.id)} className="p-1.5 dark:text-slate-400 text-slate-500 hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <DataTable
+                    footer={
+                      <Pagination
+                        page={backupHistoryTable.page}
+                        totalPages={backupHistoryTable.totalPages}
+                        totalRecords={backupHistoryTable.totalRecords}
+                        pageSize={backupHistoryTable.pageSize}
+                        pageSizeOptions={backupHistoryTable.pageSizeOptions}
+                        onPageChange={backupHistoryTable.setPage}
+                        onPageSizeChange={backupHistoryTable.setPageSize}
+                        label="backups"
+                      />
+                    }
+                  >
+                    <table className="erp-table text-left text-xs sm:text-sm">
+                      <thead>
+                        <tr>
+                          <th className="py-3 px-4"><button type="button" onClick={() => backupHistoryTable.toggleSort('name')} className="inline-flex items-center gap-1">Backup <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                          <th className="py-3 px-3"><button type="button" onClick={() => backupHistoryTable.toggleSort('type')} className="inline-flex items-center gap-1">Type <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                          <th className="py-3 px-3"><button type="button" onClick={() => backupHistoryTable.toggleSort('size')} className="inline-flex items-center gap-1">Size <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                          <th className="py-3 px-3"><button type="button" onClick={() => backupHistoryTable.toggleSort('date')} className="inline-flex items-center gap-1">Date <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                          <th className="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {backupHistoryTable.pageRows.map((bk) => (
+                          <tr key={bk.id} className="group">
+                            <td className="py-3 px-4 font-mono text-xs font-bold dark:text-slate-200 text-slate-800">{bk.name}</td>
+                            <td className="py-3 px-3">
+                              <span className={`font-bold px-2 py-0.5 rounded border text-[10px] font-mono ${bk.type === 'Manual' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'}`}>{bk.type}</span>
+                              {bk.encrypted && <span className="ml-2 inline-flex items-center gap-0.5 text-amber-500 text-[10px]"><Lock className="w-3 h-3" />Encrypted</span>}
+                            </td>
+                            <td className="py-3 px-3 font-mono text-xs dark:text-slate-300 text-slate-700">{bk.size}</td>
+                            <td className="py-3 px-3 text-xs dark:text-slate-400 text-slate-600">{new Date(bk.date).toLocaleString()}</td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center justify-end space-x-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => setRestoreConfirm(bk.id)} className="p-1.5 dark:text-slate-400 text-slate-500 hover:text-blue-500 dark:hover:bg-slate-800 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors" title="Restore"><RotateCcw className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => handleDeleteBackup(bk.id)} className="p-1.5 dark:text-slate-400 text-slate-500 hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </DataTable>
                 )}
               </div>
 
@@ -1177,11 +1262,11 @@ export const SettingsModule: React.FC = () => {
 
               {/* 3. Language & Region */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2"><Settings className="w-4 h-4 text-cyan-500" /><span className="text-sm font-bold dark:text-white text-slate-900">Language & Region</span></div>
+                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2"><Settings className="w-4 h-4 text-cyan-500" /><span className="text-sm font-bold dark:text-white text-slate-900">{t('appearance.languageRegion.title')}</span></div>
                 <div className="p-6">
                   <div className="grid grid-cols-2 gap-3">
-                    {[{ id: 'en', flag: '🇬🇧', label: 'English', desc: 'Default language' }, { id: 'gu', flag: '🇮🇳', label: 'ગુજરાતી', desc: 'Gujarati' }].map(l => (
-                      <button key={l.id} onClick={() => setLanguage(l.id)}
+                    {languageOptions.map(l => (
+                      <button key={l.id} onClick={() => setLanguage(l.id as 'en' | 'gu')}
                         className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${language === l.id ? 'border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-md' : 'dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300'}`}>
                         <span className="text-2xl">{l.flag}</span>
                         <div className="text-left">

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAppTranslation } from '@/hooks';
 import {
   BarChart3, TrendingUp, DollarSign, Package, Users, UserCheck,
   ArrowUpRight, ArrowDownRight, Sparkles, Download, Layers,
@@ -14,6 +15,7 @@ interface ExecutiveDashboardProps {
 
 export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiveTab }) => {
   const { vehicles, invoices, purchaseInvoices, inventory, suppliers, customers, payments, settings, getExportData } = useApp();
+  const { t } = useAppTranslation('dashboard');
   const toast = useToast();
 
   const savedVehicles = vehicles.filter(v => v.status === 'SAVED');
@@ -64,12 +66,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
   // ── Recent transactions (latest 8) ──────────
   const recentTx = useMemo(() => {
     const all: { id: string; date: string; type: string; ref: string; party: string; amount: number; color: string; icon: React.ReactNode }[] = [];
-    savedVehicles.forEach(v => all.push({ id: v.id, date: v.date, type: '🚛 Inward', ref: v.arrivalNo, party: v.rows.map(r => r.supplierName).filter((x,i,a) => a.indexOf(x) === i).join(', '), amount: -v.totalAmount, color: 'text-rose-500', icon: <ArrowUpRight className="w-4 h-4" /> }));
-    purchaseInvoices.forEach(i => all.push({ id: i.id, date: i.date, type: '📄 Purchase', ref: i.billNo, party: i.supplierName, amount: -i.todayAmount, color: 'text-rose-500', icon: <ArrowUpRight className="w-4 h-4" /> }));
-    invoices.forEach(i => all.push({ id: i.id, date: i.date, type: '📤 Sale', ref: i.invoiceNo, party: i.customerName, amount: i.todayAmount, color: 'text-emerald-500', icon: <ArrowDownRight className="w-4 h-4" /> }));
-    payments.forEach(p => all.push({ id: p.id, date: p.date, type: p.partyType === 'SUPPLIER' ? '💸 Paid Out' : '💰 Received', ref: p.referenceNo || '—', party: p.partyName, amount: p.partyType === 'SUPPLIER' ? -p.amount : p.amount, color: p.partyType === 'SUPPLIER' ? 'text-rose-500' : 'text-emerald-500', icon: p.partyType === 'SUPPLIER' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" /> }));
+    savedVehicles.forEach(v => all.push({ id: v.id, date: v.date, type: `🚛 ${t('transactions.inward')}`, ref: v.arrivalNo, party: v.rows.map(r => r.supplierName).filter((x,i,a) => a.indexOf(x) === i).join(', '), amount: -v.totalAmount, color: 'text-rose-500', icon: <ArrowUpRight className="w-4 h-4" /> }));
+    purchaseInvoices.forEach(i => all.push({ id: i.id, date: i.date, type: `📄 ${t('transactions.purchase')}`, ref: i.billNo, party: i.supplierName, amount: -i.todayAmount, color: 'text-rose-500', icon: <ArrowUpRight className="w-4 h-4" /> }));
+    invoices.forEach(i => all.push({ id: i.id, date: i.date, type: `📤 ${t('transactions.sale')}`, ref: i.invoiceNo, party: i.customerName, amount: i.todayAmount, color: 'text-emerald-500', icon: <ArrowDownRight className="w-4 h-4" /> }));
+    payments.forEach(p => all.push({ id: p.id, date: p.date, type: p.partyType === 'SUPPLIER' ? `💸 ${t('transactions.paidOut')}` : `💰 ${t('transactions.received')}`, ref: p.referenceNo || '—', party: p.partyName, amount: p.partyType === 'SUPPLIER' ? -p.amount : p.amount, color: p.partyType === 'SUPPLIER' ? 'text-rose-500' : 'text-emerald-500', icon: p.partyType === 'SUPPLIER' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" /> }));
     return all.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
-  }, [savedVehicles, purchaseInvoices, invoices, payments]);
+  }, [savedVehicles, purchaseInvoices, invoices, payments, t]);
 
   const handleExport = () => {
     const blob = new Blob([getExportData()], { type: 'application/json' });
@@ -82,19 +84,19 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
   // ── Quick Action Cards ──────────────────────
   const quickActions = [
-    { label: 'Vehicle Inward', desc: 'Gate entry & supplier allocation', icon: <Truck className="w-6 h-6" />, tab: 'arrival', color: 'from-emerald-500 to-teal-500', textColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', key: 'F1' },
-    { label: 'Purchase Bill', desc: 'Direct supplier purchase entry', icon: <ShoppingBag className="w-6 h-6" />, tab: 'purchase', color: 'from-teal-500 to-cyan-500', textColor: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-500/10', key: 'Alt+2' },
-    { label: 'Sales Invoice', desc: 'Customer billing & cash memo', icon: <ShoppingCart className="w-6 h-6" />, tab: 'sales', color: 'from-indigo-500 to-violet-500', textColor: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-500/10', key: 'F2' },
-    { label: 'Record Payment', desc: 'Pay supplier or receive from buyer', icon: <Wallet className="w-6 h-6" />, tab: 'payments', color: 'from-amber-500 to-orange-500', textColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', key: 'Alt+5' },
-    { label: 'View Reports', desc: 'Daily, date range, P&L analytics', icon: <FileBarChart2 className="w-6 h-6" />, tab: 'reports', color: 'from-cyan-500 to-blue-500', textColor: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500/10', key: 'Alt+6' },
-    { label: 'Settings', desc: 'Company, financial, backup config', icon: <Settings className="w-6 h-6" />, tab: 'settings', color: 'from-slate-500 to-slate-600', textColor: 'dark:text-slate-300 text-slate-600', bg: 'dark:bg-slate-800 bg-slate-100', key: 'Alt+9' },
+    { label: t('quickActions.arrival.label'), desc: t('quickActions.arrival.desc'), icon: <Truck className="w-6 h-6" />, tab: 'arrival', color: 'from-emerald-500 to-teal-500', textColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', key: 'F1' },
+    { label: t('quickActions.purchase.label'), desc: t('quickActions.purchase.desc'), icon: <ShoppingBag className="w-6 h-6" />, tab: 'purchase', color: 'from-teal-500 to-cyan-500', textColor: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-500/10', key: 'Alt+2' },
+    { label: t('quickActions.sales.label'), desc: t('quickActions.sales.desc'), icon: <ShoppingCart className="w-6 h-6" />, tab: 'sales', color: 'from-indigo-500 to-violet-500', textColor: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-500/10', key: 'F2' },
+    { label: t('quickActions.payment.label'), desc: t('quickActions.payment.desc'), icon: <Wallet className="w-6 h-6" />, tab: 'payments', color: 'from-amber-500 to-orange-500', textColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', key: 'Alt+5' },
+    { label: t('quickActions.reports.label'), desc: t('quickActions.reports.desc'), icon: <FileBarChart2 className="w-6 h-6" />, tab: 'reports', color: 'from-cyan-500 to-blue-500', textColor: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500/10', key: 'Alt+6' },
+    { label: t('quickActions.settings.label'), desc: t('quickActions.settings.desc'), icon: <Settings className="w-6 h-6" />, tab: 'settings', color: 'from-slate-500 to-slate-600', textColor: 'dark:text-slate-300 text-slate-600', bg: 'dark:bg-slate-800 bg-slate-100', key: 'Alt+9' },
   ];
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return 'Good Morning';
-    if (h < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (h < 12) return t('greeting.morning');
+    if (h < 17) return t('greeting.afternoon');
+    return t('greeting.evening');
   })();
 
   const currentTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -136,22 +138,22 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               </div>
 
               <p className="text-sm text-white/80 dark:text-slate-300 font-medium max-w-xl leading-relaxed">
-                {currentDate} — Real-time sync across vehicle arrivals, customer billing, warehouse inventory, supplier ledgers & payments.
+                {currentDate} — {t('hero.summary')}
               </p>
 
               {/* Hero Action Buttons */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button onClick={() => setActiveTab('arrival')}
                   className="px-5 py-2.5 bg-white dark:bg-gradient-to-r dark:from-emerald-500 dark:to-teal-500 text-emerald-950 dark:text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-lg transition-all flex items-center space-x-2 cursor-pointer hover:shadow-xl hover:scale-[1.02]">
-                  <Truck className="w-4 h-4 stroke-[2.5]" /><span>New Inward Load</span>
+                  <Truck className="w-4 h-4 stroke-[2.5]" /><span>{t('hero.newInward')}</span>
                 </button>
                 <button onClick={() => setActiveTab('sales')}
                   className="px-5 py-2.5 bg-white/15 dark:bg-indigo-600 backdrop-blur-sm text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg border border-white/20 dark:border-indigo-500 transition-all flex items-center space-x-2 cursor-pointer hover:bg-white/25 dark:hover:bg-indigo-500">
-                  <ShoppingCart className="w-4 h-4 stroke-[2.5]" /><span>New Sales Bill</span>
+                  <ShoppingCart className="w-4 h-4 stroke-[2.5]" /><span>{t('hero.newSales')}</span>
                 </button>
                 <button onClick={handleExport}
                   className="px-4 py-2.5 bg-white/10 dark:bg-slate-800/80 backdrop-blur-sm text-white font-semibold rounded-xl text-xs border border-white/15 dark:border-slate-700 transition-all flex items-center space-x-2 cursor-pointer hover:bg-white/20">
-                  <Download className="w-4 h-4" /><span className="hidden sm:inline">Backup</span>
+                  <Download className="w-4 h-4" /><span className="hidden sm:inline">{t('hero.backup')}</span>
                 </button>
               </div>
             </div>
@@ -160,15 +162,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
             <div className="dark:bg-slate-950/70 bg-white/15 backdrop-blur-xl rounded-2xl border dark:border-slate-800 border-white/20 p-5 min-w-[260px] shadow-xl">
               <div className="flex items-center space-x-2 mb-4">
                 <Calendar className="w-4 h-4 text-white dark:text-emerald-400" />
-                <span className="text-xs font-bold uppercase tracking-wider text-white/80 dark:text-emerald-400">Today's Live Snapshot</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-white/80 dark:text-emerald-400">{t('hero.snapshotTitle')}</span>
               </div>
               <div className="space-y-3 text-white">
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">Inward Loads</span><span className="font-black font-mono">{todayStats.loads}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">Purchase Value</span><span className="font-black font-mono text-rose-300">₹{todayStats.purchaseAmt.toLocaleString('en-IN')}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">Sales Bills</span><span className="font-black font-mono">{todayStats.salesCount}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">Sales Value</span><span className="font-black font-mono text-emerald-300">₹{todayStats.salesAmt.toLocaleString('en-IN')}</span></div>
-                <div className="border-t border-white/10 dark:border-slate-800 pt-2 flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">Weight IN</span><span className="font-bold font-mono">{todayStats.weightIn.toLocaleString()} KG</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">Cash IN / OUT</span><span className="font-bold font-mono text-xs">+₹{todayStats.cashIn.toLocaleString()} / -₹{todayStats.cashOut.toLocaleString()}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.inwardLoads')}</span><span className="font-black font-mono">{todayStats.loads}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.purchaseValue')}</span><span className="font-black font-mono text-rose-300">₹{todayStats.purchaseAmt.toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.salesBills')}</span><span className="font-black font-mono">{todayStats.salesCount}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.salesValue')}</span><span className="font-black font-mono text-emerald-300">₹{todayStats.salesAmt.toLocaleString('en-IN')}</span></div>
+                <div className="border-t border-white/10 dark:border-slate-800 pt-2 flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.weightIn')}</span><span className="font-bold font-mono">{todayStats.weightIn.toLocaleString()} KG</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="text-white/70 dark:text-slate-400">{t('hero.snapshot.cashInOut')}</span><span className="font-bold font-mono text-xs">+₹{todayStats.cashIn.toLocaleString()} / -₹{todayStats.cashOut.toLocaleString()}</span></div>
               </div>
             </div>
           </div>
@@ -181,7 +183,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
       <div>
         <div className="flex items-center space-x-2 mb-4">
           <Zap className="w-5 h-5 text-amber-500" />
-          <h2 className="text-sm font-black dark:text-white text-slate-900 uppercase tracking-wider">Quick Actions</h2>
+          <h2 className="text-sm font-black dark:text-white text-slate-900 uppercase tracking-wider">{t('sections.quickActions')}</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {quickActions.map(qa => (
@@ -203,10 +205,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
          ══════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {[
-          { label: 'Total Purchase', value: totalPurchase, sub: `${savedVehicles.length + purchaseInvoices.length} loads/bills`, color: 'text-rose-500', icon: <DollarSign className="w-5 h-5" />, iconBg: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
-          { label: 'Total Sales', value: totalSales, sub: `${invoices.length} invoices`, color: 'text-emerald-500', icon: <TrendingUp className="w-5 h-5" />, iconBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-          { label: `Commission (${settings.financial.commissionRate}%)`, value: commission, sub: 'APMC agent fee', color: 'text-emerald-600 dark:text-emerald-400', icon: <BarChart3 className="w-5 h-5" />, iconBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-          { label: 'Stock Valuation', value: stockValuation, sub: `${totalStockKg.toLocaleString()} KG · ${totalStockCrt} CRT`, color: 'dark:text-white text-slate-900', icon: <Package className="w-5 h-5" />, iconBg: 'bg-teal-500/10 text-teal-500 border-teal-500/20' },
+          { label: t('kpi.totalPurchase'), value: totalPurchase, sub: `${savedVehicles.length + purchaseInvoices.length} ${t('kpi.loadsBills')}`, color: 'text-rose-500', icon: <DollarSign className="w-5 h-5" />, iconBg: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
+          { label: t('kpi.totalSales'), value: totalSales, sub: `${invoices.length} ${t('kpi.invoices')}`, color: 'text-emerald-500', icon: <TrendingUp className="w-5 h-5" />, iconBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
+          { label: `${t('kpi.commission')} (${settings.financial.commissionRate}%)`, value: commission, sub: t('kpi.apmcFee'), color: 'text-emerald-600 dark:text-emerald-400', icon: <BarChart3 className="w-5 h-5" />, iconBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
+          { label: t('kpi.stockValuation'), value: stockValuation, sub: `${totalStockKg.toLocaleString()} KG · ${totalStockCrt} CRT`, color: 'dark:text-white text-slate-900', icon: <Package className="w-5 h-5" />, iconBg: 'bg-teal-500/10 text-teal-500 border-teal-500/20' },
         ].map((kpi, i) => (
           <div key={i} className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-3">
@@ -226,34 +228,34 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
         {/* Customer Receivable */}
         <button onClick={() => setActiveTab('customers')} className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:border-indigo-500 transition-all cursor-pointer text-left">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider"><UserCheck className="w-4 h-4" /><span>Customer Receivable</span></div>
-            <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold">{customers.length} buyers</span>
+            <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider"><UserCheck className="w-4 h-4" /><span>{t('sections.outstanding.customerReceivable')}</span></div>
+            <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold">{customers.length} {t('sections.outstanding.buyers')}</span>
           </div>
           <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-300">₹ {totalCustomerReceivable.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">They owe us → click to manage</div>
+          <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">{t('sections.outstanding.customerHint')}</div>
         </button>
 
         {/* Supplier Payable */}
         <button onClick={() => setActiveTab('suppliers')} className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:border-emerald-500 transition-all cursor-pointer text-left">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider"><Users className="w-4 h-4" /><span>Supplier Payable</span></div>
-            <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">{suppliers.length} suppliers</span>
+            <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider"><Users className="w-4 h-4" /><span>{t('sections.outstanding.supplierPayable')}</span></div>
+            <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">{suppliers.length} {t('sections.outstanding.suppliers')}</span>
           </div>
           <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-300">₹ {totalSupplierPayable.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">We owe them → click to manage</div>
+          <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">{t('sections.outstanding.supplierHint')}</div>
         </button>
 
         {/* Net Position */}
         <div className={`p-5 rounded-xl border shadow-sm ${netPosition >= 0 ? 'dark:bg-emerald-950/30 bg-emerald-50 dark:border-emerald-500/30 border-emerald-200' : 'dark:bg-rose-950/30 bg-rose-50 dark:border-rose-500/30 border-rose-200'}`}>
           <div className="flex items-center space-x-2 mb-2">
             {netPosition >= 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertTriangle className="w-4 h-4 text-rose-500" />}
-            <span className="text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Net Financial Position</span>
+            <span className="text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">{t('sections.netPosition.title')}</span>
           </div>
           <div className={`text-2xl font-black font-mono ${netPosition >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
             {netPosition >= 0 ? '+' : ''}₹ {netPosition.toLocaleString('en-IN')}
           </div>
           <div className={`text-[10px] font-bold mt-1 ${netPosition >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-            {netPosition >= 0 ? '✅ Net Positive — Receivables exceed Payables' : '⚠️ Net Negative — More payables than receivables'}
+            {netPosition >= 0 ? t('sections.netPosition.positive') : t('sections.netPosition.negative')}
           </div>
         </div>
       </div>
@@ -266,8 +268,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
         {/* Top Varieties */}
         <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2 text-teal-600 dark:text-teal-400 font-bold text-xs uppercase tracking-wider"><Layers className="w-4 h-4" /><span>Top 5 Varieties</span></div>
-            <button onClick={() => setActiveTab('inventory')} className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold cursor-pointer hover:underline">View All →</button>
+            <div className="flex items-center space-x-2 text-teal-600 dark:text-teal-400 font-bold text-xs uppercase tracking-wider"><Layers className="w-4 h-4" /><span>{t('sections.topVarieties.title')}</span></div>
+            <button onClick={() => setActiveTab('inventory')} className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold cursor-pointer hover:underline">{t('sections.topVarieties.viewAll')}</button>
           </div>
           <div className="space-y-2.5">
             {topVarieties.map(([v, info], idx) => (
@@ -282,15 +284,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
                 <span className="font-mono font-bold text-xs text-teal-600 dark:text-teal-400">{info.weight.toLocaleString()} KG</span>
               </div>
             ))}
-            {topVarieties.length === 0 && <div className="text-center text-xs dark:text-slate-500 text-slate-400 py-4">No stock yet</div>}
+            {topVarieties.length === 0 && <div className="text-center text-xs dark:text-slate-500 text-slate-400 py-4">{t('sections.topVarieties.empty')}</div>}
           </div>
         </div>
 
         {/* Low Stock Alerts */}
         <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider"><AlertTriangle className="w-4 h-4" /><span>Low Stock Alerts</span></div>
-            <span className="text-[10px] font-mono dark:bg-amber-500/10 bg-amber-50 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-500/20 font-bold">{lowStock.length} items</span>
+            <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider"><AlertTriangle className="w-4 h-4" /><span>{t('sections.lowStock.title')}</span></div>
+            <span className="text-[10px] font-mono dark:bg-amber-500/10 bg-amber-50 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-500/20 font-bold">{lowStock.length} {t('sections.lowStock.items')}</span>
           </div>
           <div className="space-y-2.5 max-h-48 overflow-y-auto">
             {lowStock.map(item => (
@@ -305,26 +307,26 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
                 <span className="font-mono font-bold text-xs text-amber-600 dark:text-amber-400">{item.totalWeight} KG</span>
               </div>
             ))}
-            {lowStock.length === 0 && <div className="text-center text-xs dark:text-slate-500 text-slate-400 py-4">All stock levels optimal 🎉</div>}
+            {lowStock.length === 0 && <div className="text-center text-xs dark:text-slate-500 text-slate-400 py-4">{t('sections.lowStock.allOptimal')}</div>}
           </div>
         </div>
 
         {/* Gross Profit Quick View */}
         <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4 text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500"><BarChart3 className="w-4 h-4 text-cyan-500" /><span>Profit Quick View</span></div>
+          <div className="flex items-center space-x-2 mb-4 text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500"><BarChart3 className="w-4 h-4 text-cyan-500" /><span>{t('sections.profitQuick.title')}</span></div>
           <div className="space-y-3">
-            <div className="flex justify-between items-center"><span className="text-xs dark:text-slate-400 text-slate-600">Total Sales</span><span className="font-mono font-bold text-xs text-emerald-500">₹ {totalSales.toLocaleString('en-IN')}</span></div>
-            <div className="flex justify-between items-center"><span className="text-xs dark:text-slate-400 text-slate-600">Total Purchase</span><span className="font-mono font-bold text-xs text-rose-500">₹ {totalPurchase.toLocaleString('en-IN')}</span></div>
+            <div className="flex justify-between items-center"><span className="text-xs dark:text-slate-400 text-slate-600">{t('sections.profitQuick.totalSales')}</span><span className="font-mono font-bold text-xs text-emerald-500">₹ {totalSales.toLocaleString('en-IN')}</span></div>
+            <div className="flex justify-between items-center"><span className="text-xs dark:text-slate-400 text-slate-600">{t('sections.profitQuick.totalPurchase')}</span><span className="font-mono font-bold text-xs text-rose-500">₹ {totalPurchase.toLocaleString('en-IN')}</span></div>
             <div className="border-t dark:border-slate-800 border-slate-200 pt-2 flex justify-between items-center">
-              <span className="text-xs font-bold dark:text-white text-slate-900">Gross Profit</span>
+              <span className="text-xs font-bold dark:text-white text-slate-900">{t('sections.profitQuick.grossProfit')}</span>
               <span className={`font-mono font-black text-sm ${grossProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>₹ {grossProfit.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs dark:text-slate-400 text-slate-600">Margin</span>
+              <span className="text-xs dark:text-slate-400 text-slate-600">{t('sections.profitQuick.margin')}</span>
               <span className={`font-mono font-bold text-xs ${grossProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{totalSales > 0 ? ((grossProfit / totalSales) * 100).toFixed(1) : '0.0'}%</span>
             </div>
           </div>
-          <button onClick={() => setActiveTab('reports')} className="w-full mt-4 py-2 text-center text-xs font-bold text-cyan-600 dark:text-cyan-400 dark:bg-slate-800 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">View Full P&L Report →</button>
+          <button onClick={() => setActiveTab('reports')} className="w-full mt-4 py-2 text-center text-xs font-bold text-cyan-600 dark:text-cyan-400 dark:bg-slate-800 bg-slate-100 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{t('sections.profitQuick.viewReport')}</button>
         </div>
       </div>
 
@@ -335,10 +337,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
         <div className="px-5 py-3.5 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-xs font-bold dark:text-white text-slate-900 uppercase tracking-wider">Recent Transactions</span>
-            <span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-2 py-0.5 rounded font-bold">Live</span>
+            <span className="text-xs font-bold dark:text-white text-slate-900 uppercase tracking-wider">{t('sections.recent.title')}</span>
+            <span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-2 py-0.5 rounded font-bold">{t('sections.recent.live')}</span>
           </div>
-          <button onClick={() => setActiveTab('reports')} className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 cursor-pointer hover:underline">Full Reports →</button>
+          <button onClick={() => setActiveTab('reports')} className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 cursor-pointer hover:underline">{t('sections.recent.fullReports')}</button>
         </div>
         <div className="divide-y dark:divide-slate-800/60 divide-slate-100">
           {recentTx.map(tx => (
@@ -359,7 +361,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               </div>
             </div>
           ))}
-          {recentTx.length === 0 && <div className="py-12 text-center text-xs dark:text-slate-500 text-slate-400">No transactions yet. Start by recording a vehicle arrival!</div>}
+          {recentTx.length === 0 && <div className="py-12 text-center text-xs dark:text-slate-500 text-slate-400">{t('sections.recent.empty')}</div>}
         </div>
       </div>
     </div>

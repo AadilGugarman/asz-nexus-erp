@@ -2,14 +2,18 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Invoice, InvoiceItem } from '../types';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
-import { ShoppingCart, Plus, Save, Search, Eye, Trash2, FileText, Calendar, Copy, Calculator } from 'lucide-react';
+import { ShoppingCart, Plus, Save, Search, Eye, Trash2, FileText, Calendar, Copy, Calculator, ArrowUpDown } from 'lucide-react';
 import { Combobox } from './ui/Combobox';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import { getNextUniqueInvoiceNumber } from '../utils/invoice-number';
+import { useAppTranslation } from '@/hooks';
+import { useDataTable } from '../hooks/useDataTable';
+import { DataTable, Pagination } from './ui/table';
 
 export const SalesBillingModule: React.FC = () => {
   const { customers, fruits, invoices, saveInvoice, deleteInvoice, addFruit, addFruitVariety, settings, updateSettings } = useApp();
+  const { t } = useAppTranslation('billing');
   const toast = useToast();
   const dialog = useConfirmDialog();
 
@@ -112,6 +116,22 @@ export const SalesBillingModule: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const filteredInvoices = useMemo(() => invoices.filter(inv => inv.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) || inv.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || inv.items.some(it => it.fruit.toLowerCase().includes(searchTerm.toLowerCase()))), [invoices, searchTerm]);
+  const invoiceTable = useDataTable<Invoice, 'date' | 'invoiceNo' | 'customerName' | 'todayAmount' | 'paidAmount' | 'remainingBalance'>({
+    data: filteredInvoices,
+    initialSortBy: 'date',
+    initialSortDir: 'desc',
+    initialPageSize: 20,
+    pageSizeOptions: [10, 20, 50, 100],
+    sortComparators: {
+      date: (a, b) => a.date.localeCompare(b.date),
+      invoiceNo: (a, b) => a.invoiceNo.localeCompare(b.invoiceNo),
+      customerName: (a, b) => a.customerName.localeCompare(b.customerName),
+      todayAmount: (a, b) => a.todayAmount - b.todayAmount,
+      paidAmount: (a, b) => a.paidAmount - b.paidAmount,
+      remainingBalance: (a, b) => a.remainingBalance - b.remainingBalance,
+    },
+    resetPageOn: [activeSubTab],
+  });
 
   // ── Shared class tokens for light/dark ──────
   const card = 'dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200/80 shadow-sm';
@@ -126,14 +146,17 @@ export const SalesBillingModule: React.FC = () => {
       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${card} p-4`}>
         <div>
           <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
-            <ShoppingCart className="w-6 h-6 text-indigo-500" /><span>SALES & BILLING</span>
+            <ShoppingCart className="w-6 h-6 text-indigo-500" /><span>{t('sales.header.title').toUpperCase()}</span>
           </h1>
-          <p className={`text-xs ${mutedText} mt-0.5`}>Cash memo entry, customer balance tracking & live billing</p>
+          <p className={`text-xs ${mutedText} mt-0.5`}>{t('sales.header.subtitle')}</p>
         </div>
         <div className="flex items-center space-x-1.5 dark:bg-slate-950 bg-slate-100 p-1 rounded-xl border dark:border-slate-800 border-slate-200/80">
-          {[{ id: 'NEW_INVOICE', label: 'New Invoice', icon: <Plus className="w-4 h-4" /> }, { id: 'LIST', label: `Invoices (${invoices.length})`, icon: <FileText className="w-4 h-4" /> }].map(t => (
-            <button key={t.id} onClick={() => setActiveSubTab(t.id as any)} className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${activeSubTab === t.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : `${mutedText} dark:hover:text-white hover:text-slate-900`}`}>
-              {t.icon}<span>{t.label}</span>
+          {[
+            { id: 'NEW_INVOICE', label: t('sales.header.newInvoice'), icon: <Plus className="w-4 h-4" /> },
+            { id: 'LIST', label: `${t('sales.header.invoices')} (${invoices.length})`, icon: <FileText className="w-4 h-4" /> },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveSubTab(tab.id as any)} className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${activeSubTab === tab.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : `${mutedText} dark:hover:text-white hover:text-slate-900`}`}>
+              {tab.icon}<span>{tab.label}</span>
             </button>
           ))}
         </div>
@@ -160,16 +183,16 @@ export const SalesBillingModule: React.FC = () => {
                   />
                 )}
                 <div className="flex items-center space-x-1.5">
-                  <span className={`text-xs ${mutedText} font-medium`}>Date:</span>
+                  <span className={`text-xs ${mutedText} font-medium`}>{t('sales.newInvoice.date')}</span>
                   <input type="date" value={date} onChange={e => setDate(e.target.value)} className={`${inp} px-2.5 py-1.5 text-xs font-mono font-bold`} />
                 </div>
               </div>
               <div className="flex items-center space-x-3 w-full sm:w-auto">
                 <button type="button" onClick={() => setShowAdvancedDeductions(!showAdvancedDeductions)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center space-x-1 cursor-pointer font-bold shrink-0">
-                  <Calculator className="w-3.5 h-3.5" /><span>{showAdvancedDeductions ? 'Hide Charges' : 'Hamali & Discounts'}</span>
+                  <Calculator className="w-3.5 h-3.5" /><span>{showAdvancedDeductions ? t('sales.newInvoice.hideCharges') : t('sales.newInvoice.showCharges')}</span>
                 </button>
                 <div className="flex items-center space-x-2 flex-1 sm:flex-initial min-w-0">
-                  <label className={`text-[11px] font-bold uppercase tracking-wider ${labelText} whitespace-nowrap`}>Buyer:</label>
+                  <label className={`text-[11px] font-bold uppercase tracking-wider ${labelText} whitespace-nowrap`}>{t('sales.newInvoice.buyer')}</label>
                   <Combobox value={selectedCustomer.name} onChange={val => { const m = customers.find(c => c.name === val) || customers[0]; if (m) setSelectedCustomerId(m.id); }} options={customers.map(c => c.name)} placeholder="Select Customer..." searchPlaceholder="Search customer..." creatable={false} />
                 </div>
               </div>
@@ -196,21 +219,21 @@ export const SalesBillingModule: React.FC = () => {
             {/* Balance Bar */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div className="p-3.5 dark:bg-slate-950 bg-slate-50/80 rounded-xl border dark:border-slate-800 border-slate-100">
-                <span className={`text-[10px] ${mutedText} uppercase font-bold block tracking-wider`}>Previous Outstanding</span>
+                <span className={`text-[10px] ${mutedText} uppercase font-bold block tracking-wider`}>{t('sales.newInvoice.previousOutstanding')}</span>
                 <span className="text-lg font-black font-mono dark:text-slate-200 text-slate-900 mt-1 block">₹ {previousBalance.toLocaleString('en-IN')}</span>
               </div>
               <div className="p-3.5 dark:bg-indigo-950/30 bg-indigo-50/60 rounded-xl border dark:border-indigo-500/20 border-indigo-100">
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-300 uppercase font-bold block tracking-wider">+ Net Today Bill</span>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-300 uppercase font-bold block tracking-wider">+ {t('sales.newInvoice.netTodayBill')}</span>
                 <span className="text-lg font-black font-mono text-indigo-600 dark:text-indigo-400 mt-1 block">₹ {todayAmount.toLocaleString('en-IN')}</span>
               </div>
               <div className="p-3.5 dark:bg-emerald-950/30 bg-emerald-50/60 rounded-xl border dark:border-emerald-500/20 border-emerald-100">
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-300 uppercase font-bold block tracking-wider">− Cash Paid</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-300 uppercase font-bold block tracking-wider">− {t('sales.newInvoice.cashPaid')}</span>
                 <div className="flex items-center mt-1"><span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold mr-1.5 text-base">₹</span>
                   <input type="number" value={paidAmountInput === 0 ? '' : paidAmountInput} placeholder="0" onChange={e => setPaidAmountInput(parseFloat(e.target.value) || 0)} className={`w-full ${inp} px-2.5 py-1 text-base font-mono font-extrabold dark:text-emerald-300 text-emerald-700 dark:border-emerald-500/30 border-emerald-200`} />
                 </div>
               </div>
               <div className="p-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg flex flex-col justify-center">
-                <span className="text-[10px] text-indigo-100 uppercase font-black block tracking-wider">Final Balance</span>
+                <span className="text-[10px] text-indigo-100 uppercase font-black block tracking-wider">{t('sales.newInvoice.finalBalance')}</span>
                 <span className="text-2xl font-black font-mono text-white mt-1 block">₹ {remainingBalance.toLocaleString('en-IN')}</span>
               </div>
             </div>
@@ -221,23 +244,23 @@ export const SalesBillingModule: React.FC = () => {
             <div className={`px-5 py-3.5 ${cardHeader} flex items-center justify-between`}>
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="text-xs font-black uppercase tracking-wider dark:text-slate-200 text-slate-800">Items</span>
+                <span className="text-xs font-black uppercase tracking-wider dark:text-slate-200 text-slate-800">{t('sales.newInvoice.items')}</span>
                 <span className={`text-[10px] font-mono font-bold dark:bg-slate-800 bg-slate-100 ${mutedText} px-2 py-0.5 rounded-full border dark:border-slate-700 border-slate-200`}>{items.length}</span>
               </div>
-              <button type="button" onClick={addItemRow} className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-sm cursor-pointer transition-all"><Plus className="w-3.5 h-3.5" /><span>Add Row</span></button>
+              <button type="button" onClick={addItemRow} className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-sm cursor-pointer transition-all"><Plus className="w-3.5 h-3.5" /><span>{t('sales.newInvoice.addRow')}</span></button>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <table className="erp-table w-full text-left border-collapse text-xs sm:text-sm">
                 <thead>
                   <tr className={`${cardHeader} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none`}>
-                    <th className="py-3 px-4 min-w-[160px]">Fruit</th>
-                    <th className="py-3 px-3 min-w-[160px]">Variety</th>
-                    <th className="py-3 px-3 w-24 text-right">Carets</th>
-                    <th className="py-3 px-3 w-28 text-right">Weight</th>
-                    <th className="py-3 px-3 w-28 text-right">Rate</th>
-                    <th className="py-3 px-4 w-36 text-right font-black text-indigo-600 dark:text-indigo-400">Amount</th>
-                    <th className="py-3 px-3 w-20 text-center">Actions</th>
+                    <th className="py-3 px-4 min-w-[160px]">{t('sales.table.fruit')}</th>
+                    <th className="py-3 px-3 min-w-[160px]">{t('sales.table.variety')}</th>
+                    <th className="py-3 px-3 w-24 text-right">{t('sales.table.carets')}</th>
+                    <th className="py-3 px-3 w-28 text-right">{t('sales.table.weight')}</th>
+                    <th className="py-3 px-3 w-28 text-right">{t('sales.table.rate')}</th>
+                    <th className="py-3 px-4 w-36 text-right font-black text-indigo-600 dark:text-indigo-400">{t('sales.table.amount')}</th>
+                    <th className="py-3 px-3 w-20 text-center">{t('sales.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100 font-mono">
@@ -310,24 +333,37 @@ export const SalesBillingModule: React.FC = () => {
         <div className={`${card} p-5 space-y-5`}>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b dark:border-slate-800 border-slate-100 pb-4">
             <h2 className="text-sm font-bold dark:text-white text-slate-900 flex items-center space-x-2">
-              <span>Sales Invoices</span>
-              <span className={`text-[10px] font-mono font-bold dark:bg-slate-800 bg-slate-100 ${mutedText} px-2 py-0.5 rounded border dark:border-slate-700 border-slate-200`}>{filteredInvoices.length}</span>
+              <span>{t('sales.list.title')}</span>
+              <span className={`text-[10px] font-mono font-bold dark:bg-slate-800 bg-slate-100 ${mutedText} px-2 py-0.5 rounded border dark:border-slate-700 border-slate-200`}>{invoiceTable.totalRecords}</span>
             </h2>
             <div className="relative w-full sm:w-72">
               <Search className={`w-4 h-4 ${mutedText} absolute left-3 top-3`} />
-              <input type="text" placeholder="Search invoice #, buyer name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className={`w-full ${inp} pl-9 pr-4 py-2.5 text-xs placeholder-slate-400`} />
+              <input type="text" placeholder={t('sales.list.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className={`w-full ${inp} pl-9 pr-4 py-2.5 text-xs placeholder-slate-400`} />
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+          <DataTable
+            footer={
+              <Pagination
+                page={invoiceTable.page}
+                totalPages={invoiceTable.totalPages}
+                totalRecords={invoiceTable.totalRecords}
+                pageSize={invoiceTable.pageSize}
+                pageSizeOptions={invoiceTable.pageSizeOptions}
+                onPageChange={invoiceTable.setPage}
+                onPageSizeChange={invoiceTable.setPageSize}
+                label="invoices"
+              />
+            }
+          >
+            <table className="erp-table w-full text-left border-collapse text-xs sm:text-sm">
               <thead><tr className={`${cardHeader} dark:text-slate-400 text-slate-600 uppercase font-bold text-[11px]`}>
-                <th className="py-3 px-4">Invoice / Date</th><th className="py-3 px-3">Customer</th><th className="py-3 px-3 text-right">Carets</th><th className="py-3 px-3 text-right">Weight</th><th className="py-3 px-3 text-right font-black text-indigo-600 dark:text-indigo-400">Total</th><th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400">Paid</th><th className="py-3 px-3 text-right font-black dark:text-slate-200 text-slate-900">Balance</th><th className="py-3 px-4 text-center">Actions</th>
+                <th className="py-3 px-4"><button type="button" onClick={() => invoiceTable.toggleSort('invoiceNo')} className="inline-flex items-center gap-1">{t('sales.list.invoiceDate')} <ArrowUpDown className="w-3.5 h-3.5" /></button></th><th className="py-3 px-3"><button type="button" onClick={() => invoiceTable.toggleSort('customerName')} className="inline-flex items-center gap-1">{t('sales.list.customer')} <ArrowUpDown className="w-3.5 h-3.5" /></button></th><th className="py-3 px-3 text-right">{t('sales.table.carets')}</th><th className="py-3 px-3 text-right">{t('sales.table.weight')}</th><th className="py-3 px-3 text-right font-black text-indigo-600 dark:text-indigo-400"><button type="button" onClick={() => invoiceTable.toggleSort('todayAmount')} className="inline-flex items-center gap-1 ml-auto">{t('sales.list.total')} <ArrowUpDown className="w-3.5 h-3.5" /></button></th><th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400"><button type="button" onClick={() => invoiceTable.toggleSort('paidAmount')} className="inline-flex items-center gap-1 ml-auto">{t('sales.list.paid')} <ArrowUpDown className="w-3.5 h-3.5" /></button></th><th className="py-3 px-3 text-right font-black dark:text-slate-200 text-slate-900"><button type="button" onClick={() => invoiceTable.toggleSort('remainingBalance')} className="inline-flex items-center gap-1 ml-auto">{t('sales.list.balance')} <ArrowUpDown className="w-3.5 h-3.5" /></button></th><th className="py-3 px-4 text-center">{t('sales.table.actions')}</th>
               </tr></thead>
               <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                {filteredInvoices.length === 0 ? (
+                {invoiceTable.totalRecords === 0 ? (
                   <tr><td colSpan={8} className={`py-16 text-center ${mutedText} font-sans text-sm`}>No invoices found.</td></tr>
-                ) : filteredInvoices.map(inv => {
+                ) : invoiceTable.pageRows.map(inv => {
                   const carets = inv.items.reduce((s, it) => s + (Number(it.caret) || 0), 0);
                   const weight = inv.items.reduce((s, it) => s + (Number(it.weight) || 0), 0);
                   return (
@@ -356,7 +392,7 @@ export const SalesBillingModule: React.FC = () => {
                 })}
               </tbody>
             </table>
-          </div>
+          </DataTable>
         </div>
       )}
 

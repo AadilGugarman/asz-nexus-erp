@@ -1,0 +1,23 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="128" y1="128" x2="896" y2="896" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF3D6"/>
+      <stop offset="1" stop-color="#FFE2A8"/>
+    </linearGradient>
+    <linearGradient id="mango" x1="300" y1="270" x2="740" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB83E"/>
+      <stop offset="1" stop-color="#F08A00"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="560" y1="180" x2="820" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#65B83B"/>
+      <stop offset="1" stop-color="#2E7E2D"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="56" y="56" width="912" height="912" rx="220" fill="url(#bg)"/>
+  <path d="M796 338C846 266 822 202 740 188C676 178 624 208 596 252C568 296 566 350 582 394C620 374 740 372 796 338Z" fill="url(#leaf)"/>
+  <path d="M522 840C324 840 196 698 196 540C196 348 366 222 564 238C740 252 860 382 860 550C860 712 710 840 522 840Z" fill="url(#mango)"/>
+  <path d="M342 548C342 454 414 384 514 384C560 384 606 398 646 426" stroke="#FFF2D1" stroke-width="40" stroke-linecap="round"/>
+  <path d="M354 744H676" stroke="#A95C00" stroke-width="52" stroke-linecap="round" opacity="0.7"/>
+  <text x="512" y="770" text-anchor="middle" font-size="164" font-family="Segoe UI, sans-serif" font-weight="700" fill="#5E3400">M</text>
+</svg>
