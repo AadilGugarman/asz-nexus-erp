@@ -1,0 +1,121 @@
+/**
+ * services/startup.ts
+ * Parallel startup orchestrator.
+ *
+ * Runs auth check, DB init, and window-state sync concurrently so the app
+ * is interactive as fast as possible. Each task is independent — a failure
+ * in one does not block the others.
+ *
+ * Usage (called once from main.tsx before rendering):
+ *   await startup.run();
+ *
+ * The window is hidden in tauri.conf.json ("visible": false) and shown here
+ * only after the first React paint, eliminating the white-flash on startup.
+ */
+
+import { APP_CONFIG } from '@/config';
+
+// ── Timing helpers ────────────────────────────────────────────────────────────
+
+const t0 = performance.now();
+
+function elapsed(): string {
+  return `${(performance.now() - t0).toFixed(1)}ms`;
+}
+
+function log(msg: string): void {
+  if (import.meta.env.DEV) {
+    console.info(`[startup ${elapsed()}] ${msg}`);
+  }
+}
+
+// ── Individual startup tasks ──────────────────────────────────────────────────
+
+/** Show the Tauri window — called after first React paint to avoid white flash. */
+async function showWindow(): Promise<void> {
+  if (!APP_CONFIG.isTauri) return;
+  try {
+    // Dynamic import keeps this out of the critical path bundle
+    const { getCurrentWindow } = await import('@tauri-apps/api/window' as never as string) as {
+      getCurrentWindow: () => { show: () => Promise<void>; setFocus: () => Promise<void> };
+    };
+    const win = getCurrentWindow();
+    await win.show();
+    await win.setFocus();
+    log('window shown');
+  } catch (e) {
+    // Non-fatal — window may already be visible
+    if (import.meta.env.DEV) console.warn('[startup] showWindow failed:', e);
+  }
+}
+
+/** Warm the auth store — checks session status in the background. */
+async function warmAuth(): Promise<void> {
+  try {
+    // Lazy import so auth code is not in the initial chunk
+    const { useAuthStore } = await import('@/store/auth.store');
+    await useAuthStore.getState().initialize();
+    log('auth warmed');
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn('[startup] warmAuth failed:', e);
+  }
+}
+
+/** Warm the DB connection — opens SQLite pool in the background. */
+async function warmDb(): Promise<void> {
+  if (!APP_CONFIG.isTauri) return;
+  try {
+    const { dbService } = await import('@/db/services');
+    await dbService.init();
+    log('db warmed');
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn('[startup] warmDb failed:', e);
+  }
+}
+
+/** Preload the most-visited chunk (dashboard) during idle time. */
+function schedulePreloads(): void {
+  if (typeof requestIdleCallback === 'undefined') return;
+
+  requestIdleCallback(() => {
+    // Preload dashboard — the first screen after login
+    import('@/components/ExecutiveDashboard').catch(() => {});
+    log('dashboard preloaded');
+  }, { timeout: 3000 });
+
+  requestIdleCallback(() => {
+    // Preload the two most-used billing modules
+    import('@/components/SalesBillingModule').catch(() => {});
+    import('@/components/PurchaseBillingModule').catch(() => {});
+    log('billing modules preloaded');
+  }, { timeout: 5000 });
+}
+
+// ── Main orchestrator ─────────────────────────────────────────────────────────
+
+export const startup = {
+  /**
+   * Run all startup tasks in parallel.
+   * Call this before ReactDOM.createRoot() so tasks start immediately.
+   */
+  async run(): Promise<void> {
+    log('starting');
+
+    // Auth and DB run in parallel — neither blocks the other
+    void warmAuth();
+    void warmDb();
+
+    log('parallel tasks launched');
+  },
+
+  /**
+   * Called after the first React render completes.
+   * Shows the window and schedules idle-time preloads.
+   */
+  afterFirstPaint(): void {
+    // Show window on next microtask so React has committed the DOM
+    void showWindow();
+    schedulePreloads();
+    log('first paint complete');
+  },
+};

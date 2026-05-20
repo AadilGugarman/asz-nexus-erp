@@ -1,0 +1,70 @@
+[package]
+name = "tfc-erp"
+version = "1.0.0"
+description = "TFC ERP — Fruit Commission Management"
+authors = ["TFC"]
+edition = "2021"
+
+[lib]
+name = "tfc_erp_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "tfc-erp"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri        = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell  = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs     = "2"
+
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror  = "2"
+chrono     = { version = "0.4", features = ["serde"] }
+uuid       = { version = "1",   features = ["v4"] }
+
+# Full tokio runtime — needed for async commands and background tasks.
+# "rt-multi-thread" enables the thread-pool; "macros" enables #[tokio::main].
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+
+# ── SQLite ────────────────────────────────────────────────────────────────────
+# "bundled" statically links libsqlite3 — no system dependency required.
+rusqlite    = { version = "0.31", features = ["bundled"] }
+r2d2        = "0.8"
+r2d2_sqlite = "0.24"
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+log      = "0.4"
+env_logger = { version = "0.11", default-features = false }
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+argon2       = { version = "0.5", features = ["std"] }
+jsonwebtoken = "9"
+base64       = "0.22"
+
+# ── Dev profile — fast incremental builds ────────────────────────────────────
+[profile.dev]
+opt-level     = 0       # No optimisation — fastest compile
+debug         = true    # Full debug info
+incremental   = true    # Cache unchanged crates
+codegen-units = 256     # Maximum parallelism
+
+# ── Release profile — maximum runtime performance ─────────────────────────────
+[profile.release]
+opt-level     = 3       # Full optimisation (speed)
+lto           = "thin"  # Cross-crate inlining without full LTO compile time
+codegen-units = 1       # Single unit — enables whole-program optimisation
+panic         = "abort" # No unwinding machinery — smaller binary, faster panics
+strip         = "symbols" # Remove debug symbols from the binary (~30% size reduction)
+debug         = false   # No debug info in release
+
+# ── Custom profile for CI / quick release checks ─────────────────────────────
+[profile.release-fast]
+inherits      = "release"
+lto           = false   # Skip LTO for faster CI builds
+codegen-units = 4
