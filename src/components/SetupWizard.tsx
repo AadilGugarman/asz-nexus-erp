@@ -275,50 +275,25 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   };
 
   // ── Final Submit ───────────────────────────────
-  const handleFinish = async () => {
+  const handleFinish = () => {
     const fyMonth = fyStart.split('-')[1] || '04';
     const fyDay = fyStart.split('-')[2] || '01';
 
-    // Write to AppContext (localStorage settings — keeps existing modules working)
+    // updateSettings goes through useSettingsStore → writes to localStorage + SQLite
     updateSettings({
-      company: { ...settings.company, name: companyName.trim(), tagline: legalName.trim() || settings.company.tagline, gstin: gstin.toUpperCase(), address: [address, city, state, pincode, country].filter(Boolean).join(', '), phone, email },
+      company: {
+        ...settings.company,
+        name:     companyName.trim(),
+        tagline:  legalName.trim() || settings.company.tagline,
+        gstin:    gstin.toUpperCase(),
+        address:  [address, city, state, pincode, country].filter(Boolean).join(', '),
+        phone,
+        email,
+        logo:     logoPreview ?? settings.company.logo,
+      },
       financial: { ...settings.financial, financialYearStart: `${fyMonth}-${fyDay}`, currency },
       invoice: { ...settings.invoice, salesPrefix: invPrefix, salesNextNo: invStartNo },
     });
-
-    // Persist to SQLite — source of truth for company existence check
-    try {
-      const { dbService } = await import('@/db/services');
-      if (dbService.isReady) {
-        await Promise.all([
-          dbService.settings.set('company', {
-            name:      companyName.trim(),
-            legalName: legalName.trim(),
-            gstin:     gstin.toUpperCase(),
-            pan:       pan.toUpperCase(),
-            address,
-            city,
-            state,
-            pincode,
-            country,
-            phone,
-            email,
-            logo: logoPreview,
-          }),
-          dbService.settings.set('financial', {
-            fyStart,
-            fyEnd,
-            currency,
-            invPrefix,
-            invStartNo,
-            taxType,
-            roundOff,
-          }),
-        ]);
-      }
-    } catch (e) {
-      if (import.meta.env.DEV) console.warn('[SetupWizard] DB write failed:', e);
-    }
 
     localStorage.removeItem(ONBOARDING_DRAFT_KEY);
     onComplete();

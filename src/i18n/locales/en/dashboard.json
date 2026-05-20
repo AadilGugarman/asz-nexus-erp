@@ -5,6 +5,7 @@
     "evening": "Good Evening"
   },
   "hero": {
+    "brandBadge": "ASZ Nexus ERP",
     "summary": "Real-time sync across vehicle arrivals, customer billing, warehouse inventory, supplier ledgers & payments.",
     "newInward": "New Inward Load",
     "newSales": "New Sales Bill",
@@ -100,5 +101,11 @@
     "sale": "Sale",
     "paidOut": "Paid Out",
     "received": "Received"
+  },
+  "toasts": {
+    "backupExported": {
+      "title": "Backup Exported",
+      "description": "Full ERP data downloaded as JSON."
+    }
   }
 }

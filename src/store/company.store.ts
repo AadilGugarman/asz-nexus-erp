@@ -68,8 +68,18 @@ export const useCompanyStore = create<CompanyState>()((set) => ({
       const { dbService } = await import('@/db/services');
       if (!dbService.isReady) return;
 
-      const company = await dbService.settings.get<{ name: string }>('company');
-      if (company?.name) {
+      // Check both the granular 'company' key (written by SetupWizard)
+      // and the canonical 'app_settings' blob (written by useSettingsStore)
+      const [company, appSettings] = await Promise.all([
+        dbService.settings.get<{ name: string }>('company'),
+        dbService.settings.get<{ company?: { name?: string } }>('app_settings'),
+      ]);
+
+      const hasDbCompany =
+        !!company?.name ||
+        !!appSettings?.company?.name;
+
+      if (hasDbCompany) {
         // DB confirms company exists — update localStorage cache and state
         try { localStorage.setItem(COMPANY_READY_KEY, '1'); } catch { /* ignore */ }
         set({ hasCompany: true });

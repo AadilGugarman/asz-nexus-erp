@@ -79,7 +79,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
     const a = document.createElement('a'); a.href = url;
     a.download = `${settings.company.name.replace(/\s+/g, '-').toLowerCase()}-backup-${today}.json`;
     a.click(); URL.revokeObjectURL(url);
-    toast.success('Backup Exported', 'Full ERP data downloaded as JSON.');
+    toast.success(t('toasts.backupExported.title'), t('toasts.backupExported.description'));
   };
 
   // ── Quick Action Cards ──────────────────────
@@ -122,7 +122,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               <div className="flex flex-wrap items-center gap-3">
                 <div className="inline-flex items-center space-x-2 bg-white/15 dark:bg-emerald-500/15 backdrop-blur-sm border border-white/20 dark:border-emerald-500/25 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5 animate-pulse-soft" />
-                  <span>ASZ Nexus ERP</span>
+                  <span>{t('hero.brandBadge')}</span>
                 </div>
                 <div className="flex items-center space-x-2 text-white/70 dark:text-slate-400 text-xs font-mono">
                   <Clock className="w-3.5 h-3.5" />

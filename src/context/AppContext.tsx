@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { Fruit, Supplier, Customer, VehicleArrival, Invoice, PurchaseInvoice, InventoryItem, StockMovement, SupplierLedgerEntry, CustomerLedgerEntry, PaymentReceipt, ThemeMode, AppSettings, CompanyProfile } from '../types';
 import { INITIAL_FRUITS, INITIAL_SUPPLIERS, INITIAL_CUSTOMERS, INITIAL_VEHICLE_ARRIVALS, INITIAL_INVOICES } from '../mockData';
 import { useAppearanceStore } from '@/store/appearance.store';
+import { useSettingsStore } from '@/store/settings.store';
 
 interface AppContextType {
   theme: ThemeMode;
@@ -123,6 +124,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem('apex_invoices', JSON.stringify(invoices)); }, [invoices]);
   useEffect(() => { localStorage.setItem('apex_purchase_invoices', JSON.stringify(purchaseInvoices)); }, [purchaseInvoices]);
   useEffect(() => { localStorage.setItem('apex_payments', JSON.stringify(payments)); }, [payments]);
+
+  // ── Settings & Companies — delegated to useSettingsStore (SQLite-backed) ────
+  const settings        = useSettingsStore((s) => s.settings);
+  const updateSettings  = useSettingsStore((s) => s.updateSettings);
+  const companies       = useSettingsStore((s) => s.companies);
+  const activeCompanyId = useSettingsStore((s) => s.activeCompanyId);
+  const addCompany      = useSettingsStore((s) => s.addCompany);
+  const updateCompany   = useSettingsStore((s) => s.updateCompany);
+  const deleteCompany   = useSettingsStore((s) => s.deleteCompany);
+  const switchCompany   = useSettingsStore((s) => s.switchCompany);
 
   // Auto-calculated Inventory & Stock Movements
   const { inventory, stockMovements } = useMemo(() => {
@@ -461,72 +472,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // ── App Settings ────────────────────────────
-  const defaultSettings: AppSettings = {
-    company: { name: 'Talha Fruit Co.', tagline: 'Wholesale Fruit Commission Agents & Merchants', address: 'Central Fruit Market, APMC Yard, Gate No. 4', phone: '+91 99887 77665', email: 'accounts@talhafruit.in', gstin: '', bankName: 'State Bank of India', accountNo: '38920019283', ifsc: 'SBIN0001234', upiId: 'tfc.apmc@sbi', logo: '' },
-    financial: { financialYearStart: '04-01', currency: 'INR', commissionRate: 8, defaultHamali: 0, defaultFreight: 0 },
-    invoice: {
-      salesPrefix: 'INV',
-      purchasePrefix: 'PUR',
-      arrivalPrefix: 'ARR',
-      salesNextNo: 1001,
-      purchaseNextNo: 101,
-      arrivalNextNo: 1,
-      termsText: 'Subject to APMC market yard rules. Goods once sold will not be taken back.',
-      footerNote: 'Thank you for your business',
-      showUPI: true,
-      showBankDetails: true,
-      templateStyle: 'modern',
-      brandColor: '#6366f1',
-      enableQR: true,
-      autoInvoiceNo: true,
-      invoiceNumberMode: 'sequential',
-      businessPrefix: 'TF',
-      defaultTaxRate: 0,
-      paymentDueDays: 15,
-      showCompanyDetails: true,
-      showPaymentDetails: true,
-      watermarkType: 'none',
-      watermarkText: '',
-      watermarkImage: '',
-      watermarkOpacity: 0.08,
-      watermarkSize: 110,
-      watermarkPosition: 'center',
-      watermarkRepeat: false,
-      signatureImage: '',
-      invoiceLogo: '',
-      enableInvoiceLogo: false,
-    },
-    security: { appPin: '', autoLockMinutes: 0, pinEnabled: false },
-  };
-
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('apex_settings');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return {
-          ...defaultSettings,
-          ...parsed,
-          company: { ...defaultSettings.company, ...(parsed.company || {}) },
-          financial: { ...defaultSettings.financial, ...(parsed.financial || {}) },
-          invoice: { ...defaultSettings.invoice, ...(parsed.invoice || {}) },
-          security: { ...defaultSettings.security, ...(parsed.security || {}) },
-        };
-      } catch {
-        return defaultSettings;
-      }
-    }
-    return defaultSettings;
-  });
-
-  useEffect(() => { localStorage.setItem('apex_settings', JSON.stringify(settings)); }, [settings]);
-
-  const updateSettings = (partial: Partial<AppSettings>) => {
-    setSettings(prev => ({ ...prev, ...partial }));
-  };
-
   const resetAllData = () => {
-    const keys = ['apex_fruits','apex_suppliers','apex_customers','apex_vehicles','apex_invoices','apex_purchase_invoices','apex_payments','apex_settings','apex_appearance','apex_theme','apex_fontsize','apex_compact','apex_accent','apex_lang','apex_lowstock','apex_anims'];
+    const keys = ['apex_fruits','apex_suppliers','apex_customers','apex_vehicles','apex_invoices','apex_purchase_invoices','apex_payments','apex_settings','apex_companies','apex_active_company','apex_appearance','apex_theme','apex_fontsize','apex_compact','apex_accent','apex_lang','apex_lowstock','apex_anims'];
     keys.forEach(k => localStorage.removeItem(k));
     setFruits(INITIAL_FRUITS);
     setSuppliers(INITIAL_SUPPLIERS);
@@ -535,7 +482,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setInvoices(INITIAL_INVOICES);
     setPurchaseInvoices([]);
     setPayments([]);
-    setSettings(defaultSettings);
   };
 
   const getExportData = (): string => {
@@ -553,14 +499,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (data.purchaseInvoices) setPurchaseInvoices(data.purchaseInvoices);
       if (data.payments) setPayments(data.payments);
       if (data.settings) {
-        setSettings(prev => ({
-          ...prev,
-          ...data.settings,
-          company: { ...prev.company, ...(data.settings.company || {}) },
-          financial: { ...prev.financial, ...(data.settings.financial || {}) },
-          invoice: { ...prev.invoice, ...(data.settings.invoice || {}) },
-          security: { ...prev.security, ...(data.settings.security || {}) },
-        }));
+        updateSettings(data.settings);
       }
       return true;
     } catch { return false; }
@@ -586,56 +525,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   useEffect(() => { localStorage.setItem('apex_active_fy', activeFY); }, [activeFY]);
-
-  // ── Multi-Company ───────────────────────────
-  const [companies, setCompanies] = useState<CompanyProfile[]>(() => {
-    const saved = localStorage.getItem('apex_companies');
-    if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
-    // Seed with current company from settings
-    return [{
-      id: 'co-default',
-      company: settings.company,
-      financial: settings.financial,
-      invoice: settings.invoice,
-      createdAt: new Date().toISOString(),
-    }];
-  });
-
-  const [activeCompanyId, setActiveCompanyId] = useState<string>(() => {
-    return localStorage.getItem('apex_active_company') || 'co-default';
-  });
-
-  useEffect(() => { localStorage.setItem('apex_companies', JSON.stringify(companies)); }, [companies]);
-  useEffect(() => { localStorage.setItem('apex_active_company', activeCompanyId); }, [activeCompanyId]);
-
-  const addCompany = (profile: CompanyProfile) => {
-    setCompanies(prev => [...prev, profile]);
-  };
-
-  const updateCompany = (profile: CompanyProfile) => {
-    setCompanies(prev => prev.map(c => c.id === profile.id ? profile : c));
-    // If editing the active company, sync settings
-    if (profile.id === activeCompanyId) {
-      updateSettings({ company: profile.company, financial: profile.financial, invoice: profile.invoice });
-    }
-  };
-
-  const deleteCompany = (id: string) => {
-    if (companies.length <= 1) return; // keep at least one
-    setCompanies(prev => prev.filter(c => c.id !== id));
-    if (activeCompanyId === id) {
-      const remaining = companies.filter(c => c.id !== id);
-      if (remaining.length) switchCompany(remaining[0].id);
-    }
-  };
-
-  const switchCompany = (id: string) => {
-    const target = companies.find(c => c.id === id);
-    if (!target) return;
-    setActiveCompanyId(id);
-    // Sync settings from the company profile
-    updateSettings({ company: target.company, financial: target.financial, invoice: target.invoice });
-  };
 
   return (
     <AppContext.Provider value={{

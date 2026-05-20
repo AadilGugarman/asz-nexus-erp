@@ -23,7 +23,7 @@ export const SalesBillingModule: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [invoiceNo, setInvoiceNo] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id || '');
-  const [notes, setNotes] = useState('Standard market credit');
+  const [notes, setNotes] = useState(() => t('sales.form.defaultNote'));
 
   const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId) || customers[0], [selectedCustomerId, customers]);
 
@@ -86,12 +86,12 @@ export const SalesBillingModule: React.FC = () => {
     setHamaliInput(0);
     setDiscountInput(0);
     setPaidAmountInput(0);
-    setNotes('Standard market credit');
+    setNotes(t('sales.form.defaultNote'));
   };
 
   const handleSaveInvoice = () => {
-    if (!selectedCustomer) { toast.error('No Customer', 'Please select a valid buyer.'); return; }
-    if (items.length === 0 || itemsSubtotal <= 0) { toast.warning('Empty Invoice', 'Add at least one item with a positive amount.'); return; }
+    if (!selectedCustomer) { toast.error(t('sales.toasts.noCustomer.title'), t('sales.toasts.noCustomer.description')); return; }
+    if (items.length === 0 || itemsSubtotal <= 0) { toast.warning(t('sales.toasts.emptyInvoice.title'), t('sales.toasts.emptyInvoice.description')); return; }
 
     let resolvedInvoiceNo = invoiceNo.trim();
     let nextSalesSeed = settings.invoice.salesNextNo || 1001;
@@ -101,16 +101,23 @@ export const SalesBillingModule: React.FC = () => {
       resolvedInvoiceNo = next.invoiceNo;
       nextSalesSeed = next.nextSeed;
     } else {
-      if (!resolvedInvoiceNo) { toast.error('Invoice Number Missing', 'Please enter an invoice number.'); return; }
+      if (!resolvedInvoiceNo) { toast.error(t('sales.toasts.missingInvoiceNo.title'), t('sales.toasts.missingInvoiceNo.description')); return; }
       const duplicate = invoices.some(i => i.invoiceNo === resolvedInvoiceNo);
-      if (duplicate) { toast.error('Duplicate Invoice Number', 'Invoice number already exists. Use a unique number.'); return; }
+      if (duplicate) { toast.error(t('sales.toasts.duplicateInvoiceNo.title'), t('sales.toasts.duplicateInvoiceNo.description')); return; }
       nextSalesSeed = (settings.invoice.salesNextNo || 1001) + 1;
     }
 
     const newInvoice: Invoice = { id: `inv-${Date.now()}`, invoiceNo: resolvedInvoiceNo, date, customerId: selectedCustomer.id, customerName: selectedCustomer.name, previousBalance, todayAmount, hamali, discount, paidAmount, remainingBalance, notes, items, createdAt: new Date().toISOString() };
     saveInvoice(newInvoice);
     updateSettings({ invoice: { ...settings.invoice, salesNextNo: nextSalesSeed } });
-    toast.success('Invoice Created!', `${resolvedInvoiceNo} — ₹${todayAmount.toLocaleString('en-IN')} billed to ${selectedCustomer.name}.`);
+    toast.success(
+      t('sales.toasts.invoiceCreated.title'),
+      t('sales.toasts.invoiceCreated.description', {
+        invoiceNo: resolvedInvoiceNo,
+        amount: todayAmount.toLocaleString('en-IN'),
+        customer: selectedCustomer.name,
+      })
+    );
     setTimeout(() => { setActiveSubTab('LIST'); handleResetForm(); }, 600);
   };
 
@@ -179,7 +186,7 @@ export const SalesBillingModule: React.FC = () => {
                     value={invoiceNo}
                     onChange={e => setInvoiceNo(e.target.value.toUpperCase())}
                     className={`${inp} px-2.5 py-1.5 text-xs font-mono font-bold min-w-[190px]`}
-                    placeholder="Invoice No"
+                    placeholder={t('sales.form.invoiceNoPlaceholder')}
                   />
                 )}
                 <div className="flex items-center space-x-1.5">
@@ -193,7 +200,7 @@ export const SalesBillingModule: React.FC = () => {
                 </button>
                 <div className="flex items-center space-x-2 flex-1 sm:flex-initial min-w-0">
                   <label className={`text-[11px] font-bold uppercase tracking-wider ${labelText} whitespace-nowrap`}>{t('sales.newInvoice.buyer')}</label>
-                  <Combobox value={selectedCustomer.name} onChange={val => { const m = customers.find(c => c.name === val) || customers[0]; if (m) setSelectedCustomerId(m.id); }} options={customers.map(c => c.name)} placeholder="Select Customer..." searchPlaceholder="Search customer..." creatable={false} />
+                  <Combobox value={selectedCustomer.name} onChange={val => { const m = customers.find(c => c.name === val) || customers[0]; if (m) setSelectedCustomerId(m.id); }} options={customers.map(c => c.name)} placeholder={t('sales.form.selectCustomerPlaceholder')} searchPlaceholder={t('sales.form.searchCustomerPlaceholder')} creatable={false} />
                 </div>
               </div>
             </div>
@@ -202,15 +209,15 @@ export const SalesBillingModule: React.FC = () => {
             {showAdvancedDeductions && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 dark:bg-slate-950/50 bg-slate-50/60 p-4 rounded-xl border dark:border-slate-800 border-slate-100 animate-slide-down">
                 <div>
-                  <label className={`block text-[11px] font-bold uppercase tracking-wider ${labelText} mb-1.5`}>+ Hamali (₹)</label>
+                  <label className={`block text-[11px] font-bold uppercase tracking-wider ${labelText} mb-1.5`}>{t('sales.form.hamaliLabel')}</label>
                   <div className="relative"><span className="absolute left-3 top-2.5 text-xs dark:text-slate-500 text-slate-400 font-mono">₹</span>
-                    <input type="number" value={hamaliInput === 0 ? '' : hamaliInput} placeholder="0" onChange={e => setHamaliInput(parseFloat(e.target.value) || 0)} className={`w-full ${inp} pl-7 pr-3 py-2.5 text-xs font-mono font-bold dark:text-indigo-400 text-indigo-600`} />
+                    <input type="number" value={hamaliInput === 0 ? '' : hamaliInput} placeholder={t('sales.form.zeroPlaceholder')} onChange={e => setHamaliInput(parseFloat(e.target.value) || 0)} className={`w-full ${inp} pl-7 pr-3 py-2.5 text-xs font-mono font-bold dark:text-indigo-400 text-indigo-600`} />
                   </div>
                 </div>
                 <div>
-                  <label className={`block text-[11px] font-bold uppercase tracking-wider ${labelText} mb-1.5`}>− Discount (₹)</label>
+                  <label className={`block text-[11px] font-bold uppercase tracking-wider ${labelText} mb-1.5`}>{t('sales.form.discountLabel')}</label>
                   <div className="relative"><span className="absolute left-3 top-2.5 text-xs dark:text-slate-500 text-slate-400 font-mono">₹</span>
-                    <input type="number" value={discountInput === 0 ? '' : discountInput} placeholder="0" onChange={e => setDiscountInput(parseFloat(e.target.value) || 0)} className={`w-full ${inp} pl-7 pr-3 py-2.5 text-xs font-mono font-bold dark:text-rose-400 text-rose-600 dark:border-rose-500/30 border-rose-200`} />
+                    <input type="number" value={discountInput === 0 ? '' : discountInput} placeholder={t('sales.form.zeroPlaceholder')} onChange={e => setDiscountInput(parseFloat(e.target.value) || 0)} className={`w-full ${inp} pl-7 pr-3 py-2.5 text-xs font-mono font-bold dark:text-rose-400 text-rose-600 dark:border-rose-500/30 border-rose-200`} />
                   </div>
                 </div>
               </div>
@@ -229,7 +236,7 @@ export const SalesBillingModule: React.FC = () => {
               <div className="p-3.5 dark:bg-emerald-950/30 bg-emerald-50/60 rounded-xl border dark:border-emerald-500/20 border-emerald-100">
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-300 uppercase font-bold block tracking-wider">− {t('sales.newInvoice.cashPaid')}</span>
                 <div className="flex items-center mt-1"><span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold mr-1.5 text-base">₹</span>
-                  <input type="number" value={paidAmountInput === 0 ? '' : paidAmountInput} placeholder="0" onChange={e => setPaidAmountInput(parseFloat(e.target.value) || 0)} className={`w-full ${inp} px-2.5 py-1 text-base font-mono font-extrabold dark:text-emerald-300 text-emerald-700 dark:border-emerald-500/30 border-emerald-200`} />
+                  <input type="number" value={paidAmountInput === 0 ? '' : paidAmountInput} placeholder={t('sales.form.zeroPlaceholder')} onChange={e => setPaidAmountInput(parseFloat(e.target.value) || 0)} className={`w-full ${inp} px-2.5 py-1 text-base font-mono font-extrabold dark:text-emerald-300 text-emerald-700 dark:border-emerald-500/30 border-emerald-200`} />
                 </div>
               </div>
               <div className="p-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg flex flex-col justify-center">
@@ -270,19 +277,19 @@ export const SalesBillingModule: React.FC = () => {
                     return (
                       <tr key={it.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50/80 font-sans group transition-colors">
                         <td className="p-1.5 px-3" data-inv-cell={`${idx}-0`}>
-                          <Combobox value={it.fruit} onChange={val => handleItemChange(idx, 'fruit', val)} options={fruits.map(f => f.name)} placeholder="Fruit..." searchPlaceholder="Search..." creatable={true} onCreate={nf => addFruit(nf)} />
+                          <Combobox value={it.fruit} onChange={val => handleItemChange(idx, 'fruit', val)} options={fruits.map(f => f.name)} placeholder={t('sales.form.fruitPlaceholder')} searchPlaceholder={t('sales.form.genericSearchPlaceholder')} creatable={true} onCreate={nf => addFruit(nf)} />
                         </td>
                         <td className="p-1.5" data-inv-cell={`${idx}-1`}>
-                          <Combobox value={it.lotVariety} onChange={val => handleItemChange(idx, 'lotVariety', val)} options={varieties} placeholder="Variety..." searchPlaceholder="Search..." creatable={true} onCreate={nv => { if (fruitObj) addFruitVariety(fruitObj.id, nv); }} />
+                          <Combobox value={it.lotVariety} onChange={val => handleItemChange(idx, 'lotVariety', val)} options={varieties} placeholder={t('sales.form.varietyPlaceholder')} searchPlaceholder={t('sales.form.genericSearchPlaceholder')} creatable={true} onCreate={nv => { if (fruitObj) addFruitVariety(fruitObj.id, nv); }} />
                         </td>
-                        <td className="p-1.5 text-right"><input type="number" data-inv-cell={`${idx}-2`} value={it.caret === 0 ? '' : it.caret} placeholder="0" onChange={e => handleItemChange(idx, 'caret', e.target.value)} onKeyDown={e => handleKeyDown(e, idx, 2)} className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold`} /></td>
-                        <td className="p-1.5 text-right"><input type="number" step="0.1" data-inv-cell={`${idx}-3`} value={it.weight === 0 ? '' : it.weight} placeholder="0.0" onChange={e => handleItemChange(idx, 'weight', e.target.value)} onKeyDown={e => handleKeyDown(e, idx, 3)} className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold`} /></td>
-                        <td className="p-1.5 text-right"><input type="number" step="0.5" data-inv-cell={`${idx}-4`} value={it.rate === 0 ? '' : it.rate} placeholder="0.00" onChange={e => handleItemChange(idx, 'rate', e.target.value)} onKeyDown={e => handleKeyDown(e, idx, 4)} className={`w-full ${inp} p-2 text-right text-xs font-mono font-bold dark:text-indigo-300 text-indigo-600`} /></td>
+                        <td className="p-1.5 text-right"><input type="number" data-inv-cell={`${idx}-2`} value={it.caret === 0 ? '' : it.caret} placeholder={t('sales.form.zeroPlaceholder')} onChange={e => handleItemChange(idx, 'caret', e.target.value)} onKeyDown={e => handleKeyDown(e, idx, 2)} className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold`} /></td>
+                        <td className="p-1.5 text-right"><input type="number" step="0.1" data-inv-cell={`${idx}-3`} value={it.weight === 0 ? '' : it.weight} placeholder={t('sales.form.zeroDecimalPlaceholder')} onChange={e => handleItemChange(idx, 'weight', e.target.value)} onKeyDown={e => handleKeyDown(e, idx, 3)} className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold`} /></td>
+                        <td className="p-1.5 text-right"><input type="number" step="0.5" data-inv-cell={`${idx}-4`} value={it.rate === 0 ? '' : it.rate} placeholder={t('sales.form.zeroTwoDecimalPlaceholder')} onChange={e => handleItemChange(idx, 'rate', e.target.value)} onKeyDown={e => handleKeyDown(e, idx, 4)} className={`w-full ${inp} p-2 text-right text-xs font-mono font-bold dark:text-indigo-300 text-indigo-600`} /></td>
                         <td className="p-2 px-4 text-right font-black font-mono text-indigo-600 dark:text-indigo-400 dark:bg-indigo-950/15 bg-indigo-50/40 text-sm">₹ {it.amount.toLocaleString('en-IN')}</td>
                         <td className="p-1.5 text-center">
                           <div className="flex items-center justify-center space-x-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button type="button" onClick={() => duplicateItemRow(idx)} title="Duplicate" className={`p-1.5 ${mutedText} hover:text-indigo-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}><Copy className="w-3.5 h-3.5" /></button>
-                            <button type="button" onClick={() => removeItemRow(idx)} disabled={items.length <= 1} title="Remove" className={`p-1.5 ${mutedText} hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors disabled:opacity-30`}><Trash2 className="w-3.5 h-3.5" /></button>
+                            <button type="button" onClick={() => duplicateItemRow(idx)} title={t('sales.actions.duplicateRow')} className={`p-1.5 ${mutedText} hover:text-indigo-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}><Copy className="w-3.5 h-3.5" /></button>
+                            <button type="button" onClick={() => removeItemRow(idx)} disabled={items.length <= 1} title={t('sales.actions.removeRow')} className={`p-1.5 ${mutedText} hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors disabled:opacity-30`}><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </td>
                       </tr>
@@ -291,16 +298,16 @@ export const SalesBillingModule: React.FC = () => {
                 </tbody>
                 <tfoot>
                   <tr className={`${cardHeader} font-bold text-xs uppercase tracking-wider dark:text-slate-300 text-slate-800 font-sans border-t-2 dark:border-slate-700 border-slate-200`}>
-                    <td colSpan={2} className={`py-3.5 px-4 text-right ${mutedText}`}>Subtotal:</td>
+                    <td colSpan={2} className={`py-3.5 px-4 text-right ${mutedText}`}>{t('sales.footer.subtotal')}</td>
                     <td className="py-3.5 px-3 text-right font-mono text-indigo-600 dark:text-indigo-400 font-bold">{totalCarets} CRT</td>
                     <td className="py-3.5 px-3 text-right font-mono text-indigo-600 dark:text-indigo-400 font-bold">{totalWeight.toFixed(1)} KG</td>
-                    <td className={`py-3.5 px-3 text-right ${mutedText} text-[10px]`}>Avg: ₹{(totalWeight > 0 ? itemsSubtotal / totalWeight : 0).toFixed(1)}/kg</td>
+                    <td className={`py-3.5 px-3 text-right ${mutedText} text-[10px]`}>{t('sales.footer.avgRatePerKg', { rate: (totalWeight > 0 ? itemsSubtotal / totalWeight : 0).toFixed(1) })}</td>
                     <td className="py-3.5 px-4 text-right font-mono text-indigo-600 dark:text-indigo-400 font-black text-base">₹ {itemsSubtotal.toLocaleString('en-IN')}</td>
                     <td />
                   </tr>
                   {(hamali > 0 || discount > 0) && (
                     <tr className={`dark:bg-slate-900/50 bg-slate-50/60 font-bold text-xs uppercase tracking-wider border-t dark:border-slate-800 border-slate-100 dark:text-slate-300 text-slate-700`}>
-                      <td colSpan={5} className={`py-2.5 px-4 text-right ${mutedText}`}>{hamali > 0 ? `+ Hamali: ₹${hamali}` : ''} {discount > 0 ? `${hamali > 0 ? ' | ' : ''}− Discount: ₹${discount}` : ''}</td>
+                      <td colSpan={5} className={`py-2.5 px-4 text-right ${mutedText}`}>{hamali > 0 ? t('sales.footer.hamaliSummary', { amount: hamali }) : ''} {discount > 0 ? `${hamali > 0 ? ' | ' : ''}${t('sales.footer.discountSummary', { amount: discount })}` : ''}</td>
                       <td className="py-2.5 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-black text-base">₹ {todayAmount.toLocaleString('en-IN')}</td>
                       <td />
                     </tr>
@@ -312,13 +319,13 @@ export const SalesBillingModule: React.FC = () => {
             {/* Action Footer */}
             <div className={`p-5 ${cardHeader} border-t flex flex-col sm:flex-row items-center justify-between gap-4`}>
               <div className="flex items-center space-x-3 w-full sm:w-1/2">
-                <span className={`text-[11px] ${labelText} font-bold uppercase tracking-wider whitespace-nowrap`}>Note:</span>
-                <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Payment terms..." className={`w-full ${inp} px-3.5 py-2.5 text-xs`} />
+                <span className={`text-[11px] ${labelText} font-bold uppercase tracking-wider whitespace-nowrap`}>{t('sales.form.noteLabel')}</span>
+                <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('sales.form.notePlaceholder')} className={`w-full ${inp} px-3.5 py-2.5 text-xs`} />
               </div>
               <div className="flex items-center space-x-3 w-full sm:w-auto">
-                <button type="button" onClick={handleResetForm} className="px-5 py-3 dark:bg-slate-800 bg-slate-100 dark:hover:bg-slate-700 hover:bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors border dark:border-slate-700 border-slate-200">Clear</button>
+                <button type="button" onClick={handleResetForm} className="px-5 py-3 dark:bg-slate-800 bg-slate-100 dark:hover:bg-slate-700 hover:bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors border dark:border-slate-700 border-slate-200">{t('sales.actions.clear')}</button>
                 <button type="button" onClick={handleSaveInvoice} className="px-7 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-sm font-black shadow-lg shadow-indigo-500/20 cursor-pointer transition-all flex items-center space-x-2">
-                  <Save className="w-5 h-5 stroke-[2.5]" /><span>Save Invoice</span>
+                  <Save className="w-5 h-5 stroke-[2.5]" /><span>{t('sales.actions.saveInvoice')}</span>
                 </button>
               </div>
             </div>
@@ -352,7 +359,7 @@ export const SalesBillingModule: React.FC = () => {
                 pageSizeOptions={invoiceTable.pageSizeOptions}
                 onPageChange={invoiceTable.setPage}
                 onPageSizeChange={invoiceTable.setPageSize}
-                label="invoices"
+                label={t('sales.list.paginationLabel')}
               />
             }
           >
@@ -362,7 +369,7 @@ export const SalesBillingModule: React.FC = () => {
               </tr></thead>
               <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                 {invoiceTable.totalRecords === 0 ? (
-                  <tr><td colSpan={8} className={`py-16 text-center ${mutedText} font-sans text-sm`}>No invoices found.</td></tr>
+                  <tr><td colSpan={8} className={`py-16 text-center ${mutedText} font-sans text-sm`}>{t('sales.list.empty')}</td></tr>
                 ) : invoiceTable.pageRows.map(inv => {
                   const carets = inv.items.reduce((s, it) => s + (Number(it.caret) || 0), 0);
                   const weight = inv.items.reduce((s, it) => s + (Number(it.weight) || 0), 0);
@@ -374,7 +381,7 @@ export const SalesBillingModule: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-3 font-sans">
                         <span className="font-bold dark:text-white text-slate-900 block text-sm">{inv.customerName}</span>
-                        <span className={`${mutedText} text-[11px] block truncate max-w-[180px]`}>{inv.items.length} lots</span>
+                        <span className={`${mutedText} text-[11px] block truncate max-w-[180px]`}>{t('sales.list.lotsCount', { count: inv.items.length })}</span>
                       </td>
                       <td className="py-3.5 px-3 text-right font-mono font-semibold dark:text-slate-300 text-slate-700">{carets}</td>
                       <td className="py-3.5 px-3 text-right font-mono font-semibold dark:text-slate-300 text-slate-700">{weight}</td>
@@ -383,8 +390,8 @@ export const SalesBillingModule: React.FC = () => {
                       <td className="py-3.5 px-3 text-right font-black font-mono dark:text-slate-200 text-slate-900 text-sm">₹ {inv.remainingBalance.toLocaleString('en-IN')}</td>
                       <td className="py-3.5 px-4 text-center font-sans">
                         <div className="flex items-center justify-center space-x-1">
-                          <button onClick={() => setPreviewInvoice(inv)} className="px-3 py-1.5 dark:bg-slate-800 bg-slate-100 hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white dark:text-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1 transition-all shadow-sm cursor-pointer border dark:border-slate-700 border-slate-200 hover:border-indigo-600"><Eye className="w-3.5 h-3.5" /><span>View</span></button>
-                          <button onClick={async () => { const ok = await dialog.confirm({ variant: 'destructive', title: `Delete Invoice ${inv.invoiceNo}?`, description: `This will permanently remove the invoice for ${inv.customerName} and revert customer balance and stock levels.`, confirmText: 'Delete Invoice' }); if (ok) { deleteInvoice(inv.id); toast.info('Invoice Deleted', `${inv.invoiceNo} removed.`); } }} className={`p-2 ${mutedText} hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => setPreviewInvoice(inv)} className="px-3 py-1.5 dark:bg-slate-800 bg-slate-100 hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white dark:text-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1 transition-all shadow-sm cursor-pointer border dark:border-slate-700 border-slate-200 hover:border-indigo-600"><Eye className="w-3.5 h-3.5" /><span>{t('sales.actions.view')}</span></button>
+                          <button onClick={async () => { const ok = await dialog.confirm({ variant: 'destructive', title: t('sales.dialogs.deleteInvoice.title', { invoiceNo: inv.invoiceNo }), description: t('sales.dialogs.deleteInvoice.description', { customer: inv.customerName }), confirmText: t('sales.dialogs.deleteInvoice.confirmText') }); if (ok) { deleteInvoice(inv.id); toast.info(t('sales.toasts.invoiceDeleted.title'), t('sales.toasts.invoiceDeleted.description', { invoiceNo: inv.invoiceNo })); } }} className={`p-2 ${mutedText} hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>

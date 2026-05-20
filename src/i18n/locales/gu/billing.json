@@ -34,7 +34,72 @@
       "customer": "ગ્રાહક",
       "total": "કુલ",
       "paid": "ચૂકવેલ",
-      "balance": "બાકી"
+      "balance": "બાકી",
+      "paginationLabel": "ઇન્વૉઇસ",
+      "empty": "કોઈ ઇન્વૉઇસ મળ્યા નથી.",
+      "lotsCount": "{{count}} લોટ"
+    },
+    "form": {
+      "defaultNote": "સ્ટાન્ડર્ડ માર્કેટ ક્રેડિટ",
+      "invoiceNoPlaceholder": "ઇન્વૉઇસ નંબર",
+      "selectCustomerPlaceholder": "ગ્રાહક પસંદ કરો...",
+      "searchCustomerPlaceholder": "ગ્રાહક શોધો...",
+      "hamaliLabel": "+ હમાલી (રૂ.)",
+      "discountLabel": "- ડિસ્કાઉન્ટ (રૂ.)",
+      "zeroPlaceholder": "0",
+      "zeroDecimalPlaceholder": "0.0",
+      "zeroTwoDecimalPlaceholder": "0.00",
+      "fruitPlaceholder": "ફળ...",
+      "varietyPlaceholder": "જાત...",
+      "genericSearchPlaceholder": "શોધો...",
+      "noteLabel": "નોંધ:",
+      "notePlaceholder": "ચુકવણી શરતો..."
+    },
+    "actions": {
+      "duplicateRow": "ડુપ્લિકેટ",
+      "removeRow": "દૂર કરો",
+      "clear": "સાફ કરો",
+      "saveInvoice": "ઇન્વૉઇસ સાચવો",
+      "view": "જુઓ"
+    },
+    "footer": {
+      "subtotal": "ઉપકુલ:",
+      "avgRatePerKg": "સરેરાશ: રૂ.{{rate}}/કિ.ગ્રા.",
+      "hamaliSummary": "+ હમાલી: રૂ.{{amount}}",
+      "discountSummary": "- ડિસ્કાઉન્ટ: રૂ.{{amount}}"
+    },
+    "dialogs": {
+      "deleteInvoice": {
+        "title": "ઇન્વૉઇસ {{invoiceNo}} કાઢી નાખવું?",
+        "description": "આથી {{customer}} નું ઇન્વૉઇસ કાયમ માટે દૂર થશે અને ગ્રાહક બેલેન્સ તથા સ્ટોક લેવલ પાછાં ફેરવાશે.",
+        "confirmText": "ઇન્વૉઇસ કાઢી નાખો"
+      }
+    },
+    "toasts": {
+      "noCustomer": {
+        "title": "ગ્રાહક પસંદ નથી",
+        "description": "કૃપા કરીને માન્ય ખરીદદાર પસંદ કરો."
+      },
+      "emptyInvoice": {
+        "title": "ખાલી ઇન્વૉઇસ",
+        "description": "સકારાત્મક રકમ સાથે ઓછામાં ઓછો એક આઇટમ ઉમેરો."
+      },
+      "missingInvoiceNo": {
+        "title": "ઇન્વૉઇસ નંબર ગેરહાજર",
+        "description": "કૃપા કરીને ઇન્વૉઇસ નંબર દાખલ કરો."
+      },
+      "duplicateInvoiceNo": {
+        "title": "ડુપ્લિકેટ ઇન્વૉઇસ નંબર",
+        "description": "આ ઇન્વૉઇસ નંબર પહેલેથી જ છે. અનન્ય નંબર વાપરો."
+      },
+      "invoiceCreated": {
+        "title": "ઇન્વૉઇસ બનાવાયું!",
+        "description": "{{invoiceNo}} - રૂ.{{amount}} નું બિલ {{customer}} માટે બન્યું."
+      },
+      "invoiceDeleted": {
+        "title": "ઇન્વૉઇસ કાઢી નાખ્યું",
+        "description": "{{invoiceNo}} દૂર થયું."
+      }
     }
   },
   "purchase": {
@@ -79,7 +144,75 @@
       "billTotal": "બિલ કુલ",
       "cashPaidNow": "હવે ચુકવેલ નગદ",
       "finalBalance": "અંતિમ બેલેન્સ",
-      "actionsView": "ક્રિયાઓ / જુઓ"
+      "actionsView": "ક્રિયાઓ / જુઓ",
+      "paginationLabel": "ખરીદી બિલ",
+      "emptyTitle": "કોઈ ખરીદી બિલ મળ્યા નથી",
+      "emptySubtitle": "અલગ શોધ અજમાવો અથવા નવું ખરીદી બિલ બનાવો.",
+      "itemsCount": "{{count}} આઇટમ્સ",
+      "netCharges": "નેટ ચાર્જિસ"
+    },
+    "form": {
+      "defaultNote": "સીધી ફાર્મ/સપ્લાયર ડિલિવરી",
+      "selectSupplierPlaceholder": "સપ્લાયર પસંદ કરો...",
+      "searchSupplierPlaceholder": "સપ્લાયર શોધો...",
+      "freightLabel": "+ લારી ભાડું (રૂ.)",
+      "hamaliLabel": "+ ઉતાર મજૂરી (હમાલી રૂ.)",
+      "addedToTotalHint": "કુલ બિલ રકમમાં ઉમેરાય છે",
+      "zeroPlaceholder": "0",
+      "zeroDecimalPlaceholder": "0.0",
+      "zeroTwoDecimalPlaceholder": "0.00",
+      "selectFruitPlaceholder": "ફળ પસંદ કરો...",
+      "searchOrAddFruitPlaceholder": "ફળ શોધો અથવા ઉમેરો...",
+      "selectVarietyPlaceholder": "જાત પસંદ કરો...",
+      "searchOrAddVarietyPlaceholder": "જાત શોધો અથવા ઉમેરો...",
+      "notesLabel": "ટિપ્પણીઓ / નોંધ:",
+      "notesPlaceholder": "ફાર્મ ગેટ ડિલિવરી, ગુણવત્તા ચકાસણી નોંધો..."
+    },
+    "actions": {
+      "duplicateRow": "પંક્તિ નકલ કરો",
+      "removeRow": "પંક્તિ દૂર કરો",
+      "clearForm": "ફોર્મ સાફ કરો",
+      "completePurchase": "ખરીદી પૂર્ણ કરો અને સ્ટોક વધારો",
+      "viewBilla": "બિલ્લા જુઓ / પ્રિન્ટ કરો",
+      "billa": "બિલ્લા",
+      "deleteBill": "બિલ કાઢી નાખો"
+    },
+    "footer": {
+      "inlineSubtotal": "ઇનલાઇન ઉપકુલ:",
+      "avgRatePerKg": "સરેરાશ: રૂ.{{rate}}/કિ.ગ્રા.",
+      "keyboardHintPrefix": "વાપરો",
+      "keyboardHintOr": "અથવા",
+      "freightSummary": "+ ભાડું: રૂ.{{amount}}",
+      "hamaliSummary": "+ હમાલી: રૂ.{{amount}}"
+    },
+    "units": {
+      "crt": "CRT",
+      "kg": "KG"
+    },
+    "dialogs": {
+      "deleteBill": {
+        "title": "ખરીદી બિલ {{billNo}} કાઢી નાખવું?",
+        "description": "આથી {{supplier}} નું બિલ કાયમ માટે દૂર થશે અને સપ્લાયર બેલેન્સ તથા સ્ટોક ઇન્વેન્ટરી પાછી ફેરવાશે.",
+        "confirmText": "બિલ કાઢી નાખો"
+      }
+    },
+    "toasts": {
+      "noSupplier": {
+        "title": "સપ્લાયર પસંદ નથી",
+        "description": "કૃપા કરીને ખરીદી બિલ સાચવતા પહેલાં માન્ય સપ્લાયર પસંદ કરો."
+      },
+      "emptyBill": {
+        "title": "ખાલી ખરીદી બિલ",
+        "description": "સકારાત્મક રકમ સાથે ઓછામાં ઓછી એક માન્ય ફળ આઇટમ પંક્તિ ઉમેરો."
+      },
+      "billSaved": {
+        "title": "ખરીદી બિલ સાચવાયું!",
+        "description": "{{billNo}} - રૂ.{{amount}} નું {{supplier}} પાસેથી બિલ સાચવાયું. સ્ટોક વધારાયો."
+      },
+      "billDeleted": {
+        "title": "બિલ કાઢી નાખ્યું",
+        "description": "{{billNo}} દૂર થયું."
+      }
     }
   }
 }

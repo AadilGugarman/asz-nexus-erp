@@ -26,7 +26,7 @@ export const PurchaseBillingModule: React.FC = () => {
   const [billNo, setBillNo] = useState(`PUR-2026-${String(purchaseInvoices.length + 101).padStart(3, '0')}`);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedSupplierId, setSelectedSupplierId] = useState(suppliers[0]?.id || '');
-  const [notes, setNotes] = useState('Direct farm/supplier delivery');
+  const [notes, setNotes] = useState(() => t('purchase.form.defaultNote'));
 
   const selectedSupplier = useMemo(() => {
     return suppliers.find(s => s.id === selectedSupplierId) || suppliers[0];
@@ -181,16 +181,16 @@ export const PurchaseBillingModule: React.FC = () => {
     setFreightInput(0);
     setHamaliInput(0);
     setPaidAmountInput(0);
-    setNotes('Direct farm/supplier delivery');
+    setNotes(t('purchase.form.defaultNote'));
   };
 
   const handleSaveInvoice = () => {
     if (!selectedSupplier) {
-      toast.error('No Supplier Selected', 'Please select a valid supplier before saving the purchase bill.');
+      toast.error(t('purchase.toasts.noSupplier.title'), t('purchase.toasts.noSupplier.description'));
       return;
     }
     if (items.length === 0 || itemsSubtotal <= 0) {
-      toast.warning('Empty Purchase Bill', 'Please enter at least one valid fruit item row with a positive amount.');
+      toast.warning(t('purchase.toasts.emptyBill.title'), t('purchase.toasts.emptyBill.description'));
       return;
     }
 
@@ -212,7 +212,14 @@ export const PurchaseBillingModule: React.FC = () => {
     };
 
     savePurchaseInvoice(newInvoice);
-    toast.success('Purchase Bill Saved!', `${billNo} — ₹${todayAmount.toLocaleString('en-IN')} from ${selectedSupplier.name}. Stock incremented.`);
+    toast.success(
+      t('purchase.toasts.billSaved.title'),
+      t('purchase.toasts.billSaved.description', {
+        billNo,
+        amount: todayAmount.toLocaleString('en-IN'),
+        supplier: selectedSupplier.name,
+      })
+    );
     setTimeout(() => {
       setActiveSubTab('LIST');
       handleResetForm();
@@ -354,8 +361,8 @@ export const PurchaseBillingModule: React.FC = () => {
                       setTimeout(() => nextFieldRef.current?.focus(), 0);
                     }}
                     options={suppliers.map(s => s.name)}
-                    placeholder="Select Supplier..."
-                    searchPlaceholder="Search supplier..."
+                    placeholder={t('purchase.form.selectSupplierPlaceholder')}
+                    searchPlaceholder={t('purchase.form.searchSupplierPlaceholder')}
                     creatable={false}
                   />
                 </div>
@@ -366,33 +373,33 @@ export const PurchaseBillingModule: React.FC = () => {
             {showAdvancedDeductions && (
               <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-950/60 dark:bg-slate-950/60 bg-slate-100 p-4 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200 text-xs">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">+ Lorry Freight (Bhaada ₹)</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">{t('purchase.form.freightLabel')}</label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-xs text-slate-500 font-mono">₹</span>
                     <input
                       type="number"
                       value={freightInput === 0 ? '' : freightInput}
-                      placeholder="0"
+                      placeholder={t('purchase.form.zeroPlaceholder')}
                       onChange={(e) => setFreightInput(parseFloat(e.target.value) || 0)}
                       className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-500 font-mono font-bold rounded-lg pl-7 pr-3 py-1.5 outline-none"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Added to total bill amount</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">{t('purchase.form.addedToTotalHint')}</span>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">+ Unloading Labour (Hamali ₹)</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">{t('purchase.form.hamaliLabel')}</label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-xs text-slate-500 font-mono">₹</span>
                     <input
                       type="number"
                       value={hamaliInput === 0 ? '' : hamaliInput}
-                      placeholder="0"
+                      placeholder={t('purchase.form.zeroPlaceholder')}
                       onChange={(e) => setHamaliInput(parseFloat(e.target.value) || 0)}
                       className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-500 font-mono font-bold rounded-lg pl-7 pr-3 py-1.5 outline-none"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Added to total bill amount</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">{t('purchase.form.addedToTotalHint')}</span>
                 </div>
               </div>
             )}
@@ -418,7 +425,7 @@ export const PurchaseBillingModule: React.FC = () => {
                   <input
                     type="number"
                     value={paidAmountInput === 0 ? '' : paidAmountInput}
-                    placeholder="0"
+                    placeholder={t('purchase.form.zeroPlaceholder')}
                     onChange={(e) => setPaidAmountInput(parseFloat(e.target.value) || 0)}
                     className="w-full bg-white border border-[#00aeef]/40 text-[#0369a1] font-mono font-semibold rounded-lg px-3 py-1 text-base outline-none focus:ring-2 focus:ring-[#00aeef]/20 transition-all"
                   />
@@ -476,8 +483,8 @@ export const PurchaseBillingModule: React.FC = () => {
                             value={it.fruit}
                             onChange={(val) => handleItemChange(idx, 'fruit', val)}
                             options={fruits.map(f => f.name)}
-                            placeholder="Select Fruit..."
-                            searchPlaceholder="Search or add fruit..."
+                            placeholder={t('purchase.form.selectFruitPlaceholder')}
+                            searchPlaceholder={t('purchase.form.searchOrAddFruitPlaceholder')}
                             creatable={true}
                             onCreate={(newFruit) => addFruit(newFruit)}
                           />
@@ -488,8 +495,8 @@ export const PurchaseBillingModule: React.FC = () => {
                             value={it.variety}
                             onChange={(val) => handleItemChange(idx, 'variety', val)}
                             options={varieties}
-                            placeholder="Select Variety..."
-                            searchPlaceholder="Search or add variety..."
+                            placeholder={t('purchase.form.selectVarietyPlaceholder')}
+                            searchPlaceholder={t('purchase.form.searchOrAddVarietyPlaceholder')}
                             creatable={true}
                             onCreate={(newVar) => {
                               if (fruitObj) addFruitVariety(fruitObj.id, newVar);
@@ -502,7 +509,7 @@ export const PurchaseBillingModule: React.FC = () => {
                             type="number"
                             data-pinv-cell={`${idx}-2`}
                             value={it.caret === 0 ? '' : it.caret}
-                            placeholder="0"
+                            placeholder={t('purchase.form.zeroPlaceholder')}
                             onChange={(e) => handleItemChange(idx, 'caret', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, idx, 2)}
                             className="w-full bg-white border border-[#dbe4ef] focus:border-[#00c896] text-[#0f172a] rounded-lg p-2 text-right text-xs outline-none font-mono font-semibold"
@@ -515,7 +522,7 @@ export const PurchaseBillingModule: React.FC = () => {
                             step="0.1"
                             data-pinv-cell={`${idx}-3`}
                             value={it.weight === 0 ? '' : it.weight}
-                            placeholder="0.0"
+                            placeholder={t('purchase.form.zeroDecimalPlaceholder')}
                             onChange={(e) => handleItemChange(idx, 'weight', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, idx, 3)}
                             className="w-full bg-white border border-[#dbe4ef] focus:border-[#00c896] text-[#0f172a] rounded-lg p-2 text-right text-xs outline-none font-mono font-semibold"
@@ -528,7 +535,7 @@ export const PurchaseBillingModule: React.FC = () => {
                             step="0.5"
                             data-pinv-cell={`${idx}-4`}
                             value={it.rate === 0 ? '' : it.rate}
-                            placeholder="0.00"
+                            placeholder={t('purchase.form.zeroTwoDecimalPlaceholder')}
                             onChange={(e) => handleItemChange(idx, 'rate', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, idx, 4)}
                             className="w-full bg-white border border-[#dbe4ef] focus:border-[#00c896] text-[#0f766e] font-semibold rounded-lg p-2 text-right text-xs outline-none"
@@ -544,7 +551,7 @@ export const PurchaseBillingModule: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => duplicateItemRow(idx)}
-                              title="Duplicate Row"
+                              title={t('purchase.actions.duplicateRow')}
                               className="p-1.5 text-[#64748b] hover:text-[#0f766e] hover:bg-[#f1f5f9] rounded-lg transition-colors cursor-pointer"
                             >
                               <Copy className="w-3.5 h-3.5" />
@@ -553,7 +560,7 @@ export const PurchaseBillingModule: React.FC = () => {
                               type="button"
                               onClick={() => removeItemRow(idx)}
                               disabled={items.length <= 1}
-                              title="Remove Row"
+                              title={t('purchase.actions.removeRow')}
                               className="p-1.5 text-[#64748b] hover:text-rose-500 hover:bg-[#f1f5f9] rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -566,21 +573,21 @@ export const PurchaseBillingModule: React.FC = () => {
                 </tbody>
                 <tfoot>
                   <tr className="bg-[#f8fafc] font-semibold text-xs uppercase tracking-wider border-t border-[#edf2f7] text-[#475569] font-sans">
-                    <td colSpan={2} className="py-4 px-4 text-right text-[#64748b]">Inline Subtotal:</td>
+                    <td colSpan={2} className="py-4 px-4 text-right text-[#64748b]">{t('purchase.footer.inlineSubtotal')}</td>
                     <td className="py-4 px-3 text-right font-mono text-[#0f766e]">{totalCarets} CRT</td>
                     <td className="py-4 px-3 text-right font-mono text-[#0f766e]">{totalWeight.toFixed(1)} KG</td>
-                    <td className="py-4 px-3 text-right text-[#64748b]">Avg: ₹{(totalWeight > 0 ? itemsSubtotal / totalWeight : 0).toFixed(1)}/kg</td>
+                    <td className="py-4 px-3 text-right text-[#64748b]">{t('purchase.footer.avgRatePerKg', { rate: (totalWeight > 0 ? itemsSubtotal / totalWeight : 0).toFixed(1) })}</td>
                     <td className="py-4 px-4 text-right font-mono text-[#0f766e] text-base bg-[rgba(0,200,150,0.08)] border-l border-[rgba(0,200,150,0.2)]">
                       ₹ {itemsSubtotal.toLocaleString('en-IN')}
                     </td>
                     <td className="py-4 px-3 text-[#64748b] text-[11px] font-normal">
-                      Use <kbd className="bg-[#f1f5f9] px-1 font-mono text-[#0f766e]">Enter</kbd> or <kbd className="bg-[#f1f5f9] px-1 font-mono text-[#0f766e]">Arrows</kbd>
+                      {t('purchase.footer.keyboardHintPrefix')} <kbd className="bg-[#f1f5f9] px-1 font-mono text-[#0f766e]">Enter</kbd> {t('purchase.footer.keyboardHintOr')} <kbd className="bg-[#f1f5f9] px-1 font-mono text-[#0f766e]">Arrows</kbd>
                     </td>
                   </tr>
                   {(freight > 0 || hamali > 0) && (
                     <tr className="bg-slate-900 dark:bg-slate-900 bg-white font-bold text-xs uppercase tracking-wider border-t border-slate-800 dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-900">
                       <td colSpan={5} className="py-3 px-4 text-right dark:text-slate-400 text-slate-600">
-                        {freight > 0 ? `+ Freight: ₹${freight} | ` : ''} {hamali > 0 ? `+ Hamali: ₹${hamali}` : ''}
+                        {freight > 0 ? `${t('purchase.footer.freightSummary', { amount: freight })} | ` : ''} {hamali > 0 ? t('purchase.footer.hamaliSummary', { amount: hamali }) : ''}
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-emerald-500 font-black text-base bg-emerald-950/30">
                         ₹ {todayAmount.toLocaleString('en-IN')}
@@ -595,12 +602,12 @@ export const PurchaseBillingModule: React.FC = () => {
             {/* Invoice Notes & Action */}
             <div className="p-5 bg-[#f8fafc] border-t border-[#edf2f7] flex flex-col sm:flex-row items-center justify-between gap-5">
               <div className="flex items-center space-x-3 w-full sm:w-1/2">
-                <span className="text-xs dark:text-slate-400 text-slate-600 font-bold uppercase tracking-wider whitespace-nowrap">Remarks / Notes:</span>
+                <span className="text-xs dark:text-slate-400 text-slate-600 font-bold uppercase tracking-wider whitespace-nowrap">{t('purchase.form.notesLabel')}</span>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Farm gate delivery, quality check remarks..."
+                  placeholder={t('purchase.form.notesPlaceholder')}
                   className="erp-input w-full px-4 py-2 text-xs"
                 />
               </div>
@@ -611,7 +618,7 @@ export const PurchaseBillingModule: React.FC = () => {
                   onClick={handleResetForm}
                   className="erp-btn-secondary px-6 py-3.5 text-xs"
                 >
-                  Clear Form
+                  {t('purchase.actions.clearForm')}
                 </button>
                 <button
                   type="button"
@@ -619,7 +626,7 @@ export const PurchaseBillingModule: React.FC = () => {
                   className="erp-btn-primary px-8 py-3.5 text-sm flex items-center justify-center space-x-2"
                 >
                   <Save className="w-5 h-5 stroke-[2.5]" />
-                  <span>COMPLETE PURCHASE & INCREMENT STOCK</span>
+                  <span>{t('purchase.actions.completePurchase')}</span>
                 </button>
               </div>
             </div>
@@ -670,7 +677,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 pageSizeOptions={purchaseTable.pageSizeOptions}
                 onPageChange={purchaseTable.setPage}
                 onPageSizeChange={purchaseTable.setPageSize}
-                label="purchase bills"
+                label={t('purchase.list.paginationLabel')}
               />
             }
           >
@@ -710,8 +717,8 @@ export const PurchaseBillingModule: React.FC = () => {
                   <tr>
                     <td colSpan={8} className="py-0">
                       <ModuleEmptyState
-                        title="No purchase bills found"
-                        subtitle="Try a different search or create a new purchase bill."
+                        title={t('purchase.list.emptyTitle')}
+                        subtitle={t('purchase.list.emptySubtitle')}
                       />
                     </td>
                   </tr>
@@ -731,18 +738,18 @@ export const PurchaseBillingModule: React.FC = () => {
                         </td>
                         <td className="py-4 px-3 font-sans">
                           <span className="font-bold dark:text-white text-slate-950 block text-sm">{inv.supplierName}</span>
-                          <span className="dark:text-slate-400 text-slate-600 text-[11px] block truncate max-w-[180px]">{inv.items.length} items ({inv.items.map(i => i.fruit).join(', ')})</span>
+                          <span className="dark:text-slate-400 text-slate-600 text-[11px] block truncate max-w-[180px]">{t('purchase.list.itemsCount', { count: inv.items.length })} ({inv.items.map(i => i.fruit).join(', ')})</span>
                         </td>
                         <td className="py-4 px-3 text-right font-mono font-semibold dark:text-slate-300 text-slate-800">
-                          {carets} <span className="text-[10px] dark:text-slate-500 text-slate-600 font-normal font-sans">CRT</span>
+                          {carets} <span className="text-[10px] dark:text-slate-500 text-slate-600 font-normal font-sans">{t('purchase.units.crt')}</span>
                         </td>
                         <td className="py-4 px-3 text-right font-mono font-semibold dark:text-slate-300 text-slate-800">
-                          {weight} <span className="text-[10px] dark:text-slate-500 text-slate-600 font-normal font-sans">KG</span>
+                          {weight} <span className="text-[10px] dark:text-slate-500 text-slate-600 font-normal font-sans">{t('purchase.units.kg')}</span>
                         </td>
                         <td className="py-4 px-3 text-right font-black font-mono text-emerald-500 text-sm bg-emerald-950/10">
                           ₹ {inv.todayAmount.toLocaleString('en-IN')}
                           {(inv.freight || inv.hamali) ? (
-                            <span className="block text-[10px] font-sans font-normal dark:text-slate-400 text-slate-600">Net charges</span>
+                            <span className="block text-[10px] font-sans font-normal dark:text-slate-400 text-slate-600">{t('purchase.list.netCharges')}</span>
                           ) : null}
                         </td>
                         <td className="py-4 px-3 text-right font-bold font-mono text-indigo-500 text-sm">
@@ -756,18 +763,18 @@ export const PurchaseBillingModule: React.FC = () => {
                             <button
                               onClick={() => setPreviewInvoice(inv)}
                               className="px-3 py-1.5 bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 rounded-lg text-xs font-bold flex items-center space-x-1 transition-all shadow cursor-pointer"
-                              title="View Billa / Print Bill"
+                              title={t('purchase.actions.viewBilla')}
                             >
                               <Eye className="w-3.5 h-3.5" />
-                              <span>Billa</span>
+                              <span>{t('purchase.actions.billa')}</span>
                             </button>
                             <button
                               onClick={async () => {
-                                const ok = await dialog.confirm({ variant: 'destructive', title: `Delete Purchase Bill ${inv.billNo}?`, description: `This will permanently remove the bill from ${inv.supplierName} and revert supplier balance and stock inventory.`, confirmText: 'Delete Bill' });
-                                if (ok) { deletePurchaseInvoice(inv.id); toast.info('Bill Deleted', `${inv.billNo} removed.`); }
+                                const ok = await dialog.confirm({ variant: 'destructive', title: t('purchase.dialogs.deleteBill.title', { billNo: inv.billNo }), description: t('purchase.dialogs.deleteBill.description', { supplier: inv.supplierName }), confirmText: t('purchase.dialogs.deleteBill.confirmText') });
+                                if (ok) { deletePurchaseInvoice(inv.id); toast.info(t('purchase.toasts.billDeleted.title'), t('purchase.toasts.billDeleted.description', { billNo: inv.billNo })); }
                               }}
                               className="p-2 dark:text-slate-400 text-slate-600 hover:text-rose-500 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                              title="Delete Bill"
+                              title={t('purchase.actions.deleteBill')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

@@ -34,7 +34,72 @@
       "customer": "Customer",
       "total": "Total",
       "paid": "Paid",
-      "balance": "Balance"
+      "balance": "Balance",
+      "paginationLabel": "invoices",
+      "empty": "No invoices found.",
+      "lotsCount": "{{count}} lots"
+    },
+    "form": {
+      "defaultNote": "Standard market credit",
+      "invoiceNoPlaceholder": "Invoice No",
+      "selectCustomerPlaceholder": "Select Customer...",
+      "searchCustomerPlaceholder": "Search customer...",
+      "hamaliLabel": "+ Hamali (Rs)",
+      "discountLabel": "- Discount (Rs)",
+      "zeroPlaceholder": "0",
+      "zeroDecimalPlaceholder": "0.0",
+      "zeroTwoDecimalPlaceholder": "0.00",
+      "fruitPlaceholder": "Fruit...",
+      "varietyPlaceholder": "Variety...",
+      "genericSearchPlaceholder": "Search...",
+      "noteLabel": "Note:",
+      "notePlaceholder": "Payment terms..."
+    },
+    "actions": {
+      "duplicateRow": "Duplicate",
+      "removeRow": "Remove",
+      "clear": "Clear",
+      "saveInvoice": "Save Invoice",
+      "view": "View"
+    },
+    "footer": {
+      "subtotal": "Subtotal:",
+      "avgRatePerKg": "Avg: Rs{{rate}}/kg",
+      "hamaliSummary": "+ Hamali: Rs{{amount}}",
+      "discountSummary": "- Discount: Rs{{amount}}"
+    },
+    "dialogs": {
+      "deleteInvoice": {
+        "title": "Delete Invoice {{invoiceNo}}?",
+        "description": "This will permanently remove the invoice for {{customer}} and revert customer balance and stock levels.",
+        "confirmText": "Delete Invoice"
+      }
+    },
+    "toasts": {
+      "noCustomer": {
+        "title": "No Customer",
+        "description": "Please select a valid buyer."
+      },
+      "emptyInvoice": {
+        "title": "Empty Invoice",
+        "description": "Add at least one item with a positive amount."
+      },
+      "missingInvoiceNo": {
+        "title": "Invoice Number Missing",
+        "description": "Please enter an invoice number."
+      },
+      "duplicateInvoiceNo": {
+        "title": "Duplicate Invoice Number",
+        "description": "Invoice number already exists. Use a unique number."
+      },
+      "invoiceCreated": {
+        "title": "Invoice Created!",
+        "description": "{{invoiceNo}} - Rs{{amount}} billed to {{customer}}."
+      },
+      "invoiceDeleted": {
+        "title": "Invoice Deleted",
+        "description": "{{invoiceNo}} removed."
+      }
     }
   },
   "purchase": {
@@ -79,7 +144,75 @@
       "billTotal": "Bill Total",
       "cashPaidNow": "Cash Paid Now",
       "finalBalance": "Final Balance",
-      "actionsView": "Actions / View"
+      "actionsView": "Actions / View",
+      "paginationLabel": "purchase bills",
+      "emptyTitle": "No purchase bills found",
+      "emptySubtitle": "Try a different search or create a new purchase bill.",
+      "itemsCount": "{{count}} items",
+      "netCharges": "Net charges"
+    },
+    "form": {
+      "defaultNote": "Direct farm/supplier delivery",
+      "selectSupplierPlaceholder": "Select Supplier...",
+      "searchSupplierPlaceholder": "Search supplier...",
+      "freightLabel": "+ Lorry Freight (Bhaada Rs)",
+      "hamaliLabel": "+ Unloading Labour (Hamali Rs)",
+      "addedToTotalHint": "Added to total bill amount",
+      "zeroPlaceholder": "0",
+      "zeroDecimalPlaceholder": "0.0",
+      "zeroTwoDecimalPlaceholder": "0.00",
+      "selectFruitPlaceholder": "Select Fruit...",
+      "searchOrAddFruitPlaceholder": "Search or add fruit...",
+      "selectVarietyPlaceholder": "Select Variety...",
+      "searchOrAddVarietyPlaceholder": "Search or add variety...",
+      "notesLabel": "Remarks / Notes:",
+      "notesPlaceholder": "Farm gate delivery, quality check remarks..."
+    },
+    "actions": {
+      "duplicateRow": "Duplicate Row",
+      "removeRow": "Remove Row",
+      "clearForm": "Clear Form",
+      "completePurchase": "COMPLETE PURCHASE & INCREMENT STOCK",
+      "viewBilla": "View Billa / Print Bill",
+      "billa": "Billa",
+      "deleteBill": "Delete Bill"
+    },
+    "footer": {
+      "inlineSubtotal": "Inline Subtotal:",
+      "avgRatePerKg": "Avg: Rs{{rate}}/kg",
+      "keyboardHintPrefix": "Use",
+      "keyboardHintOr": "or",
+      "freightSummary": "+ Freight: Rs{{amount}}",
+      "hamaliSummary": "+ Hamali: Rs{{amount}}"
+    },
+    "units": {
+      "crt": "CRT",
+      "kg": "KG"
+    },
+    "dialogs": {
+      "deleteBill": {
+        "title": "Delete Purchase Bill {{billNo}}?",
+        "description": "This will permanently remove the bill from {{supplier}} and revert supplier balance and stock inventory.",
+        "confirmText": "Delete Bill"
+      }
+    },
+    "toasts": {
+      "noSupplier": {
+        "title": "No Supplier Selected",
+        "description": "Please select a valid supplier before saving the purchase bill."
+      },
+      "emptyBill": {
+        "title": "Empty Purchase Bill",
+        "description": "Please enter at least one valid fruit item row with a positive amount."
+      },
+      "billSaved": {
+        "title": "Purchase Bill Saved!",
+        "description": "{{billNo}} - Rs{{amount}} from {{supplier}}. Stock incremented."
+      },
+      "billDeleted": {
+        "title": "Bill Deleted",
+        "description": "{{billNo}} removed."
+      }
     }
   }
 }
