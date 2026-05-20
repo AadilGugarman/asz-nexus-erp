@@ -116,6 +116,9 @@ pub fn run() {
                 commands::auth::auth_change_password,
                 // ── Database ─────────────────────────────────────────────────
                 commands::db::db_get_stats,
+                     commands::db::db_get_seed_plan,
+                     commands::db::db_reseed_demo_data,
+                     commands::db::db_reset_demo_data,
                    // ── Backup ───────────────────────────────────────────────────
                    commands::backup::backup_create,
                    commands::backup::backup_list,

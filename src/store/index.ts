@@ -8,4 +8,5 @@ export * from './app.store';
 export * from './window.store';
 export * from './appearance.store';
 export * from './backup.store';
+export * from './security.store';
 export * from './table.store';

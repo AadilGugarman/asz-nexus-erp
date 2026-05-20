@@ -6,40 +6,35 @@ export interface SecurityLocalPreferences {
   dbEncryption: boolean;
 }
 
-const KEYS = {
-  sessionTimeout: 'apex_session_timeout',
-  twoFactorEnabled: 'apex_2fa',
-  allowExport: 'apex_allow_export',
-  auditLog: 'apex_audit_log',
-  dbEncryption: 'apex_db_encrypt',
-} as const;
+import { useSecurityStore } from '@/store/security.store';
 
 export function loadSecurityLocalPreferences(): SecurityLocalPreferences {
+  const state = useSecurityStore.getState();
   return {
-    sessionTimeout: localStorage.getItem(KEYS.sessionTimeout) || '60',
-    twoFactorEnabled: localStorage.getItem(KEYS.twoFactorEnabled) === 'true',
-    allowExport: localStorage.getItem(KEYS.allowExport) !== 'false',
-    auditLog: localStorage.getItem(KEYS.auditLog) === 'true',
-    dbEncryption: localStorage.getItem(KEYS.dbEncryption) === 'true',
+    sessionTimeout: state.sessionTimeout,
+    twoFactorEnabled: state.twoFactorEnabled,
+    allowExport: state.allowExport,
+    auditLog: state.auditLog,
+    dbEncryption: state.dbEncryption,
   };
 }
 
 export function setSecuritySessionTimeout(value: string): void {
-  localStorage.setItem(KEYS.sessionTimeout, value);
+  useSecurityStore.getState().setSessionTimeout(value);
 }
 
 export function setSecurityTwoFactorEnabled(value: boolean): void {
-  localStorage.setItem(KEYS.twoFactorEnabled, String(value));
+  useSecurityStore.getState().setTwoFactorEnabled(value);
 }
 
 export function setSecurityAllowExport(value: boolean): void {
-  localStorage.setItem(KEYS.allowExport, String(value));
+  useSecurityStore.getState().setAllowExport(value);
 }
 
 export function setSecurityAuditLog(value: boolean): void {
-  localStorage.setItem(KEYS.auditLog, String(value));
+  useSecurityStore.getState().setAuditLog(value);
 }
 
 export function setSecurityDbEncryption(value: boolean): void {
-  localStorage.setItem(KEYS.dbEncryption, String(value));
+  useSecurityStore.getState().setDbEncryption(value);
 }

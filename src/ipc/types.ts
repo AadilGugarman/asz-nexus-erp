@@ -114,6 +114,56 @@ export interface DbStats {
   employees: EmployeeStats;
 }
 
+export type SeedProfileKey = 'lightweight' | 'medium' | 'heavy';
+
+export interface SeedTableCounts {
+  fruits: number;
+  suppliers: number;
+  customers: number;
+  vehicle_arrivals: number;
+  purchase_invoices: number;
+  sales_invoices: number;
+  payments: number;
+  app_settings: number;
+}
+
+export interface SeedProfileRecommendation {
+  key: SeedProfileKey;
+  display_name: string;
+  description: string;
+  recommended_for: string;
+  approx_history_days: number;
+  counts: SeedTableCounts;
+}
+
+export interface DbSeedPlan {
+  recommended_default: SeedProfileKey;
+  profiles: SeedProfileRecommendation[];
+  scaling_strategy: string;
+  notes: string[];
+}
+
+export interface DbReseedDemoDataRequest {
+  profile: SeedProfileKey;
+}
+
+export interface DbSeedResetResult {
+  deleted_counts: SeedTableCounts;
+  reset_at: string;
+}
+
+export interface DbSeedExecutionResult {
+  profile: SeedProfileKey;
+  reset_performed: boolean;
+  deleted_counts: SeedTableCounts;
+  inserted_counts: SeedTableCounts;
+  started_on: string;
+  ended_on: string;
+  seeded_at: string;
+  company_name: string;
+  settings_keys: string[];
+}
+
 // ── Employee domain types ─────────────────────────────────────────────────────
 
   // ── Backup domain types ───────────────────────────────────────────────────────

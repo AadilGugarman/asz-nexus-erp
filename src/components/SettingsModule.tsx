@@ -14,21 +14,9 @@ const getCompanyInitials = (name: string) => {
 import { useApp } from '../context/AppContext';
 import { useAppearance, useAppTranslation } from '@/hooks';
 import { useDataTable } from '@/hooks/useDataTable';
-import {
-  loadBackupLocalPreferences,
-  setBackupLocation as persistBackupLocation,
-} from '@/lib/settings-backup.storage';
 import { backupService } from '@/services/backup.service';
-import { useBackupStore } from '@/store';
-import {
-  loadSecurityLocalPreferences,
-  setSecurityAllowExport,
-  setSecurityAuditLog,
-  setSecurityDbEncryption,
-  setSecuritySessionTimeout,
-  setSecurityTwoFactorEnabled,
-} from '@/lib/settings-security.storage';
-import { useLockStore } from '@/store';
+import { useBackupStore, useLockStore, useSecurityStore } from '@/store';
+import type { BackupFrequency } from '@/store';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import {
@@ -75,8 +63,6 @@ export const SettingsModule: React.FC = () => {
   const dialog = useConfirmDialog();
   const configureLockSecurity = useLockStore((s) => s.configureSecurity);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const securityDefaults = React.useMemo(() => loadSecurityLocalPreferences(), []);
-  const backupDefaults = React.useMemo(() => loadBackupLocalPreferences(), []);
 
   const [activeSection, setActiveSection] = useState<Section>('COMPANIES');
   const [showPin, setShowPin] = useState(false);
@@ -92,24 +78,31 @@ export const SettingsModule: React.FC = () => {
   };
 
   // ── Security State (extended) ───────────────
-  const [sessionTimeout, setSessionTimeout] = useState(() => securityDefaults.sessionTimeout);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(() => securityDefaults.twoFactorEnabled);
-  const [allowExport, setAllowExport] = useState(() => securityDefaults.allowExport);
-  const [auditLog, setAuditLog] = useState(() => securityDefaults.auditLog);
-  const [dbEncryption, setDbEncryption] = useState(() => securityDefaults.dbEncryption);
-
-  React.useEffect(() => { setSecuritySessionTimeout(sessionTimeout); }, [sessionTimeout]);
-  React.useEffect(() => { setSecurityTwoFactorEnabled(twoFactorEnabled); }, [twoFactorEnabled]);
-  React.useEffect(() => { setSecurityAllowExport(allowExport); }, [allowExport]);
-  React.useEffect(() => { setSecurityAuditLog(auditLog); }, [auditLog]);
-  React.useEffect(() => { setSecurityDbEncryption(dbEncryption); }, [dbEncryption]);
+  const {
+    sessionTimeout,
+    setSessionTimeout,
+    twoFactorEnabled,
+    setTwoFactorEnabled,
+    allowExport,
+    setAllowExport,
+    auditLog,
+    setAuditLog,
+    dbEncryption,
+    setDbEncryption,
+  } = useSecurityStore();
 
   // -- Backup State � powered by backupService + useBackupStore -------------
   const {
-    autoBackup,      setAutoBackup,
-    backupFreq,      setBackupFreq:      _setBackupFreq,
-    backupRetention, setBackupRetention: _setBackupRetention,
-    encryptBackups,  setEncryptBackups,
+    autoBackup,
+    setAutoBackup,
+    backupFreq,
+    setBackupFreq,
+    backupRetention,
+    setBackupRetention,
+    encryptBackups,
+    setEncryptBackups,
+    backupLocation,
+    setBackupLocation,
     entries:     backupEntries,
     isCreating:  backupCreating,
   } = useBackupStore();
@@ -130,7 +123,6 @@ export const SettingsModule: React.FC = () => {
     is_valid:  e.is_valid,
   }));
 
-  const [backupLocation, setBackupLocation] = React.useState(() => backupDefaults.backupLocation);
   const [restoreConfirm, setRestoreConfirm]  = React.useState<string | null>(null);
   const [backupSearch, setBackupSearch] = React.useState('');
 
@@ -155,19 +147,13 @@ export const SettingsModule: React.FC = () => {
     resetPageOn: [activeSection, backupHistory.length],
   });
 
-  // Keep backupLocation in localStorage (not owned by the Zustand store)
-  React.useEffect(() => { persistBackupLocation(backupLocation); }, [backupLocation]);
-
   // Restart/stop auto-backup scheduler whenever preferences change
   React.useEffect(() => {
     backupService.applyAutoBackupPreference(
       autoBackup,
-      backupFreq as import('@/store').BackupFrequency,
+      backupFreq,
     );
   }, [autoBackup, backupFreq]);
-
-  const setBackupFreq      = (v: string) => _setBackupFreq(v as import('@/store').BackupFrequency);
-  const setBackupRetention = (v: number) => _setBackupRetention(v);
 
   const lastBackup = backupHistory.length > 0 ? backupHistory[0] : null;
 
@@ -391,13 +377,11 @@ export const SettingsModule: React.FC = () => {
     const lockState = useLockStore.getState();
     updateSettings({
       security: {
-        ...sec,
         appPin: '',
         pinEnabled: lockState.pinEnabled,
         autoLockMinutes: lockState.autoLockMinutes,
       },
     });
-    setSec((prev) => ({ ...prev, appPin: '', pinEnabled: lockState.pinEnabled, autoLockMinutes: lockState.autoLockMinutes }));
 
     toast.success(
       'Security Updated',

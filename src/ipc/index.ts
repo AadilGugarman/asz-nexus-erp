@@ -54,6 +54,13 @@ export type {
   // Database
   EmployeeStats,
   DbStats,
+  SeedProfileKey,
+  SeedTableCounts,
+  SeedProfileRecommendation,
+  DbSeedPlan,
+  DbReseedDemoDataRequest,
+  DbSeedResetResult,
+  DbSeedExecutionResult,
   // Employee
     // Backup
     BackupEntry,

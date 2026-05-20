@@ -12,6 +12,7 @@
 //   2. Add `pub mod your_domain;` here
 
 pub mod app;
+pub mod demo_seed;
 pub mod file;
 pub mod fs;
 pub mod window;

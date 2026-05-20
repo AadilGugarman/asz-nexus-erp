@@ -28,6 +28,9 @@ export const CMD = {
 
   db: {
     getStats: 'db_get_stats',
+    getSeedPlan: 'db_get_seed_plan',
+    reseedDemoData: 'db_reseed_demo_data',
+    resetDemoData: 'db_reset_demo_data',
   },
 
   employee: {

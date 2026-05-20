@@ -16,46 +16,58 @@ export interface BackupLocalPreferences {
   backupHistory: BackupHistoryEntry[];
 }
 
-const KEYS = {
-  autoBackup: 'apex_auto_backup',
-  backupFreq: 'apex_backup_freq',
-  backupLocation: 'apex_backup_loc',
-  backupRetention: 'apex_backup_ret',
-  encryptBackups: 'apex_encrypt_bk',
-  backupHistory: 'apex_backup_history',
-} as const;
+import { useBackupStore } from '@/store/backup.store';
 
 export function loadBackupLocalPreferences(): BackupLocalPreferences {
+  const state = useBackupStore.getState();
   return {
-    autoBackup: JSON.parse(localStorage.getItem(KEYS.autoBackup) || 'false'),
-    backupFreq: localStorage.getItem(KEYS.backupFreq) || 'weekly',
-    backupLocation: localStorage.getItem(KEYS.backupLocation) || '/backups',
-    backupRetention: parseInt(localStorage.getItem(KEYS.backupRetention) || '30'),
-    encryptBackups: JSON.parse(localStorage.getItem(KEYS.encryptBackups) || 'false'),
-    backupHistory: JSON.parse(localStorage.getItem(KEYS.backupHistory) || '[]'),
+    autoBackup: state.autoBackup,
+    backupFreq: state.backupFreq,
+    backupLocation: state.backupLocation,
+    backupRetention: state.backupRetention,
+    encryptBackups: state.encryptBackups,
+    backupHistory: state.entries.map((entry) => ({
+      id: entry.id,
+      name: entry.label,
+      type: entry.label,
+      size: entry.size_display,
+      date: entry.created_at,
+      encrypted: entry.is_valid,
+    })),
   };
 }
 
 export function setBackupAutoBackup(value: boolean): void {
-  localStorage.setItem(KEYS.autoBackup, JSON.stringify(value));
+  useBackupStore.getState().setAutoBackup(value);
 }
 
 export function setBackupFrequency(value: string): void {
-  localStorage.setItem(KEYS.backupFreq, value);
+  useBackupStore.getState().setBackupFreq(value as import('@/store').BackupFrequency);
 }
 
 export function setBackupLocation(value: string): void {
-  localStorage.setItem(KEYS.backupLocation, value);
+  useBackupStore.getState().setBackupLocation(value);
 }
 
 export function setBackupRetention(value: number): void {
-  localStorage.setItem(KEYS.backupRetention, String(value));
+  useBackupStore.getState().setBackupRetention(value);
 }
 
 export function setBackupEncryptBackups(value: boolean): void {
-  localStorage.setItem(KEYS.encryptBackups, JSON.stringify(value));
+  useBackupStore.getState().setEncryptBackups(value);
 }
 
 export function setBackupHistory(value: BackupHistoryEntry[]): void {
-  localStorage.setItem(KEYS.backupHistory, JSON.stringify(value));
+  useBackupStore.getState().setEntries(
+    value.map((entry) => ({
+      id: entry.id,
+      filename: `${entry.name}.db`,
+      label: entry.type,
+      size_bytes: 0,
+      size_display: entry.size,
+      created_at: entry.date,
+      path: '',
+      is_valid: entry.encrypted,
+    })),
+  );
 }

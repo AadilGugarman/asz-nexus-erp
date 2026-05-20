@@ -29,6 +29,7 @@ export interface BackupPrefs {
   backupFreq: BackupFrequency;
   backupRetention: number;
   encryptBackups: boolean;
+  backupLocation: string;
 }
 
 interface BackupState extends BackupPrefs {
@@ -39,6 +40,7 @@ interface BackupState extends BackupPrefs {
   isLoadingList: boolean;
   lastError: string | null;
   backupDir: string | null;
+  backupLocation: string;
 
   // Actions — implemented by backup.service.ts, bound here
   setEntries: (entries: BackupEntry[]) => void;
@@ -49,6 +51,7 @@ interface BackupState extends BackupPrefs {
   setIsLoadingList: (v: boolean) => void;
   setLastError: (msg: string | null) => void;
   setBackupDir: (dir: string) => void;
+  setBackupLocation: (value: string) => void;
 
   // Preference setters (persisted)
   setAutoBackup: (v: boolean) => void;
@@ -75,6 +78,7 @@ export const useBackupStore = create<BackupState>()(
       isLoadingList: false,
       lastError: null,
       backupDir: null,
+      backupLocation: '/backups',
 
       // ── Runtime setters ────────────────────────────────────────────────────
       setEntries: (entries) => set({ entries }),
@@ -87,6 +91,7 @@ export const useBackupStore = create<BackupState>()(
       setIsLoadingList: (v) => set({ isLoadingList: v }),
       setLastError: (msg) => set({ lastError: msg }),
       setBackupDir: (dir) => set({ backupDir: dir }),
+      setBackupLocation: (value) => set({ backupLocation: value }),
 
       // ── Preference setters ─────────────────────────────────────────────────
       setAutoBackup: (v) => set({ autoBackup: v }),
@@ -103,6 +108,7 @@ export const useBackupStore = create<BackupState>()(
         backupFreq: s.backupFreq,
         backupRetention: s.backupRetention,
         encryptBackups: s.encryptBackups,
+        backupLocation: s.backupLocation,
       }),
     },
   ),
