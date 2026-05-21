@@ -21,6 +21,9 @@ pub enum AppError {
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
+    #[error("SQLite error: {0}")]
+    Rusqlite(#[from] rusqlite::Error),
+
     #[error("Database error: {0}")]
     Database(String),
 
@@ -48,6 +51,7 @@ impl AppError {
             AppError::Validation(_)      => "VALIDATION_ERROR",
             AppError::Io(_)              => "IO_ERROR",
             AppError::Serialization(_)   => "SERIALIZATION_ERROR",
+            AppError::Rusqlite(_)        => "SQLITE_ERROR",
             AppError::Database(_)        => "DATABASE_ERROR",
             AppError::PermissionDenied(_)=> "PERMISSION_DENIED",
             AppError::Internal(_)        => "INTERNAL_ERROR",

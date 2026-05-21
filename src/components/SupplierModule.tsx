@@ -350,30 +350,30 @@ export const SupplierModule: React.FC = () => {
 
       {/* Record Payment Modal */}
       {showPaymentModal && selectedSupplier && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-          <div className="bg-slate-900 dark:bg-slate-900 bg-white border border-slate-800 dark:border-slate-800 border-slate-200 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden p-6 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 dark:border-slate-800 border-slate-200 pb-4 font-sans">
-              <h3 className="text-lg font-bold dark:text-white text-slate-900 flex items-center space-x-2">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+          <div className="erp-panel rounded-2xl max-w-lg w-full overflow-hidden p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4 font-sans">
+              <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center space-x-2">
                 <span>Record Payment to Supplier</span>
               </h3>
-              <button onClick={() => setShowPaymentModal(false)} className="dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-white text-xl">✕</button>
+              <button onClick={() => setShowPaymentModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl cursor-pointer">✕</button>
             </div>
 
             <form onSubmit={handleAddPayment} className="space-y-4 font-sans text-xs sm:text-sm">
               <div>
-                <label className="block text-xs font-bold dark:text-slate-400 text-slate-600 mb-1 font-sans">Paying To:</label>
-                <input type="text" readOnly value={selectedSupplier.name} className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-3 font-bold" />
+                <label className="block text-xs font-bold text-[var(--text-muted)] mb-1 font-sans">Paying To:</label>
+                <input type="text" readOnly value={selectedSupplier.name} className="erp-input w-full font-bold bg-[var(--surface-bg)]" />
               </div>
 
               <div>
-                <label className="block text-xs font-bold dark:text-slate-400 text-slate-600 mb-1 font-sans">Payment Amount (₹) *</label>
-                <input type="number" required value={payAmount === 0 ? '' : payAmount} placeholder="50000" onChange={(e) => setPayAmount(parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-600 dark:text-emerald-400 font-mono font-black rounded-xl p-3 text-lg outline-none" />
+                <label className="block text-xs font-bold text-[var(--text-muted)] mb-1 font-sans">Payment Amount (₹) *</label>
+                <input type="number" required value={payAmount === 0 ? '' : payAmount} placeholder="50000" onChange={(e) => setPayAmount(parseFloat(e.target.value) || 0)} className="erp-input w-full text-emerald-600 dark:text-emerald-400 font-mono font-black text-lg" />
               </div>
 
               <div className="grid grid-cols-2 gap-4 font-sans">
                 <div>
-                  <label className="block text-xs font-bold dark:text-slate-400 text-slate-600 mb-1 font-sans">Payment Mode</label>
-                  <select value={payMode} onChange={(e) => setPayMode(e.target.value as any)} className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 dark:text-white text-slate-900 rounded-xl p-3 outline-none font-bold">
+                  <label className="block text-xs font-bold text-[var(--text-muted)] mb-1 font-sans">Payment Mode</label>
+                  <select value={payMode} onChange={(e) => setPayMode(e.target.value as any)} className="erp-input w-full font-bold cursor-pointer">
                     <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
                     <option value="CHEQUE">Cheque</option>
                     <option value="UPI">UPI Transfer</option>
@@ -381,19 +381,19 @@ export const SupplierModule: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold dark:text-slate-400 text-slate-600 mb-1 font-sans">Reference / Cheque No</label>
-                  <input type="text" value={payRefNo} onChange={(e) => setPayRefNo(e.target.value)} placeholder="e.g. NEFT-99120" className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 dark:text-white text-slate-900 rounded-xl p-3 font-mono font-bold outline-none" />
+                  <label className="block text-xs font-bold text-[var(--text-muted)] mb-1 font-sans">Reference / Cheque No</label>
+                  <input type="text" value={payRefNo} onChange={(e) => setPayRefNo(e.target.value)} placeholder="e.g. NEFT-99120" className="erp-input w-full font-mono font-bold" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold dark:text-slate-400 text-slate-600 mb-1 font-sans">Payment Note</label>
-                <input type="text" value={payNotes} onChange={(e) => setPayNotes(e.target.value)} placeholder="Advance payment against seasonal load..." className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 dark:text-white text-slate-900 rounded-xl p-3 font-sans outline-none" />
+                <label className="block text-xs font-bold text-[var(--text-muted)] mb-1 font-sans">Payment Note</label>
+                <input type="text" value={payNotes} onChange={(e) => setPayNotes(e.target.value)} placeholder="Advance payment against seasonal load..." className="erp-input w-full" />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800 dark:border-slate-800 border-slate-200">
-                <button type="button" onClick={() => setShowPaymentModal(false)} className="px-5 py-2.5 bg-slate-800 dark:bg-slate-800 bg-slate-200 dark:text-slate-300 text-slate-800 font-bold rounded-xl cursor-pointer">Cancel</button>
-                <button type="submit" className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black rounded-xl shadow-lg cursor-pointer">Save Payment</button>
+              <div className="flex justify-end space-x-3 pt-4 border-t border-[var(--card-border)]">
+                <button type="button" onClick={() => setShowPaymentModal(false)} className="erp-btn-secondary px-5 py-2.5">Cancel</button>
+                <button type="submit" className="erp-btn-primary px-6 py-2.5">Save Payment</button>
               </div>
             </form>
           </div>

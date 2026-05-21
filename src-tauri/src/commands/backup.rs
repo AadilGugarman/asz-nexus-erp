@@ -163,17 +163,19 @@ fn run_backup_api(src_path: &Path, dst: &mut Connection) -> AppResult<()> {
     )
     .map_err(|e| AppError::Database(format!("Cannot open source db: {e}")))?;
 
-    let progress = Some(|p: sqlite_backup::Progress| {
+    fn backup_progress(p: sqlite_backup::Progress) {
         log::debug!(
             "[backup] {} / {} pages copied",
             p.pagecount - p.remaining,
             p.pagecount
         );
-    });
+    }
 
-    sqlite_backup::Backup::new(&src, dst)
-        .map_err(|e| AppError::Database(format!("Backup init error: {e}")))?
-        .run_to_completion(256, Duration::from_millis(50), progress)
+    let backup = sqlite_backup::Backup::new(&src, dst)
+        .map_err(|e| AppError::Database(format!("Backup init error: {e}")))?;
+
+    backup
+        .run_to_completion(256, Duration::from_millis(50), Some(backup_progress))
         .map_err(|e| AppError::Database(format!("Backup run error: {e}")))
 }
 

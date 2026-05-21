@@ -74,7 +74,7 @@ export const TopFilterBar: React.FC = () => {
   const pendingCoName = companies.find(c => c.id === pendingCompanyId)?.company.name || coName;
 
   return (
-    <div className="bg-white/90 backdrop-blur-xl border border-[#e2e8f0] rounded-2xl shadow-[0_8px_24px_rgba(15,23,42,0.05)] px-4 py-2.5 flex items-center justify-between gap-3 no-print mb-6 relative z-30">
+    <div className="dark:bg-[var(--card-bg)] bg-white/95 backdrop-blur-xl dark:border-[var(--card-border)] border border-[#dde3ec] rounded-2xl shadow-[0_4px_16px_rgba(10,20,40,0.07)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)] px-4 py-2.5 flex items-center justify-between gap-3 no-print mb-6 relative z-30">
       <div className="flex items-center gap-2.5 flex-wrap">
 
         {/* ── Company Selector ──────────────────── */}
@@ -82,8 +82,8 @@ export const TopFilterBar: React.FC = () => {
           <button
             ref={companyBtnRef}
             onClick={() => { setCompanyOpen(!companyOpen); setFyOpen(false); updateRects(); }}
-            className={`flex items-center space-x-2 bg-white border rounded-xl px-3 py-[9px] text-xs font-medium text-[#0f172a] transition-all cursor-pointer shadow-sm min-w-[180px] ${
-              companyOpen ? 'border-[#00c896] ring-2 ring-[#00c896]/20' : pendingCompanyId !== activeCompanyId ? 'border-amber-500' : 'border-[#dbe4ef] hover:border-[#00c896]/60'
+            className={`flex items-center space-x-2 dark:bg-[var(--input-bg)] bg-white dark:border-[var(--input-border)] border rounded-xl px-3 py-[9px] text-xs font-medium dark:text-[var(--text-primary)] text-[#0d1b2e] transition-all cursor-pointer shadow-sm min-w-[180px] ${
+              companyOpen ? 'border-[#00c896] ring-2 ring-[#00c896]/20' : pendingCompanyId !== activeCompanyId ? 'border-amber-500' : 'dark:hover:border-[#00c896]/60 hover:border-[#00c896]/60'
             }`}
           >
             <Building2 className="w-3.5 h-3.5 text-[#00c896] shrink-0" />
@@ -96,34 +96,27 @@ export const TopFilterBar: React.FC = () => {
             <div
               id="co-dropdown-portal"
               style={{ position: 'fixed', top: companyRect.bottom + 6, left: companyRect.left, width: Math.max(companyRect.width, 240), zIndex: 999999 }}
-              className="bg-white border border-[#e2e8f0] rounded-xl shadow-[0_12px_36px_rgba(15,23,42,0.1)] overflow-hidden animate-scale-in"
+              className="dark:bg-[#131e30] bg-white dark:border-[#1e3048] border border-[#dde3ec] rounded-xl shadow-[0_12px_36px_rgba(10,20,40,0.12)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in"
             >
               <div className="p-1.5 max-h-64 overflow-y-auto">
                 {companies.map(c => {
                   const isSelected = c.id === pendingCompanyId;
-                  // Utility to generate company initials (max 3, skip common words)
                   const getCompanyInitials = (name: string) => {
                     const skip = ["and", "&", "of", "the"];
-                    return name
-                      .split(/\s+/)
-                      .filter(w => w && !skip.includes(w.toLowerCase()))
-                      .map(w => w[0])
-                      .join('')
-                      .slice(0, 3)
-                      .toUpperCase();
+                    return name.split(/\s+/).filter(w => w && !skip.includes(w.toLowerCase())).map(w => w[0]).join('').slice(0, 3).toUpperCase();
                   };
                   const initials = getCompanyInitials(c.company.name);
                   return (
                     <button key={c.id} onClick={() => { setPendingCompanyId(c.id); setCompanyOpen(false); }}
                       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs cursor-pointer transition-colors ${
-                        isSelected ? 'bg-[rgba(0,200,150,0.12)] font-semibold' : 'hover:bg-[#f8fafc]'
+                        isSelected ? 'bg-[rgba(0,200,150,0.12)] font-semibold' : 'dark:hover:bg-[#1a2d45] hover:bg-[#f0f4f8]'
                       }`}
                     >
                       <div className="flex items-center space-x-2.5">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold shrink-0 ${isSelected ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white' : 'bg-[#f1f5f9] text-[#64748b]'}`}>{initials}</div>
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold shrink-0 ${isSelected ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white' : 'dark:bg-[#1e3048] dark:text-[#94b4d4] bg-[#f0f4f8] text-[#5e7490]'}`}>{initials}</div>
                         <div className="text-left">
-                          <div className={`truncate font-semibold ${isSelected ? 'text-[#0f766e]' : 'text-[#0f172a]'}`}>{c.company.name}</div>
-                          <div className="text-[10px] text-[#94a3b8] font-normal truncate">{c.company.phone || c.city || 'Company'}</div>
+                          <div className={`truncate font-semibold ${isSelected ? 'text-[#00c896]' : 'dark:text-[#e8f0fe] text-[#0d1b2e]'}`}>{c.company.name}</div>
+                          <div className="text-[10px] dark:text-[#6a8aaa] text-[#5e7490] font-normal truncate">{c.company.phone || c.city || 'Company'}</div>
                         </div>
                       </div>
                       {isSelected && <Check className="w-3.5 h-3.5 text-[#00c896] shrink-0" />}
@@ -131,7 +124,7 @@ export const TopFilterBar: React.FC = () => {
                   );
                 })}
               </div>
-              <div className="px-3 py-2 border-t border-[#edf2f7] text-[10px] text-[#94a3b8] font-medium">
+              <div className="px-3 py-2 dark:border-[#1e3048] border-t border-[#dde3ec] text-[10px] dark:text-[#6a8aaa] text-[#5e7490] font-medium">
                 {companies.length} company{companies.length > 1 ? 'ies' : ''} · Manage in Settings
               </div>
             </div>,
@@ -144,8 +137,8 @@ export const TopFilterBar: React.FC = () => {
           <button
             ref={fyBtnRef}
             onClick={() => { setFyOpen(!fyOpen); setCompanyOpen(false); updateRects(); }}
-            className={`flex items-center space-x-2 bg-white border rounded-xl px-3 py-[9px] text-xs font-medium text-[#0f172a] transition-all cursor-pointer shadow-sm min-w-[140px] ${
-              fyOpen ? 'border-[#00aeef] ring-2 ring-[#00aeef]/20' : pendingFY !== activeFY ? 'border-amber-500' : 'border-[#dbe4ef] hover:border-[#00aeef]/60'
+            className={`flex items-center space-x-2 dark:bg-[var(--input-bg)] bg-white dark:border-[var(--input-border)] border rounded-xl px-3 py-[9px] text-xs font-medium dark:text-[var(--text-primary)] text-[#0d1b2e] transition-all cursor-pointer shadow-sm min-w-[140px] ${
+              fyOpen ? 'border-[#00aeef] ring-2 ring-[#00aeef]/20' : pendingFY !== activeFY ? 'border-amber-500' : 'dark:hover:border-[#00aeef]/60 hover:border-[#00aeef]/60'
             }`}
           >
             <CalendarRange className="w-3.5 h-3.5 text-[#00aeef] shrink-0" />
@@ -158,7 +151,7 @@ export const TopFilterBar: React.FC = () => {
             <div
               id="fy-dropdown-portal"
               style={{ position: 'fixed', top: fyRect.bottom + 6, left: fyRect.left, width: Math.max(fyRect.width, 180), zIndex: 999999 }}
-              className="bg-white border border-[#e2e8f0] rounded-xl shadow-[0_12px_36px_rgba(15,23,42,0.1)] overflow-hidden animate-scale-in"
+              className="dark:bg-[#131e30] bg-white dark:border-[#1e3048] border border-[#dde3ec] rounded-xl shadow-[0_12px_36px_rgba(10,20,40,0.12)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.5)] overflow-hidden animate-scale-in"
             >
               <div className="p-1.5 max-h-52 overflow-y-auto">
                 {fyOptions.map(fy => {
@@ -166,11 +159,11 @@ export const TopFilterBar: React.FC = () => {
                   return (
                     <button key={fy} onClick={() => { setPendingFY(fy); setFyOpen(false); }}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-                        isSelected ? 'bg-[rgba(0,174,239,0.12)] text-[#0369a1] font-semibold' : 'text-[#334155] hover:bg-[#f8fafc]'
+                        isSelected ? 'bg-[rgba(0,174,239,0.12)] text-[#00aeef]' : 'dark:text-[#94b4d4] text-[#3d5166] dark:hover:bg-[#1a2d45] hover:bg-[#f0f4f8]'
                       }`}
                     >
                       <div className="flex items-center space-x-2">
-                        <CalendarRange className={`w-3.5 h-3.5 ${isSelected ? 'text-[#00aeef]' : 'text-[#94a3b8]'}`} />
+                        <CalendarRange className={`w-3.5 h-3.5 ${isSelected ? 'text-[#00aeef]' : 'dark:text-[#6a8aaa] text-[#5e7490]'}`} />
                         <span className="font-mono">{fyLabel(fy)}</span>
                       </div>
                       {isSelected && <Check className="w-3.5 h-3.5 text-[#00aeef] shrink-0" />}
@@ -178,7 +171,7 @@ export const TopFilterBar: React.FC = () => {
                   );
                 })}
               </div>
-              <div className="px-3 py-2 border-t border-[#edf2f7] text-[10px] text-[#94a3b8] font-medium">
+              <div className="px-3 py-2 dark:border-[#1e3048] border-t border-[#dde3ec] text-[10px] dark:text-[#6a8aaa] text-[#5e7490] font-medium">
                 FY starts {settings.financial.financialYearStart} · Settings → Financial
               </div>
             </div>,
@@ -201,7 +194,7 @@ export const TopFilterBar: React.FC = () => {
       {/* Right: Status */}
       <div className="hidden md:flex items-center space-x-2 shrink-0">
         <div className="w-1.5 h-1.5 rounded-full bg-[#00c896] animate-pulse" />
-        <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider font-mono">
+        <span className="text-[10px] font-semibold dark:text-[#6a8aaa] text-[#5e7490] uppercase tracking-wider font-mono">
           {fyLabel(activeFY)}
         </span>
       </div>

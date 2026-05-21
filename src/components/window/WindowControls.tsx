@@ -9,11 +9,11 @@
  *   <WindowControls />
  */
 
-import React from 'react';
-import { Minus, Square, X } from 'lucide-react';
-import { useWindow } from '@/hooks';
-import { useApp } from '@/context/AppContext';
-import { APP_CONFIG } from '@/config';
+import React from "react";
+import { Minus, Square, X } from "lucide-react";
+import { useWindow } from "@/hooks";
+import { useApp } from "@/context/AppContext";
+import { APP_CONFIG } from "@/config";
 
 export const WindowControls: React.FC = () => {
   const { theme } = useApp();
@@ -22,22 +22,26 @@ export const WindowControls: React.FC = () => {
   // Don't render in browser — no native window to control.
   if (!APP_CONFIG.isTauri) return null;
 
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   const btnBase = [
-    'flex items-center justify-center',
-    'w-[46px] h-[32px]',
-    'transition-colors duration-100',
-    'select-none',
-    'focus:outline-none',
-  ].join(' ');
+    "flex items-center justify-center",
+    "w-[46px] h-[32px]",
+    "rounded-sm",
+    "transition-colors duration-100",
+    "select-none",
+    "focus:outline-none",
+  ].join(" ");
 
+  const btnBg = isDark ? "bg-slate-800/80" : "bg-slate-100/90";
   const hoverNeutral = isDark
-    ? 'hover:bg-slate-700/70'
-    : 'hover:bg-slate-200/80';
+    ? "hover:bg-slate-700/80"
+    : "hover:bg-slate-200/90";
 
-  const iconColor = isDark ? 'text-slate-400' : 'text-slate-500';
-  const iconHover = isDark ? 'group-hover:text-slate-100' : 'group-hover:text-slate-800';
+  const iconColor = isDark ? "text-slate-200" : "text-slate-700";
+  const iconHover = isDark
+    ? "group-hover:text-white"
+    : "group-hover:text-slate-900";
 
   return (
     <div
@@ -47,7 +51,7 @@ export const WindowControls: React.FC = () => {
     >
       {/* Minimise */}
       <button
-        className={`group ${btnBase} ${hoverNeutral}`}
+        className={`group ${btnBase} ${btnBg} ${hoverNeutral}`}
         onClick={minimize}
         title="Minimise"
         aria-label="Minimise window"
@@ -62,10 +66,10 @@ export const WindowControls: React.FC = () => {
 
       {/* Maximise / Restore */}
       <button
-        className={`group ${btnBase} ${hoverNeutral}`}
+        className={`group ${btnBase} ${btnBg} ${hoverNeutral}`}
         onClick={toggleMaximize}
-        title={isMaximized ? 'Restore' : 'Maximise'}
-        aria-label={isMaximized ? 'Restore window' : 'Maximise window'}
+        title={isMaximized ? "Restore" : "Maximise"}
+        aria-label={isMaximized ? "Restore window" : "Maximise window"}
         tabIndex={-1}
       >
         {isMaximized ? (
@@ -93,7 +97,7 @@ export const WindowControls: React.FC = () => {
 
       {/* Close */}
       <button
-        className={`group ${btnBase} hover:bg-red-500/90`}
+        className={`group ${btnBase} ${btnBg} hover:bg-red-500/90`}
         onClick={close}
         title="Close"
         aria-label="Close window"

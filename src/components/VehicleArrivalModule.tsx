@@ -185,22 +185,22 @@ export const VehicleArrivalModule: React.FC = () => {
   return (
     <div className="space-y-6 font-sans">
       {/* Top Bar / Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 dark:bg-slate-900 bg-white p-4 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-md">
+      <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
         <div>
-          <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
-            <Truck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+          <h1 className="erp-title text-[1.1rem] flex items-center space-x-2.5">
+            <Truck className="w-6 h-6 text-emerald-500" />
             <span>VEHICLE ARRIVAL REGISTER & INWARD STOCK</span>
           </h1>
-          <p className="text-xs dark:text-slate-400 text-slate-600 mt-0.5">Mandi gate inward, automated variety inventory allocation, and supplier ledger integration</p>
+          <p className="erp-subtitle mt-0.5">Mandi gate inward, automated variety inventory allocation, and supplier ledger integration</p>
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-950 dark:bg-slate-950 bg-slate-100 p-1.5 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200">
+        <div className="erp-surface flex items-center space-x-2 p-1.5">
           <button
             onClick={() => setActiveSubTab('NEW_ENTRY')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
               activeSubTab === 'NEW_ENTRY'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900'
+                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_6px_16px_rgba(0,174,239,0.3)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
             }`}
           >
             <Plus className="w-4 h-4" />
@@ -208,10 +208,10 @@ export const VehicleArrivalModule: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveSubTab('LIST')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
               activeSubTab === 'LIST'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900'
+                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_6px_16px_rgba(0,174,239,0.3)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
             }`}
           >
             <FileSpreadsheet className="w-4 h-4" />
@@ -224,13 +224,13 @@ export const VehicleArrivalModule: React.FC = () => {
       {activeSubTab === 'NEW_ENTRY' && (
         <div className="space-y-6">
           {/* VEHICLE ARRIVAL HEADER FIELDS */}
-          <div className="bg-slate-900 dark:bg-slate-900 bg-white p-6 rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-xl space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 dark:border-slate-800 border-slate-200 pb-4">
+          <div className="erp-panel p-6 rounded-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
               <div className="flex items-center space-x-3">
-                <span className="text-xs bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-mono font-bold">
+                <span className="text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-mono font-bold">
                   {arrivalNo}
                 </span>
-                <span className="text-xs font-bold dark:text-slate-300 text-slate-800 uppercase">Gate Entry Header Information</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">Gate Entry Header Information</span>
               </div>
               <div className="flex items-center space-x-4">
                 <button
@@ -242,11 +242,7 @@ export const VehicleArrivalModule: React.FC = () => {
                   <span>{showAdvancedDeductions ? 'Hide Lorry Deductions' : 'Add Lorry Charges (Bhaada/Hamali)'}</span>
                 </button>
                 {editingId && (
-                  <button
-                    type="button"
-                    onClick={handleResetForm}
-                    className="text-xs text-rose-500 hover:underline cursor-pointer font-semibold"
-                  >
+                  <button type="button" onClick={handleResetForm} className="text-xs text-rose-500 hover:underline cursor-pointer font-semibold">
                     Cancel Edit
                   </button>
                 )}
@@ -256,15 +252,15 @@ export const VehicleArrivalModule: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 text-xs sm:text-sm">
               {/* Date */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Arrival Date</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Arrival Date</label>
                 <div className="relative">
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 font-mono rounded-xl p-2.5 text-xs outline-none focus:border-emerald-500"
+                    className="erp-input w-full font-mono text-xs"
                   />
-                  <span className="absolute right-3 top-2.5 text-[10px] bg-slate-800 dark:bg-slate-800 bg-white dark:text-slate-400 text-slate-700 px-2 py-0.5 rounded font-bold uppercase border border-slate-700 dark:border-slate-700 border-slate-200">
+                  <span className="absolute right-3 top-2.5 text-[10px] bg-[var(--surface-bg)] text-[var(--text-muted)] px-2 py-0.5 rounded font-bold uppercase border border-[var(--card-border)]">
                     {day}
                   </span>
                 </div>
@@ -272,7 +268,7 @@ export const VehicleArrivalModule: React.FC = () => {
 
               {/* Fruit Type */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Fruit Category</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Fruit Category</label>
                 <Combobox
                   value={fruitType}
                   onChange={(val) => setFruitType(val)}
@@ -287,112 +283,95 @@ export const VehicleArrivalModule: React.FC = () => {
 
               {/* Vehicle Number */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Vehicle Registration No *</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Vehicle Registration No *</label>
                 <input
                   type="text"
                   value={vehicleNo}
                   placeholder="e.g. GJ-06-AB-1234"
                   onChange={(e) => setVehicleNo(e.target.value.toUpperCase())}
-                  className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 font-mono font-extrabold rounded-xl p-2.5 text-xs uppercase outline-none focus:border-emerald-500 placeholder-slate-500"
+                  className="erp-input w-full font-mono font-extrabold text-xs uppercase"
                   required
                 />
               </div>
 
-              {/* Vehicle Name / Model */}
+              {/* Vehicle Name */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Vehicle Model & Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Vehicle Model & Name</label>
                 <input
                   type="text"
                   value={vehicleName}
                   placeholder="e.g. Tata Heavy Cargo / Eicher"
                   onChange={(e) => setVehicleName(e.target.value)}
-                  className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs outline-none focus:border-emerald-500 placeholder-slate-500"
+                  className="erp-input w-full text-xs"
                 />
               </div>
 
               {/* Declared Total Weight */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Declared Lorry Weight (KG)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Declared Lorry Weight (KG)</label>
                 <input
                   type="number"
                   value={totalVehicleWeight === 0 ? '' : totalVehicleWeight}
                   placeholder="2000"
                   onChange={(e) => setTotalVehicleWeight(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 font-mono rounded-xl p-2.5 text-xs outline-none focus:border-emerald-500"
+                  className="erp-input w-full font-mono text-xs"
                 />
               </div>
 
               {/* Driver Name */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Driver Full Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Driver Full Name</label>
                 <input
                   type="text"
                   value={driverName}
                   placeholder="e.g. Ramesh Singh"
                   onChange={(e) => setDriverName(e.target.value)}
-                  className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs outline-none focus:border-emerald-500 placeholder-slate-500"
+                  className="erp-input w-full text-xs"
                 />
               </div>
 
               {/* Notes */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Gate Pass & Weighbridge Remarks</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Gate Pass & Weighbridge Remarks</label>
                 <input
                   type="text"
                   value={notes}
                   placeholder="Weighbridge chit no, moisture details..."
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-slate-300 text-slate-900 rounded-xl p-2.5 text-xs outline-none focus:border-emerald-500 placeholder-slate-500"
+                  className="erp-input w-full text-xs"
                 />
               </div>
             </div>
 
             {/* Advanced Deductions Panel */}
             {showAdvancedDeductions && (
-              <div className="pt-4 border-t border-slate-800 dark:border-slate-800 border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-950/60 dark:bg-slate-950/60 bg-slate-100 p-4 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200">
+              <div className="pt-4 border-t border-[var(--card-border)] grid grid-cols-1 sm:grid-cols-3 gap-4 bg-[var(--surface-bg)] p-4 rounded-xl border border-[var(--surface-border)]">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">Lorry Freight (Bhaada ₹)</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Lorry Freight (Bhaada ₹)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-xs text-slate-500 font-mono">₹</span>
-                    <input
-                      type="number"
-                      value={freightCharge === 0 ? '' : freightCharge}
-                      placeholder="0"
-                      onChange={(e) => setFreightCharge(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-500 font-mono font-bold rounded-lg pl-7 pr-3 py-2 text-xs outline-none"
-                    />
+                    <span className="absolute left-3 top-2.5 text-xs text-[var(--text-muted)] font-mono">₹</span>
+                    <input type="number" value={freightCharge === 0 ? '' : freightCharge} placeholder="0" onChange={(e) => setFreightCharge(parseFloat(e.target.value) || 0)}
+                      className="erp-input w-full pl-7 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs" />
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Transport charges added</span>
+                  <span className="text-[10px] text-[var(--text-muted)] block mt-0.5">Transport charges added</span>
                 </div>
-
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">Unloading (Hamali ₹)</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Unloading (Hamali ₹)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-xs text-slate-500 font-mono">₹</span>
-                    <input
-                      type="number"
-                      value={hamaliCharge === 0 ? '' : hamaliCharge}
-                      placeholder="0"
-                      onChange={(e) => setHamaliCharge(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-500 font-mono font-bold rounded-lg pl-7 pr-3 py-2 text-xs outline-none"
-                    />
+                    <span className="absolute left-3 top-2.5 text-xs text-[var(--text-muted)] font-mono">₹</span>
+                    <input type="number" value={hamaliCharge === 0 ? '' : hamaliCharge} placeholder="0" onChange={(e) => setHamaliCharge(parseFloat(e.target.value) || 0)}
+                      className="erp-input w-full pl-7 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs" />
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Labour unloading expense</span>
+                  <span className="text-[10px] text-[var(--text-muted)] block mt-0.5">Labour unloading expense</span>
                 </div>
-
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">Advance Paid to Driver (₹)</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Advance Paid to Driver (₹)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-xs text-slate-500 font-mono">₹</span>
-                    <input
-                      type="number"
-                      value={advancePaid === 0 ? '' : advancePaid}
-                      placeholder="0"
-                      onChange={(e) => setAdvancePaid(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-rose-500/40 focus:border-rose-500 text-rose-500 font-mono font-bold rounded-lg pl-7 pr-3 py-2 text-xs outline-none"
-                    />
+                    <span className="absolute left-3 top-2.5 text-xs text-[var(--text-muted)] font-mono">₹</span>
+                    <input type="number" value={advancePaid === 0 ? '' : advancePaid} placeholder="0" onChange={(e) => setAdvancePaid(parseFloat(e.target.value) || 0)}
+                      className="erp-input w-full pl-7 text-rose-600 dark:text-rose-400 font-mono font-bold text-xs border-rose-300 dark:border-rose-500/40 focus:border-rose-500" />
                   </div>
-                  <span className="text-[10px] text-rose-500/80 block mt-0.5">Deducted from lorry settlement</span>
+                  <span className="text-[10px] text-rose-500 block mt-0.5">Deducted from lorry settlement</span>
                 </div>
               </div>
             )}
@@ -418,46 +397,40 @@ export const VehicleArrivalModule: React.FC = () => {
           />
 
           {/* SAVE WORKFLOW ACTION BAR */}
-          <div className="bg-slate-900 dark:bg-slate-900 bg-white p-6 rounded-3xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6 sticky bottom-4 z-40 backdrop-blur-xl bg-slate-900/90 dark:bg-slate-900/90 bg-white/90">
+          <div className="erp-panel p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-6 sticky bottom-4 z-40 backdrop-blur-xl bg-[var(--card-bg)]/95">
             <div className="flex flex-wrap items-center gap-6 w-full sm:w-auto font-sans">
               <div>
-                <div className="text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600">Total Purchase Items</div>
-                <div className="text-2xl font-black font-mono dark:text-white text-slate-900 mt-0.5">
+                <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Total Purchase Items</div>
+                <div className="text-2xl font-black font-mono text-[var(--text-primary)] mt-0.5">
                   ₹ {totalAmount.toLocaleString('en-IN')}
                 </div>
               </div>
 
               {showAdvancedDeductions && (freightCharge > 0 || hamaliCharge > 0 || advancePaid > 0) && (
-                <div className="pl-6 border-l border-slate-800 dark:border-slate-800 border-slate-200 flex items-center space-x-6">
+                <div className="pl-6 border-l border-[var(--card-border)] flex items-center space-x-6">
                   <div>
-                    <div className="text-[11px] font-bold uppercase dark:text-slate-400 text-slate-600">+ Charges (Bhaada/Hamali)</div>
-                    <div className="text-lg font-bold font-mono text-emerald-500">₹ {(freightCharge + hamaliCharge).toLocaleString()}</div>
+                    <div className="text-[11px] font-bold uppercase text-[var(--text-muted)]">+ Charges</div>
+                    <div className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">₹ {(freightCharge + hamaliCharge).toLocaleString()}</div>
                   </div>
                   <div>
                     <div className="text-[11px] font-bold uppercase text-rose-500">- Driver Advance</div>
                     <div className="text-lg font-bold font-mono text-rose-500">₹ {advancePaid.toLocaleString()}</div>
                   </div>
-                  <div className="bg-slate-950 dark:bg-slate-950 bg-slate-100 px-4 py-2 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200 font-bold">
-                    <div className="text-[11px] font-black uppercase text-cyan-500">Net Load Payable</div>
-                    <div className="text-xl font-black font-mono text-cyan-500">₹ {netPayable.toLocaleString()}</div>
+                  <div className="bg-[var(--surface-bg)] px-4 py-2 rounded-xl border border-[var(--card-border)] font-bold">
+                    <div className="text-[11px] font-black uppercase text-sky-500 dark:text-sky-400">Net Load Payable</div>
+                    <div className="text-xl font-black font-mono text-sky-600 dark:text-sky-400">₹ {netPayable.toLocaleString()}</div>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="flex items-center space-x-3 w-full sm:w-auto font-sans">
-              <button
-                type="button"
-                onClick={handleResetForm}
-                className="px-6 py-3.5 bg-slate-800 dark:bg-slate-800 bg-slate-100 hover:bg-slate-700 dark:hover:bg-slate-700 hover:bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl font-bold text-xs transition-colors flex-1 sm:flex-none text-center cursor-pointer shadow"
-              >
+              <button type="button" onClick={handleResetForm}
+                className="erp-btn-secondary px-6 py-3.5 text-xs flex-1 sm:flex-none text-center">
                 Reset Form
               </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="px-8 py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:opacity-95 text-white font-black rounded-xl text-sm shadow-xl shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2 flex-1 sm:flex-none cursor-pointer"
-              >
+              <button type="button" onClick={handleSave}
+                className="erp-btn-primary px-8 py-3.5 text-sm flex items-center justify-center space-x-2 flex-1 sm:flex-none">
                 <Save className="w-5 h-5 stroke-[2.5]" />
                 <span>{editingId ? 'UPDATE & RE-CALCULATE STOCK' : 'SAVE ARRIVAL & SYNC LEDGERS'}</span>
               </button>
@@ -468,31 +441,31 @@ export const VehicleArrivalModule: React.FC = () => {
 
       {/* SUB-TAB 2: ARRIVAL REGISTER LIST */}
       {activeSubTab === 'LIST' && (
-        <div className="bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-xl p-6 space-y-6 font-sans">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-800 dark:border-slate-800 border-slate-200 pb-4">
-            <h2 className="text-base font-bold dark:text-white text-slate-900 flex items-center space-x-2">
+        <div className="erp-panel p-6 rounded-2xl space-y-6 font-sans">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-[var(--card-border)] pb-4">
+            <h2 className="text-base font-bold text-[var(--text-primary)] flex items-center space-x-2">
               <span>Saved Arrivals Register</span>
-              <span className="text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-mono px-2.5 py-0.5 rounded font-bold">
+              <span className="text-xs bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono px-2.5 py-0.5 rounded font-bold">
                 {filteredVehicles.length} Loads Synced
               </span>
             </h2>
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
               <div className="relative flex-1 md:w-72">
-                <Search className="w-4 h-4 dark:text-slate-400 text-slate-600 absolute left-3 top-3.5" />
+                <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3.5" />
                 <input
                   type="text"
                   placeholder="Search vehicle no, arrival no, fruit, supplier..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-9 pr-4 py-2.5 rounded-xl text-xs outline-none focus:border-emerald-500 placeholder-slate-500"
+                  className="erp-input w-full pl-9 pr-4"
                 />
               </div>
               <div className="flex items-center space-x-2">
-                <Filter className="w-4 h-4 dark:text-slate-400 text-slate-600 hidden sm:block" />
+                <Filter className="w-4 h-4 text-[var(--text-muted)] hidden sm:block" />
                 <select
                   value={filterFruit}
                   onChange={(e) => setFilterFruit(e.target.value)}
-                  className="bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-emerald-500 cursor-pointer"
+                  className="erp-input rounded-xl px-4 py-2.5 text-xs font-medium cursor-pointer"
                 >
                   <option value="ALL">All Fruit Types</option>
                   {fruits.map(f => (
@@ -504,10 +477,10 @@ export const VehicleArrivalModule: React.FC = () => {
           </div>
 
           {/* List Table */}
-          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700">
+          <div className="overflow-x-auto">
             <table className="erp-table w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
-                <tr className="bg-slate-950 dark:bg-slate-950 bg-slate-100 dark:text-slate-300 text-slate-900 uppercase font-bold border-b border-slate-800 dark:border-slate-800 border-slate-200 text-[11px]">
+                <tr className="text-[11px]">
                   <th className="py-3.5 px-4">Arrival # / Date</th>
                   <th className="py-3.5 px-3">Vehicle Details</th>
                   <th className="py-3.5 px-3">Fruit Item</th>

@@ -195,13 +195,13 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 dark:bg-slate-900 bg-white rounded-2xl border border-slate-800 dark:border-slate-800 border-slate-200 shadow-2xl overflow-hidden font-sans">
+    <div className="erp-table-wrap rounded-2xl overflow-hidden font-sans">
       {/* Table Toolbar */}
-      <div className="px-5 py-4 bg-slate-950 dark:bg-slate-950 bg-slate-100 border-b border-slate-800 dark:border-slate-800 border-slate-200 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-5 py-4 bg-[var(--surface-bg)] border-b border-[var(--card-border)] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span className="text-xs font-black uppercase tracking-wider dark:text-slate-300 text-slate-900">Spreadsheet Purchase Items</span>
-          <span className="text-xs bg-slate-800 dark:bg-slate-800 bg-slate-200 dark:text-slate-300 text-slate-800 px-2 py-0.5 rounded-full font-mono font-bold border border-slate-700 dark:border-slate-700 border-slate-300">{rows.length} rows active</span>
+          <span className="text-xs font-black uppercase tracking-wider text-[var(--text-primary)]">Spreadsheet Purchase Items</span>
+          <span className="text-xs bg-[var(--card-bg)] text-[var(--text-muted)] px-2 py-0.5 rounded-full font-mono font-bold border border-[var(--card-border)]">{rows.length} rows active</span>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -215,14 +215,14 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
           <div className="relative group">
             <button
               type="button"
-              className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800 dark:bg-slate-800 bg-white hover:bg-slate-700 dark:hover:bg-slate-700 hover:bg-slate-50 dark:text-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-700 dark:border-slate-700 border-slate-300 transition-colors cursor-pointer"
+              className="flex items-center space-x-1 px-3 py-1.5 bg-[var(--card-bg)] hover:bg-[var(--surface-bg)] text-[var(--text-secondary)] rounded-lg text-xs font-semibold border border-[var(--card-border)] transition-colors cursor-pointer"
               title="Click any cell and press Ctrl+V to paste tabular data from Excel"
             >
-              <ClipboardPaste className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+              <ClipboardPaste className="w-3.5 h-3.5 text-blue-500" />
               <span>Paste Excel Data</span>
             </button>
-            <div className="absolute top-full right-0 mt-1.5 hidden group-hover:block w-72 p-3 bg-slate-950 dark:bg-slate-950 bg-white text-xs dark:text-slate-300 text-slate-900 rounded-xl border border-slate-700 dark:border-slate-700 border-slate-200 shadow-2xl z-30 pointer-events-none">
-              Copy rows from Excel or Sheets <br/><span className="text-emerald-500 font-mono font-bold">Columns: Supplier, Variety, Caret, Weight, Rate</span> <br/>and press <kbd className="bg-slate-800 dark:bg-slate-800 bg-slate-100 px-1 py-0.5 rounded dark:text-white text-slate-900 font-mono">Ctrl+V</kbd> anywhere!
+            <div className="absolute top-full right-0 mt-1.5 hidden group-hover:block w-72 p-3 bg-[var(--card-bg)] text-xs text-[var(--text-primary)] rounded-xl border border-[var(--card-border)] shadow-[var(--shadow-lg)] z-30 pointer-events-none">
+              Copy rows from Excel or Sheets <br/><span className="text-emerald-500 font-mono font-bold">Columns: Supplier, Variety, Caret, Weight, Rate</span> <br/>and press <kbd className="bg-[var(--surface-bg)] px-1 py-0.5 rounded text-[var(--text-primary)] font-mono border border-[var(--card-border)]">Ctrl+V</kbd> anywhere!
             </div>
           </div>
         </div>
@@ -235,7 +235,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
       >
         <table ref={tableRef} className="erp-table w-full text-left border-collapse" onPaste={handlePaste}>
           <thead>
-            <tr className="bg-slate-900/60 dark:bg-slate-900/60 bg-slate-50 dark:text-slate-300 text-slate-700 text-xs font-bold uppercase tracking-wider sticky top-0 border-b border-slate-800 dark:border-slate-800 border-slate-200 select-none">
+            <tr className="bg-[var(--table-header-bg)] text-[var(--text-secondary)] text-xs font-bold uppercase tracking-wider sticky top-0 border-b border-[var(--table-border)] select-none">
               <th className="py-3 px-4 w-64 min-w-[220px]">Supplier / Party Name</th>
               <th className="py-3 px-3 w-44 min-w-[150px]">Variety (Vakkal)</th>
               <th className="py-3 px-3 w-28 text-right">Caret Qty</th>
@@ -246,9 +246,9 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
               <th className="py-3 px-3 w-24 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/80 dark:divide-slate-800/80 divide-slate-200 font-mono text-sm">
+          <tbody className="divide-y divide-[var(--table-border)] font-mono text-sm">
             {rowTable.pageRows.map(({ row, idx: rIndex }) => (
-              <tr key={row.id} className="hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-100 font-sans group focus-within:bg-slate-800/60 dark:focus-within:bg-slate-800/60 focus-within:bg-slate-100 transition-colors">
+              <tr key={row.id} className="hover:bg-[var(--table-row-hover)] font-sans group focus-within:bg-[var(--table-row-hover)] transition-colors">
                 {/* Supplier Dropdown */}
                 <td className="p-1 px-3" data-cell={`${rIndex}-0`}>
                   <Combobox
@@ -289,7 +289,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                     placeholder="0"
                     onChange={(e) => handleCellChange(rIndex, 'caret', e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, rIndex, 2)}
-                    className="w-full bg-slate-950 dark:bg-slate-950 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 dark:text-white text-slate-900 rounded-lg p-2 text-right text-xs outline-none transition-all font-mono font-semibold"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--primary)] text-[var(--text-primary)] rounded-lg p-2 text-right text-xs outline-none transition-all font-mono font-semibold min-h-0"
                   />
                 </td>
 
@@ -303,7 +303,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                     placeholder="0.0"
                     onChange={(e) => handleCellChange(rIndex, 'weight', e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, rIndex, 3)}
-                    className="w-full bg-slate-950 dark:bg-slate-950 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 dark:text-white text-slate-900 rounded-lg p-2 text-right text-xs outline-none transition-all font-mono font-semibold"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--primary)] text-[var(--text-primary)] rounded-lg p-2 text-right text-xs outline-none transition-all font-mono font-semibold min-h-0"
                   />
                 </td>
 
@@ -317,12 +317,12 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                     placeholder="0.00"
                     onChange={(e) => handleCellChange(rIndex, 'rate', e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, rIndex, 4)}
-                    className="w-full bg-slate-950 dark:bg-slate-950 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-500 font-bold rounded-lg p-2 text-right text-xs outline-none transition-all font-mono bg-emerald-950/20"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--primary)] text-emerald-600 dark:text-emerald-400 font-bold rounded-lg p-2 text-right text-xs outline-none transition-all font-mono min-h-0"
                   />
                 </td>
 
                 {/* Amount (Auto Calculated) */}
-                <td className="p-2 px-4 text-right font-black text-emerald-500 bg-emerald-950/20 text-sm font-mono">
+                <td className="p-2 px-4 text-right font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/8 text-sm font-mono">
                   ₹ {row.amount.toLocaleString('en-IN')}
                 </td>
 
@@ -335,18 +335,18 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                     placeholder="Optional note..."
                     onChange={(e) => handleCellChange(rIndex, 'note', e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, rIndex, 5)}
-                    className="w-full bg-slate-950 dark:bg-slate-950 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 dark:text-slate-300 text-slate-900 rounded-lg p-2 text-xs outline-none transition-all font-sans placeholder-slate-500"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-primary)] rounded-lg p-2 text-xs outline-none transition-all font-sans placeholder:text-[var(--text-muted)] min-h-0"
                   />
                 </td>
 
                 {/* Row Actions */}
                 <td className="p-1 text-center">
-                  <div className="flex items-center justify-center space-x-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center justify-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
                       onClick={() => duplicateRow(rIndex)}
                       title="Duplicate Row (Alt+D)"
-                      className="p-1.5 dark:text-slate-400 text-slate-600 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-[var(--text-muted)] hover:text-blue-500 hover:bg-[var(--surface-bg)] rounded-lg transition-colors cursor-pointer"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
@@ -355,7 +355,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                       onClick={() => deleteRow(rIndex)}
                       disabled={rows.length <= 1}
                       title="Remove Row"
-                      className="p-1.5 dark:text-slate-400 text-slate-600 hover:text-rose-500 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
+                      className="p-1.5 text-[var(--text-muted)] hover:text-rose-500 hover:bg-[var(--surface-bg)] rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -365,20 +365,20 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-slate-950 dark:bg-slate-950 bg-slate-100 font-bold text-xs uppercase tracking-wider border-t border-slate-800 dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-900 font-sans">
-              <td colSpan={2} className="py-4 px-4 text-right dark:text-slate-400 text-slate-600">Inline Table Totals:</td>
-              <td className="py-4 px-3 text-right font-mono text-emerald-500 text-sm font-bold">
-                {totalCarets} <span className="text-[10px] dark:text-slate-400 text-slate-600 font-normal">CRT</span>
+            <tr className="bg-[var(--surface-bg)] font-bold text-xs uppercase tracking-wider border-t border-[var(--table-border)] text-[var(--text-primary)] font-sans">
+              <td colSpan={2} className="py-4 px-4 text-right text-[var(--text-muted)]">Inline Table Totals:</td>
+              <td className="py-4 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm font-bold">
+                {totalCarets} <span className="text-[10px] text-[var(--text-muted)] font-normal">CRT</span>
               </td>
-              <td className="py-4 px-3 text-right font-mono text-emerald-500 text-sm font-bold">
-                {totalWeight.toFixed(1)} <span className="text-[10px] dark:text-slate-400 text-slate-600 font-normal">KG</span>
+              <td className="py-4 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm font-bold">
+                {totalWeight.toFixed(1)} <span className="text-[10px] text-[var(--text-muted)] font-normal">KG</span>
               </td>
-              <td className="py-4 px-3 text-right dark:text-slate-400 text-slate-600">Avg: {(totalWeight > 0 ? totalAmount / totalWeight : 0).toFixed(1)}/kg</td>
-              <td className="py-4 px-4 text-right font-mono text-emerald-500 font-black text-base bg-emerald-950/40 border-l border-emerald-500/20">
+              <td className="py-4 px-3 text-right text-[var(--text-muted)]">Avg: {(totalWeight > 0 ? totalAmount / totalWeight : 0).toFixed(1)}/kg</td>
+              <td className="py-4 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-black text-base bg-emerald-500/8 border-l border-emerald-500/20">
                 ₹ {totalAmount.toLocaleString('en-IN')}
               </td>
-              <td colSpan={2} className="py-4 px-4 dark:text-slate-400 text-slate-600 text-[11px] font-normal">
-                Press <kbd className="bg-slate-800 dark:bg-slate-800 bg-slate-200 px-1 font-mono text-emerald-500 font-bold">Enter</kbd> or <kbd className="bg-slate-800 dark:bg-slate-800 bg-slate-200 px-1 font-mono text-emerald-500 font-bold">Arrows</kbd> to jump
+              <td colSpan={2} className="py-4 px-4 text-[var(--text-muted)] text-[11px] font-normal">
+                Press <kbd className="bg-[var(--card-bg)] px-1.5 py-0.5 rounded font-mono text-emerald-600 dark:text-emerald-400 font-bold border border-[var(--card-border)]">Enter</kbd> or <kbd className="bg-[var(--card-bg)] px-1.5 py-0.5 rounded font-mono text-emerald-600 dark:text-emerald-400 font-bold border border-[var(--card-border)]">Arrows</kbd> to jump
               </td>
             </tr>
           </tfoot>

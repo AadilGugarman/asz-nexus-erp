@@ -1,16 +1,16 @@
 [package]
-name = "tfc-erp"
+name = "asz-nexus-erp"
 version = "1.0.0"
-description = "TFC ERP — Fruit Commission Management"
-authors = ["TFC"]
-edition = "2021"
+description = "TFC ERP — Fruit Billing Management"
+authors = ["Aadil Gugarman"]
+edition = "2024"
 
 [lib]
 name = "tfc_erp_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "tfc-erp"
+name = "asz-nexus-erp"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -35,7 +35,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"
 
 # ── SQLite ────────────────────────────────────────────────────────────────────
 # "bundled" statically links libsqlite3 — no system dependency required.
-rusqlite    = { version = "0.31", features = ["bundled"] }
+rusqlite    = { version = "0.31", features = ["bundled", "backup"] }
 r2d2        = "0.8"
 r2d2_sqlite = "0.24"
 

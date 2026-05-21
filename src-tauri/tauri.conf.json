@@ -1,7 +1,7 @@
 {
-  "productName": "Mango Nexus ERP",
+  "productName": "ASZ Nexus ERP",
   "version": "1.0.0",
-  "identifier": "in.mangonexus.erp",
+  "identifier": "in.asznexus.erp",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:5173",
@@ -12,18 +12,18 @@
     "windows": [
       {
         "label": "main",
-        "title": "Mango Nexus ERP",
+        "title": "ASZ Nexus ERP",
         "width": 1280,
         "height": 800,
         "minWidth": 960,
         "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
-        "decorations": false,
+        "decorations": true,
         "transparent": false,
         "center": true,
         "shadow": true,
-        "visible": false,
+        "visible": true,
         "focus": true
       }
     ],
@@ -35,8 +35,8 @@
       "iconPath": "icons/tray-icon.png",
       "iconAsTemplate": false,
       "menuOnLeftClick": false,
-      "title": "Mango Nexus ERP",
-      "tooltip": "Mango Nexus ERP"
+      "title": "ASZ Nexus ERP",
+      "tooltip": "ASZ Nexus ERP"
     }
   },
   "bundle": {
@@ -51,31 +51,15 @@
     ],
     "windows": {
       "digestAlgorithm": "sha256",
-      "timestampUrl": ""
+      "certificateThumbprint": "7ADF1472FADB8F379554F620182F66050CC71985",
+      "timestampUrl": "http://timestamp.digicert.com"
     },
     "resources": [],
     "externalBin": [],
-    "copyright": "© 2026 Mango Nexus",
+    "copyright": "© 2026 ASZ Nexus",
     "category": "Business",
-    "shortDescription": "Mango-themed commission ERP",
-    "longDescription": "Mango Nexus ERP — desktop commission management for produce and APMC trading workflows"
+    "shortDescription": "Smart billing and business management ERP for service-based businesses",
+    "longDescription": "ASZ Nexus ERP is a modern desktop ERP solution focused on billing, invoicing, payments, customer management, inventory tracking, and daily business operations. Designed for service and trading businesses, it streamlines billing workflows, lead management, follow-ups, staff operations, and financial tracking from a single unified platform."
   },
-  "plugins": {
-    "fs": {
-      "scope": {
-        "allow": [
-          "$APPDATA/**",
-          "$APPCONFIG/**",
-          "$DESKTOP/**",
-          "$DOCUMENT/**",
-          "$DOWNLOAD/**",
-          "$HOME/**"
-        ],
-        "deny": [
-          "$APPDATA/../**"
-        ]
-      }
-    },
-    "dialog": {}
-  }
+  "plugins": {}
 }

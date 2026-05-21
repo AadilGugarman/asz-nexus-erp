@@ -18,8 +18,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
   const { t } = useAppTranslation('dashboard');
   const toast = useToast();
 
-  const dashboardCardClass = 'dark:bg-slate-900/92 bg-white/96 rounded-xl border dark:border-slate-800/90 border-slate-200/90 shadow-[0_16px_40px_rgba(15,23,42,0.08)] dark:shadow-[0_20px_48px_rgba(2,6,23,0.36)]';
-  const dashboardButtonClass = 'rounded-xl border shadow-[0_12px_28px_rgba(15,23,42,0.12)] transition-all cursor-pointer';
+  const dashboardCardClass = 'dark:bg-slate-800 bg-white rounded-xl border dark:border-slate-700 border-slate-200 shadow-[0_4px_16px_rgba(15,23,42,0.08)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.3)]';
+  const dashboardButtonClass = 'rounded-xl border shadow-[0_4px_12px_rgba(15,23,42,0.1)] transition-all cursor-pointer';
   const premiumIconShell = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_10px_24px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_14px_30px_rgba(2,6,23,0.28)]';
 
   const savedVehicles = vehicles.filter(v => v.status === 'SAVED');
@@ -119,70 +119,68 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
       {/* ══════════════════════════════════════════════
           HERO SECTION
          ══════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden rounded-3xl border dark:border-slate-800/90 border-slate-200/80 shadow-[0_24px_80px_rgba(15,23,42,0.16)] dark:shadow-[0_28px_80px_rgba(2,6,23,0.5)]">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.18),transparent_32%),linear-gradient(135deg,#020617_0%,#0f172a_24%,#1e1b4b_58%,#0f172a_100%)]"></div>
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.06),rgba(2,6,23,0.32))]"></div>
-        <div className="absolute -right-16 -bottom-24 w-[420px] h-[420px] bg-indigo-400/10 dark:bg-indigo-400/12 rounded-full blur-2xl pointer-events-none"></div>
-        <div className="absolute -left-20 top-0 w-[340px] h-[340px] bg-sky-400/8 dark:bg-sky-400/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgMGg2MHY2MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0zMCAwdjYwTTYwIDMwSDAiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAyNSkiIHN0cm9rZS13aWR0aD0iMSIiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IGZpbGw9InVybCgjZykiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiLz48L3N2Zz4=')] opacity-40 pointer-events-none"></div>
+      <div className="relative overflow-hidden rounded-3xl border dark:border-slate-700 border-slate-200 shadow-[0_8px_32px_rgba(15,23,42,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
+        {/* Background gradient — theme-aware */}
+        <div className="absolute inset-0 dark:bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_50%,#0f172a_100%)] bg-[linear-gradient(135deg,#f0fdf9_0%,#e0f2fe_50%,#f0fdf9_100%)]"></div>
+        <div className="absolute -right-16 -bottom-24 w-[420px] h-[420px] rounded-full blur-3xl pointer-events-none dark:bg-emerald-500/8 bg-emerald-400/12"></div>
+        <div className="absolute -left-20 top-0 w-[340px] h-[340px] rounded-full blur-3xl pointer-events-none dark:bg-sky-500/6 bg-sky-400/10"></div>
 
         <div className="relative z-10 p-8 md:p-10">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             {/* Left: Greeting & Company */}
-            <div className="space-y-3 text-white max-w-2xl">
+            <div className="space-y-3 dark:text-white text-slate-900 max-w-2xl">
               <div className="flex flex-wrap items-center gap-3">
-                <div className="inline-flex items-center space-x-2 bg-white/8 dark:bg-indigo-400/12 backdrop-blur-[8px] border border-white/12 dark:border-indigo-300/18 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="inline-flex items-center space-x-2 dark:bg-white/10 bg-black/6 backdrop-blur-[8px] border dark:border-white/12 border-black/10 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5 animate-pulse-soft" />
                   <span>{t('hero.brandBadge')}</span>
                 </div>
-                <div className="flex items-center space-x-2 text-slate-200/78 dark:text-slate-300/72 text-xs font-mono">
+                <div className="flex items-center space-x-2 dark:text-slate-300 text-slate-500 text-xs font-mono">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{currentTime}</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm text-slate-200/76 dark:text-slate-300/70 font-semibold">{greeting}!</p>
+                <p className="text-sm dark:text-slate-300 text-slate-600 font-semibold">{greeting}!</p>
                 <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight mt-1">
                   {settings.company.name}
                 </h1>
               </div>
 
-              <p className="text-sm text-slate-100/86 dark:text-slate-200/88 font-medium max-w-xl leading-relaxed">
+              <p className="text-sm dark:text-slate-200 text-slate-700 font-medium max-w-xl leading-relaxed">
                 {currentDate} — {t('hero.summary')}
               </p>
 
               {/* Hero Action Buttons */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button onClick={() => setActiveTab('arrival')}
-                  className={`${dashboardButtonClass} px-5 py-2.5 bg-white/96 dark:bg-white text-slate-950 font-black text-xs sm:text-sm border-white/80 dark:border-white/85 flex items-center space-x-2 hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(15,23,42,0.2)]`}>
+                  className={`${dashboardButtonClass} px-5 py-2.5 dark:bg-white dark:text-slate-950 bg-slate-900 text-white font-black text-xs sm:text-sm dark:border-white/80 border-slate-800 flex items-center space-x-2 hover:-translate-y-0.5`}>
                   <Truck className="w-4 h-4 stroke-[2.5]" /><span>{t('hero.newInward')}</span>
                 </button>
                 <button onClick={() => setActiveTab('sales')}
-                  className={`${dashboardButtonClass} px-5 py-2.5 bg-slate-900/28 dark:bg-indigo-500/90 backdrop-blur-[8px] text-white font-bold text-xs sm:text-sm border-white/12 dark:border-indigo-300/18 flex items-center space-x-2 hover:-translate-y-0.5 hover:bg-slate-900/38 dark:hover:bg-indigo-400/90`}>
+                  className={`${dashboardButtonClass} px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm border-emerald-700 flex items-center space-x-2 hover:-translate-y-0.5`}>
                   <ShoppingCart className="w-4 h-4 stroke-[2.5]" /><span>{t('hero.newSales')}</span>
                 </button>
                 <button onClick={handleExport}
-                  className={`${dashboardButtonClass} px-4 py-2.5 bg-white/6 dark:bg-slate-900/74 backdrop-blur-[6px] text-slate-100 font-semibold text-xs border-white/10 dark:border-slate-700/80 flex items-center space-x-2 hover:-translate-y-0.5 hover:bg-white/10 dark:hover:bg-slate-900/88`}>
+                  className={`${dashboardButtonClass} px-4 py-2.5 dark:bg-slate-700 dark:hover:bg-slate-600 bg-slate-100 hover:bg-slate-200 dark:text-slate-100 text-slate-700 font-semibold text-xs dark:border-slate-600 border-slate-300 flex items-center space-x-2 hover:-translate-y-0.5`}>
                   <Download className="w-4 h-4" /><span className="hidden sm:inline">{t('hero.backup')}</span>
                 </button>
               </div>
             </div>
 
             {/* Right: Today's Live Snapshot */}
-            <div className="bg-slate-950/38 dark:bg-slate-950/56 backdrop-blur-[12px] rounded-2xl border border-white/10 dark:border-slate-700/70 p-5 min-w-[260px] shadow-[0_24px_50px_rgba(2,6,23,0.3)]">
+            <div className="dark:bg-slate-900 bg-white/80 backdrop-blur-sm rounded-2xl border dark:border-slate-700 border-slate-200 p-5 min-w-[260px] shadow-[0_8px_24px_rgba(15,23,42,0.1)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.3)]">
               <div className="flex items-center space-x-2 mb-4">
-                <Calendar className="w-4 h-4 text-slate-100 dark:text-sky-300" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-100/84 dark:text-sky-200">{t('hero.snapshotTitle')}</span>
+                <Calendar className="w-4 h-4 dark:text-sky-300 text-slate-500" />
+                <span className="text-xs font-bold uppercase tracking-wider dark:text-sky-200 text-slate-600">{t('hero.snapshotTitle')}</span>
               </div>
-              <div className="space-y-3 text-white">
-                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.inwardLoads')}</span><span className="font-black font-mono text-slate-50">{todayStats.loads}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.purchaseValue')}</span><span className="font-black font-mono text-rose-200">₹{todayStats.purchaseAmt.toLocaleString('en-IN')}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.salesBills')}</span><span className="font-black font-mono text-slate-50">{todayStats.salesCount}</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.salesValue')}</span><span className="font-black font-mono text-emerald-200">₹{todayStats.salesAmt.toLocaleString('en-IN')}</span></div>
-                <div className="border-t border-white/10 dark:border-slate-700/80 pt-2 flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.weightIn')}</span><span className="font-bold font-mono text-slate-100">{todayStats.weightIn.toLocaleString()} KG</span></div>
-                <div className="flex justify-between items-center text-sm"><span className="text-slate-200/72 dark:text-slate-400">{t('hero.snapshot.cashInOut')}</span><span className="font-bold font-mono text-xs text-slate-100">+₹{todayStats.cashIn.toLocaleString()} / -₹{todayStats.cashOut.toLocaleString()}</span></div>
+              <div className="space-y-3 dark:text-white text-slate-900">
+                <div className="flex justify-between items-center text-sm"><span className="dark:text-slate-400 text-slate-500">{t('hero.snapshot.inwardLoads')}</span><span className="font-black font-mono dark:text-slate-100 text-slate-800">{todayStats.loads}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="dark:text-slate-400 text-slate-500">{t('hero.snapshot.purchaseValue')}</span><span className="font-black font-mono text-rose-500 dark:text-rose-300">₹{todayStats.purchaseAmt.toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="dark:text-slate-400 text-slate-500">{t('hero.snapshot.salesBills')}</span><span className="font-black font-mono dark:text-slate-100 text-slate-800">{todayStats.salesCount}</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="dark:text-slate-400 text-slate-500">{t('hero.snapshot.salesValue')}</span><span className="font-black font-mono text-emerald-600 dark:text-emerald-300">₹{todayStats.salesAmt.toLocaleString('en-IN')}</span></div>
+                <div className="border-t dark:border-slate-700 border-slate-200 pt-2 flex justify-between items-center text-sm"><span className="dark:text-slate-400 text-slate-500">{t('hero.snapshot.weightIn')}</span><span className="font-bold font-mono dark:text-slate-200 text-slate-700">{todayStats.weightIn.toLocaleString()} KG</span></div>
+                <div className="flex justify-between items-center text-sm"><span className="dark:text-slate-400 text-slate-500">{t('hero.snapshot.cashInOut')}</span><span className="font-bold font-mono text-xs dark:text-slate-200 text-slate-700">+₹{todayStats.cashIn.toLocaleString()} / -₹{todayStats.cashOut.toLocaleString()}</span></div>
               </div>
             </div>
           </div>

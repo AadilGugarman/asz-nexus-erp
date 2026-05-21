@@ -45,13 +45,13 @@ const ShortcutsModal       = lazy(() => import('@/components/ShortcutsModal').th
 
 const TabSkeleton: React.FC = () => (
   <div className="animate-pulse space-y-4 pt-2" aria-hidden="true">
-    <div className="h-8 bg-slate-800/40 dark:bg-slate-800/40 rounded-lg w-1/3" />
+    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-1/3" />
     <div className="grid grid-cols-4 gap-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="h-24 bg-slate-800/30 dark:bg-slate-800/30 rounded-xl" />
+        <div key={i} className="h-24 bg-slate-200 dark:bg-slate-700 rounded-xl" />
       ))}
     </div>
-    <div className="h-64 bg-slate-800/20 dark:bg-slate-800/20 rounded-xl" />
+    <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-xl" />
   </div>
 );
 

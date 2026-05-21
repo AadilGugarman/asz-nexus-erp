@@ -203,7 +203,7 @@ export const PaymentsModule: React.FC = () => {
             className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
               activeTab === 'NEW'
                 ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
-                : 'text-[#64748b] hover:text-[#0f172a] hover:bg-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
             }`}
           >
             <Plus className="w-4 h-4" />
@@ -214,7 +214,7 @@ export const PaymentsModule: React.FC = () => {
             className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
               activeTab === 'LIST'
                 ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
-                : 'text-[#64748b] hover:text-[#0f172a] hover:bg-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -231,15 +231,15 @@ export const PaymentsModule: React.FC = () => {
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#94a3b8]">Paid to Suppliers</span>
             <div className="p-1.5 bg-rose-500/10 text-rose-500 rounded-lg"><ArrowUpRight className="w-4 h-4" /></div>
           </div>
-          <div className="text-lg font-semibold font-mono text-[#0f172a]">₹ {totalPaidToSuppliers.toLocaleString('en-IN')}</div>
+          <div className="text-lg font-semibold font-mono text-[var(--text-primary)]">₹ {totalPaidToSuppliers.toLocaleString('en-IN')}</div>
         </div>
         {/* Received from Customers */}
         <div className="erp-panel p-4 rounded-xl col-span-1">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#94a3b8]">Received from Buyers</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Received from Buyers</span>
             <div className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg"><ArrowDownRight className="w-4 h-4" /></div>
           </div>
-          <div className="text-lg font-semibold font-mono text-[#0f172a]">₹ {totalReceivedFromCustomers.toLocaleString('en-IN')}</div>
+          <div className="text-lg font-semibold font-mono text-[var(--text-primary)]">₹ {totalReceivedFromCustomers.toLocaleString('en-IN')}</div>
         </div>
         {/* By Mode Breakdown */}
         <div className="erp-panel p-4 rounded-xl">
@@ -470,10 +470,10 @@ export const PaymentsModule: React.FC = () => {
          ══════════════════════════════════════════════ */}
       {activeTab === 'LIST' && (
         <div className={`erp-table-wrap rounded-2xl animate-slide-up ${isCompact ? 'table-compact' : ''}`}>
-          <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="px-6 py-4 bg-[var(--surface-bg)] border-b border-[var(--card-border)] flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
-              <h2 className="text-sm font-semibold text-[#0f172a]">Payment Register</h2>
-              <span className="text-xs bg-[#f1f5f9] text-[#0369a1] font-mono font-semibold px-2.5 py-0.5 rounded-full border border-[#e2e8f0]">{filteredPayments.length} entries</span>
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Payment Register</h2>
+              <span className="text-xs bg-[var(--surface-bg)] text-[var(--primary)] font-mono font-semibold px-2.5 py-0.5 rounded-full border border-[var(--card-border)]">{filteredPayments.length} entries</span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -558,7 +558,7 @@ export const PaymentsModule: React.FC = () => {
                   <th className="py-3 px-3">Mode</th>
                   <th className="py-3 px-3">Reference No.</th>
                   <th className="py-3 px-3">Notes / Remarks</th>
-                  <th className="py-3 px-4 text-center sticky right-0 bg-[#f8fafc] z-[3]">Actions</th>
+                  <th className="py-3 px-4 text-center sticky right-0 bg-[var(--table-header-bg)] z-[3]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -609,8 +609,8 @@ export const PaymentsModule: React.FC = () => {
                               {isSupplier ? <Users className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                             </div>
                             <div>
-                              <div className="font-semibold text-[#0f172a] text-sm truncate max-w-[200px]">{p.partyName}</div>
-                              <div className="text-[10px] text-[#94a3b8] font-medium">{isSupplier ? 'Supplier' : 'Customer'}</div>
+                              <div className="font-semibold text-[var(--text-primary)] text-sm truncate max-w-[200px]">{p.partyName}</div>
+                              <div className="text-[10px] text-[var(--text-muted)] font-medium">{isSupplier ? 'Supplier' : 'Customer'}</div>
                             </div>
                           </div>
                         </td>
@@ -631,18 +631,18 @@ export const PaymentsModule: React.FC = () => {
                         <td className="py-3.5 px-3">
                           <span className="text-[#64748b] text-xs truncate block max-w-[180px]">{p.notes || '—'}</span>
                         </td>
-                        <td className="py-3.5 px-4 text-center sticky right-0 bg-white z-[2] border-l border-[#edf2f7]">
+                        <td className="py-3.5 px-4 text-center sticky right-0 bg-[var(--card-bg)] z-[2] border-l border-[var(--table-border)]">
                           <div className="flex items-center justify-center space-x-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => setPreviewPayment(p)}
-                              className="p-2 text-[#64748b] hover:text-[#00aeef] hover:bg-[#f1f5f9] rounded-lg cursor-pointer transition-colors"
+                              className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-bg)] rounded-lg cursor-pointer transition-colors"
                               title="View Receipt"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeletePayment(p)}
-                              className="p-2 text-[#64748b] hover:text-rose-500 hover:bg-[#f1f5f9] rounded-lg cursor-pointer transition-colors"
+                              className="p-2 text-[var(--text-muted)] hover:text-rose-500 hover:bg-[var(--surface-bg)] rounded-lg cursor-pointer transition-colors"
                               title="Delete Payment"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -659,8 +659,8 @@ export const PaymentsModule: React.FC = () => {
 
           {/* Footer Summary */}
           {paymentsTable.totalRecords > 0 && (
-            <div className="px-6 py-3 bg-[#f8fafc] border-t border-[#edf2f7] flex items-center justify-between text-xs font-semibold">
-              <span className="text-[#64748b]">
+            <div className="px-6 py-3 bg-[var(--surface-bg)] border-t border-[var(--card-border)] flex items-center justify-between text-xs font-semibold">
+              <span className="text-[var(--text-muted)]">
                 Showing {paymentsTable.totalRecords} of {payments.length} payments
               </span>
               <div className="flex items-center space-x-4 font-mono">

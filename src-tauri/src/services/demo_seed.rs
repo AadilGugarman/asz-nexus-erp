@@ -880,7 +880,8 @@ fn insert_sales_invoices(
     for index in 0..spec.sales_invoices {
         let date = shift_date(start_date, spec.approx_history_days, index, 3, rng);
         let customer = &customers[rng.range_usize(0, customers.len())];
-        let items = take_sales_items(stock, rng, rng.range_usize(2, 5));
+        let item_count = rng.range_usize(2, 5);
+        let items = take_sales_items(stock, rng, item_count);
         let today_amount = round2(items.iter().map(|item| item.amount).sum());
         let previous_balance = *balances.get(&customer.id).unwrap_or(&0.0);
         let paid_amount = if index % 5 == 0 {

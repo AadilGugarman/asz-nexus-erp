@@ -44,7 +44,7 @@ const DEFAULT_APPEARANCE: AppearancePersistedState = {
   fontFamily: 'inter',
   fontSize: 'medium',
   density: 'comfortable',
-  accentColor: '#6366f1',
+  accentColor: '#00c896',
   language: DEFAULT_LANGUAGE,
   lowStockAlerts: true,
   animationsEnabled: true,

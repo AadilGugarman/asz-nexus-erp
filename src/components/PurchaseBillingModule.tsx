@@ -371,50 +371,39 @@ export const PurchaseBillingModule: React.FC = () => {
 
             {/* Advanced charges bar */}
             {showAdvancedDeductions && (
-              <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-950/60 dark:bg-slate-950/60 bg-slate-100 p-4 rounded-xl border border-slate-800 dark:border-slate-800 border-slate-200 text-xs">
+              <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[var(--surface-bg)] p-4 rounded-xl border border-[var(--surface-border)] text-xs">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">{t('purchase.form.freightLabel')}</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">{t('purchase.form.freightLabel')}</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-xs text-slate-500 font-mono">₹</span>
-                    <input
-                      type="number"
-                      value={freightInput === 0 ? '' : freightInput}
-                      placeholder={t('purchase.form.zeroPlaceholder')}
-                      onChange={(e) => setFreightInput(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-500 font-mono font-bold rounded-lg pl-7 pr-3 py-1.5 outline-none"
-                    />
+                    <span className="absolute left-3 top-2.5 text-xs text-[var(--text-muted)] font-mono">₹</span>
+                    <input type="number" value={freightInput === 0 ? '' : freightInput} placeholder={t('purchase.form.zeroPlaceholder')} onChange={(e) => setFreightInput(parseFloat(e.target.value) || 0)}
+                      className="erp-input w-full pl-7 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs" />
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">{t('purchase.form.addedToTotalHint')}</span>
+                  <span className="text-[10px] text-[var(--text-muted)] block mt-0.5">{t('purchase.form.addedToTotalHint')}</span>
                 </div>
-
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">{t('purchase.form.hamaliLabel')}</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">{t('purchase.form.hamaliLabel')}</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-xs text-slate-500 font-mono">₹</span>
-                    <input
-                      type="number"
-                      value={hamaliInput === 0 ? '' : hamaliInput}
-                      placeholder={t('purchase.form.zeroPlaceholder')}
-                      onChange={(e) => setHamaliInput(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700/80 dark:border-slate-700/80 border-slate-300 focus:border-emerald-500 text-emerald-500 font-mono font-bold rounded-lg pl-7 pr-3 py-1.5 outline-none"
-                    />
+                    <span className="absolute left-3 top-2.5 text-xs text-[var(--text-muted)] font-mono">₹</span>
+                    <input type="number" value={hamaliInput === 0 ? '' : hamaliInput} placeholder={t('purchase.form.zeroPlaceholder')} onChange={(e) => setHamaliInput(parseFloat(e.target.value) || 0)}
+                      className="erp-input w-full pl-7 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs" />
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">{t('purchase.form.addedToTotalHint')}</span>
+                  <span className="text-[10px] text-[var(--text-muted)] block mt-0.5">{t('purchase.form.addedToTotalHint')}</span>
                 </div>
               </div>
             )}
 
             {/* LIVE SUPPLIER BALANCE FORMULA BAR */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-[#f8fafc] p-4 rounded-xl border border-[#e2e8f0]">
-              <div className="p-3.5 bg-white rounded-xl border border-[#e2e8f0] shadow-sm">
-                <span className="text-[10px] text-[#64748b] uppercase font-semibold block tracking-wider">{t('purchase.newInvoice.previousOutstanding')}</span>
-                <span className="text-xl font-semibold font-mono text-[#0f172a] mt-1 block">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-[var(--surface-bg)] p-4 rounded-xl border border-[var(--surface-border)]">
+              <div className="p-3.5 bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] shadow-sm">
+                <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold block tracking-wider">{t('purchase.newInvoice.previousOutstanding')}</span>
+                <span className="text-xl font-semibold font-mono text-[var(--text-primary)] mt-1 block">
                   ₹ {previousBalance.toLocaleString('en-IN')}
                 </span>
               </div>
-              <div className="p-3.5 bg-[rgba(0,200,150,0.08)] rounded-xl border border-[rgba(0,200,150,0.25)] shadow-sm">
-                <span className="text-[10px] text-[#00c896] uppercase font-semibold block tracking-wider">+ {t('purchase.newInvoice.netTodayBill')}</span>
-                <span className="text-xl font-semibold font-mono text-[#00c896] mt-1 block">
+              <div className="p-3.5 bg-emerald-500/8 rounded-xl border border-emerald-500/20">
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-semibold block tracking-wider">+ {t('purchase.newInvoice.netTodayBill')}</span>
+                <span className="text-xl font-semibold font-mono text-emerald-600 dark:text-emerald-400 mt-1 block">
                   ₹ {todayAmount.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -427,7 +416,7 @@ export const PurchaseBillingModule: React.FC = () => {
                     value={paidAmountInput === 0 ? '' : paidAmountInput}
                     placeholder={t('purchase.form.zeroPlaceholder')}
                     onChange={(e) => setPaidAmountInput(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white border border-[#00aeef]/40 text-[#0369a1] font-mono font-semibold rounded-lg px-3 py-1 text-base outline-none focus:ring-2 focus:ring-[#00aeef]/20 transition-all"
+                    className="erp-input w-full text-sky-600 dark:text-sky-400 font-mono font-semibold text-base"
                   />
                 </div>
               </div>
@@ -442,17 +431,13 @@ export const PurchaseBillingModule: React.FC = () => {
 
           {/* MAIN BILLING TABLE */}
           <div className="erp-table-wrap rounded-2xl font-sans">
-            <div className="px-5 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between">
+            <div className="px-5 py-4 bg-[var(--surface-bg)] border-b border-[var(--card-border)] flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#00c896] animate-pulse"></div>
-                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#475569]">{t('purchase.newInvoice.purchasedItems')}</span>
-                <span className="text-xs bg-[#f1f5f9] text-[#475569] px-2 py-0.5 rounded-full font-mono font-semibold border border-[#e2e8f0]">{items.length} {t('purchase.newInvoice.activeItems')}</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--text-secondary)]">{t('purchase.newInvoice.purchasedItems')}</span>
+                <span className="text-xs bg-[var(--card-bg)] text-[var(--text-muted)] px-2 py-0.5 rounded-full font-mono font-semibold border border-[var(--card-border)]">{items.length} {t('purchase.newInvoice.activeItems')}</span>
               </div>
-              <button
-                type="button"
-                onClick={addItemRow}
-                className="erp-btn-primary flex items-center space-x-1 px-3 py-1.5 text-xs"
-              >
+              <button type="button" onClick={addItemRow} className="erp-btn-primary flex items-center space-x-1 px-3 py-1.5 text-xs">
                 <Plus className="w-3.5 h-3.5" />
                 <span>{t('purchase.newInvoice.addRow')}</span>
               </button>
@@ -585,11 +570,11 @@ export const PurchaseBillingModule: React.FC = () => {
                     </td>
                   </tr>
                   {(freight > 0 || hamali > 0) && (
-                    <tr className="bg-slate-900 dark:bg-slate-900 bg-white font-bold text-xs uppercase tracking-wider border-t border-slate-800 dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-900">
+                    <tr className="bg-[var(--surface-bg)] font-bold text-xs uppercase tracking-wider border-t border-[var(--table-border)] text-[var(--text-primary)]">
                       <td colSpan={5} className="py-3 px-4 text-right dark:text-slate-400 text-slate-600">
                         {freight > 0 ? `${t('purchase.footer.freightSummary', { amount: freight })} | ` : ''} {hamali > 0 ? t('purchase.footer.hamaliSummary', { amount: hamali }) : ''}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-emerald-500 font-black text-base bg-emerald-950/30">
+                      <td className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-black text-base bg-emerald-500/8">
                         ₹ {todayAmount.toLocaleString('en-IN')}
                       </td>
                       <td></td>
@@ -600,31 +585,14 @@ export const PurchaseBillingModule: React.FC = () => {
             </div>
 
             {/* Invoice Notes & Action */}
-            <div className="p-5 bg-[#f8fafc] border-t border-[#edf2f7] flex flex-col sm:flex-row items-center justify-between gap-5">
+            <div className="p-5 bg-[var(--surface-bg)] border-t border-[var(--card-border)] flex flex-col sm:flex-row items-center justify-between gap-5">
               <div className="flex items-center space-x-3 w-full sm:w-1/2">
-                <span className="text-xs dark:text-slate-400 text-slate-600 font-bold uppercase tracking-wider whitespace-nowrap">{t('purchase.form.notesLabel')}</span>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={t('purchase.form.notesPlaceholder')}
-                  className="erp-input w-full px-4 py-2 text-xs"
-                />
+                <span className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-wider whitespace-nowrap">{t('purchase.form.notesLabel')}</span>
+                <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('purchase.form.notesPlaceholder')} className="erp-input w-full px-4 py-2 text-xs" />
               </div>
-
               <div className="flex items-center space-x-3 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={handleResetForm}
-                  className="erp-btn-secondary px-6 py-3.5 text-xs"
-                >
-                  {t('purchase.actions.clearForm')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveInvoice}
-                  className="erp-btn-primary px-8 py-3.5 text-sm flex items-center justify-center space-x-2"
-                >
+                <button type="button" onClick={handleResetForm} className="erp-btn-secondary px-6 py-3.5 text-xs">{t('purchase.actions.clearForm')}</button>
+                <button type="button" onClick={handleSaveInvoice} className="erp-btn-primary px-8 py-3.5 text-sm flex items-center justify-center space-x-2">
                   <Save className="w-5 h-5 stroke-[2.5]" />
                   <span>{t('purchase.actions.completePurchase')}</span>
                 </button>
@@ -637,19 +605,15 @@ export const PurchaseBillingModule: React.FC = () => {
       {/* SUB-TAB 2: INVOICES LIST */}
       {activeSubTab === 'LIST' && (
         <div className={`erp-table-wrap rounded-2xl p-6 space-y-6 font-sans ${isCompact ? 'table-compact' : ''}`}>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[#edf2f7] pb-4">
-            <h2 className="text-base font-bold dark:text-white text-slate-900 flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[var(--card-border)] pb-4">
+            <h2 className="text-base font-bold text-[var(--text-primary)] flex items-center space-x-2">
               <span>{t('purchase.list.title')}</span>
-              <span className="text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-mono px-2.5 py-0.5 rounded font-bold">
+              <span className="text-xs bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono px-2.5 py-0.5 rounded font-bold">
                 {purchaseTable.totalRecords} {t('purchase.list.billsSynced')}
               </span>
             </h2>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')}
-                className="erp-btn-secondary px-3 py-2 text-xs"
-              >
+              <button type="button" onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')} className="erp-btn-secondary px-3 py-2 text-xs">
                 {density === 'compact' ? t('purchase.list.compact') : density === 'comfortable' ? t('purchase.list.comfortable') : t('purchase.list.spacious')}
               </button>
               <div className="relative w-full sm:w-72">
@@ -703,7 +667,7 @@ export const PurchaseBillingModule: React.FC = () => {
                       {t('purchase.list.finalBalance')} <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-4 text-center sticky right-0 bg-[#f8fafc] z-[3]">{t('purchase.list.actionsView')}</th>
+                  <th className="py-3.5 px-4 text-center sticky right-0 bg-[var(--table-header-bg)] z-[3]">{t('purchase.list.actionsView')}</th>
                 </tr>
               </thead>
               <tbody className="font-mono">
@@ -758,11 +722,11 @@ export const PurchaseBillingModule: React.FC = () => {
                         <td className="py-4 px-3 text-right font-black font-mono dark:text-slate-100 text-slate-950 text-sm">
                           ₹ {inv.remainingBalance.toLocaleString('en-IN')}
                         </td>
-                        <td className="py-4 px-4 text-center font-sans sticky right-0 bg-white z-[2] border-l border-[#edf2f7]">
+                        <td className="py-4 px-4 text-center font-sans sticky right-0 bg-[var(--card-bg)] z-[2] border-l border-[var(--table-border)]">
                           <div className="flex items-center justify-center space-x-1.5">
                             <button
                               onClick={() => setPreviewInvoice(inv)}
-                              className="px-3 py-1.5 bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 rounded-lg text-xs font-bold flex items-center space-x-1 transition-all shadow cursor-pointer"
+                              className="px-3 py-1.5 bg-[var(--surface-bg)] hover:bg-emerald-600 hover:text-white text-[var(--text-secondary)] rounded-lg text-xs font-bold flex items-center space-x-1 transition-all shadow cursor-pointer border border-[var(--card-border)]"
                               title={t('purchase.actions.viewBilla')}
                             >
                               <Eye className="w-3.5 h-3.5" />
