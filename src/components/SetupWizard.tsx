@@ -22,7 +22,7 @@ import {
   Image,
   X,
   Eye,
-  Languages,
+
 } from "lucide-react";
 
 interface SetupWizardProps {
@@ -37,7 +37,7 @@ type StepStatus =
 
 interface SetupWizardDraft {
   step: number;
-  lang: Lang;
+  
   logoPreview: string | null;
   companyName: string;
   legalName: string;
@@ -81,40 +81,33 @@ const panRegex = /^[A-Z]{5}\d{4}[A-Z]$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^\+?\d[\d\s\-]{8,14}$/;
 
-type Lang = "en" | "gu";
 
-const T: Record<string, Record<Lang, string>> = {
-  step1Title: {
-    en: "Company Details & Legal ID",
-    gu: "કંપની વિગતો અને કાનૂની ID",
-  },
-  step2Title: {
-    en: "Financial & Accounting Config",
-    gu: "નાણાકીય અને હિસાબ સેટઅપ",
-  },
-  step3Title: { en: "Review & Confirm Setup", gu: "સમીક્ષા અને પુષ્ટિ" },
-  companyName: { en: "Company / Firm Name", gu: "કંપની / પેઢીનું નામ" },
-  legalName: { en: "Legal Business Name", gu: "કાનૂની વ્યવસાય નામ" },
-  gstin: { en: "GSTIN Number", gu: "GSTIN નંબર" },
-  pan: { en: "PAN Number", gu: "PAN નંબર" },
-  address: { en: "Full Address", gu: "સરનામું" },
-  city: { en: "City", gu: "શહેર" },
-  state: { en: "State", gu: "રાજ્ય" },
-  pincode: { en: "Pincode", gu: "પિનકોડ" },
-  phone: { en: "Phone", gu: "ફોન" },
-  email: { en: "Email", gu: "ઈમેઈલ" },
-  next: { en: "Continue", gu: "આગળ વધો" },
-  back: { en: "Back", gu: "પાછા" },
-  finish: { en: "Launch Dashboard", gu: "ડેશબોર્ડ શરૂ કરો" },
-  required: { en: "Required", gu: "જરૂરી" },
-  fyStart: { en: "Financial Year Start", gu: "નાણાકીય વર્ષ શરૂ" },
-  fyEnd: { en: "Financial Year End", gu: "નાણાકીય વર્ષ અંત" },
-  currency: { en: "Currency", gu: "ચલણ" },
-  invoicePrefix: { en: "Invoice Prefix", gu: "ઈન્વૉઇસ ઉપસર્ગ" },
-  startingNo: { en: "Starting Number", gu: "શરૂઆતનો નંબર" },
-  autoApril: { en: "Auto Set April 1", gu: "એપ્રિલ 1 ઑટો સેટ" },
-  roundOff: { en: "Automatic Round-Off", gu: "ઑટો રાઉન્ડ-ઓફ" },
-  taxType: { en: "Tax Type", gu: "કર પ્રકાર" },
+const T: Record<string, string> = {
+  step1Title: "Company Details & Legal ID",
+  step2Title: "Financial & Accounting Config",
+  step3Title: "Review & Confirm Setup",
+  companyName: "Company / Firm Name",
+  legalName: "Legal Business Name",
+  gstin: "GSTIN Number",
+  pan: "PAN Number",
+  address: "Full Address",
+  city: "City",
+  state: "State",
+  pincode: "Pincode",
+  phone: "Phone",
+  email: "Email",
+  next: "Continue",
+  back: "Back",
+  finish: "Launch Dashboard",
+  required: "Required",
+  fyStart: "Financial Year Start",
+  fyEnd: "Financial Year End",
+  currency: "Currency",
+  invoicePrefix: "Invoice Prefix",
+  startingNo: "Starting Number",
+  autoApril: "Auto Set April 1",
+  roundOff: "Automatic Round-Off",
+  taxType: "Tax Type",
 };
 
 // ── Reusable Field ─────────────────────────────
@@ -241,10 +234,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const { settings, updateSettings, theme } = useApp();
   const draft = useMemo(() => loadOnboardingDraft(), []);
   const [step, setStep] = useState(() => clampStep(draft?.step ?? 1));
-  const [lang, setLang] = useState<Lang>(() =>
-    draft?.lang === "gu" ? "gu" : "en",
-  );
-  const t = (key: string) => T[key]?.[lang] || T[key]?.en || key;
+     const t = (key: string) => T[key] || key;
 
   // Logo
   const [logoPreview, setLogoPreview] = useState<string | null>(
@@ -254,11 +244,22 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
 
   // Step 1 state
   const [companyName, setCompanyName] = useState(
-    draft?.companyName ?? (settings.company.name || ""),
+     draft?.companyName ?? (settings.company?.name || ""),
   );
   const [legalName, setLegalName] = useState(
     draft?.legalName ?? (settings.company.tagline || ""),
   );
+
+   // Auto-sync Legal Name with Firm Name if it hasn't been manually edited
+  const handleCompanyNameChange = (val: string) => {
+    const oldName = companyName;
+    setCompanyName(val);
+
+    // If Legal Name is empty or was exactly matching the old Firm Name, sync it
+    if (!legalName || legalName === oldName) {
+      setLegalName(val);
+    }
+  };
   const [gstin, setGstin] = useState(
     draft?.gstin ?? (settings.company.gstin || ""),
   );
@@ -453,7 +454,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   useEffect(() => {
     const draftPayload: SetupWizardDraft = {
       step,
-      lang,
+
       logoPreview,
       companyName,
       legalName,
@@ -478,7 +479,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draftPayload));
   }, [
     step,
-    lang,
+  
     logoPreview,
     companyName,
     legalName,
@@ -620,20 +621,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             can be changed later in Settings.
           </p>
 
-          {/* Language Toggle */}
-          <div className="flex items-center justify-center mt-3 space-x-1">
-            <Languages className="w-3.5 h-3.5 dark:text-slate-500 text-slate-400" />
-            {(["en", "gu"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${lang === l ? "bg-indigo-500 text-white" : "dark:text-slate-400 text-slate-500 dark:hover:bg-slate-800 hover:bg-slate-200"}`}
-              >
-                {l === "en" ? "English" : "ગુજરાતી"}
-              </button>
-            ))}
-          </div>
-        </div>
+        
 
         {/* ── Step Indicator ──────────────────────── */}
         <div className="flex items-center justify-center mb-4 space-x-2">
@@ -764,7 +752,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                     id="companyName"
                     label={t("companyName")}
                     value={companyName}
-                    onChange={setCompanyName}
+                      onChange={handleCompanyNameChange}
                     markTouched={markTouched}
                     touched={touched}
                     placeholder="e.g. Talha Fruit Co."

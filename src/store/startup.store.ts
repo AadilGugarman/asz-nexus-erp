@@ -74,22 +74,24 @@ export const useStartupStore = create<StartupState>()((set, get) => ({
 
     set({ message: "Syncing application state..." });
 
-    // Run independent restoration tasks in parallel
+      // 1. First, load settings (this is the foundation for everything else)
+    try {
+      await useSettingsStore.getState().loadFromDb();
+      logStartup("Settings restored");
+    } catch (e) {
+      console.warn("[Startup] Settings load failed:", e);
+    }
+
+    // 2. Now run other restoration tasks that might depend on settings
+    try {
     try {
       await Promise.all([
-        (async () => {
-          try {
-            await useSettingsStore.getState().loadFromDb();
-            logStartup("Settings restored from database");
-          } catch (e) {
-            console.warn("[Startup] Settings load failed:", e);
-          }
-        })(),
+      
         (async () => {
           try {
             useCompanyStore.getState().bootstrap();
             await useCompanyStore.getState().bootstrapFromDb();
-            logStartup("Company state restored from database");
+                     logStartup("Company state restored");
           } catch (e) {
             console.warn("[Startup] Company bootstrap failed:", e);
           }

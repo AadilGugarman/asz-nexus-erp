@@ -649,7 +649,7 @@ export const ReportsModule: React.FC = () => {
         <div className="space-y-5 animate-slide-up">
           <div className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-lg">
             <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-sm font-bold dark:text-white text-slate-900 uppercase tracking-wider">
-              <Banknote className="w-5 h-5 text-amber-500" /><span>Trading Profit & Loss Statement — {settings.company.name}</span>
+             <Banknote className="w-5 h-5 text-amber-500" /><span>Trading Profit & Loss Statement — {settings.company?.name || 'TFC ERP'}</span>
             </div>
             <div className="p-6">
               <table className="erp-table w-full text-sm">

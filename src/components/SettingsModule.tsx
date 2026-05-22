@@ -513,28 +513,7 @@ export const SettingsModule: React.FC = () => {
     },
   ];
 
-  const languageOptions: Array<{
-    id: AppLanguage;
-    flag: string;
-    label: string;
-    desc: string;
-  }> = React.useMemo(
-    () => [
-      {
-        id: "en",
-        flag: "🇬🇧",
-        label: tCommon("language.english"),
-        desc: t("appearance.languageRegion.englishDescription"),
-      },
-      {
-        id: "gu",
-        flag: "🇮🇳",
-        label: tCommon("language.gujarati"),
-        desc: t("appearance.languageRegion.gujaratiDescription"),
-      },
-    ],
-    [t, tCommon],
-  );
+ 
 
   // ── Input helper ──
   const Inp = ({
@@ -829,7 +808,8 @@ export const SettingsModule: React.FC = () => {
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {companies.map((c) => {
                     const isActive = c.id === activeCompanyId;
-                    const initials = getCompanyInitials(c.company.name);
+                    const coName = c.company?.name || "Unnamed Company";
+                    const initials = getCompanyInitials(coName);
                     return (
                       <div
                         key={c.id}
@@ -844,7 +824,7 @@ export const SettingsModule: React.FC = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
                               <span className="text-sm font-bold dark:text-white text-slate-900 truncate">
-                                {c.company.name}
+                            {coName}
                               </span>
                               {isActive && (
                                 <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono shrink-0">
@@ -853,22 +833,23 @@ export const SettingsModule: React.FC = () => {
                               )}
                             </div>
                             <div className="text-[11px] dark:text-slate-400 text-slate-500 truncate mt-0.5 font-medium">
-                              {c.company.tagline}
+                             {c.company?.tagline || ""}
                             </div>
                             <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-[10px] dark:text-slate-500 text-slate-400 font-medium">
-                              {c.company.phone && (
+                              {c.company?.phone && (
                                 <span className="flex items-center space-x-1">
                                   <Phone className="w-3 h-3" />
                                   <span>{c.company.phone}</span>
                                 </span>
                               )}
-                              {c.company.gstin && (
+                               {c.company?.gstin && (
                                 <span className="font-mono font-bold">
                                   GSTIN: {c.company.gstin}
                                 </span>
                               )}
                             </div>
-                            {c.company.address && (
+                            
+                            {c.company?.address && (
                               <div className="flex items-center space-x-1 mt-1 text-[10px] dark:text-slate-500 text-slate-400">
                                 <MapPin className="w-3 h-3 shrink-0" />
                                 <span className="truncate">
@@ -2661,41 +2642,7 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* 3. Language & Region */}
-              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                  <Settings className="w-4 h-4 text-cyan-500" />
-                  <span className="text-sm font-bold dark:text-white text-slate-900">
-                    {t("appearance.languageRegion.title")}
-                  </span>
-                </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-2 gap-3">
-                    {languageOptions.map((l) => (
-                      <button
-                        key={l.id}
-                        onClick={() => setLanguage(l.id as "en" | "gu")}
-                        className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${language === l.id ? "border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-md" : "dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300"}`}
-                      >
-                        <span className="text-2xl">{l.flag}</span>
-                        <div className="text-left">
-                          <div className="text-xs font-bold dark:text-white text-slate-900">
-                            {l.label}
-                          </div>
-                          <div className="text-[10px] dark:text-slate-400 text-slate-500">
-                            {l.desc}
-                          </div>
-                        </div>
-                        {language === l.id && (
-                          <Check className="w-4 h-4 text-cyan-500 ml-auto shrink-0" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Typography */}
+              {/* 3. Typography */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
                   <FileText className="w-4 h-4 text-cyan-500" />

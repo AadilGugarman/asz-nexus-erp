@@ -8,14 +8,15 @@
  *   await repo.set('company', { name: 'TFC', ... });
  */
 
-import { eq } from 'drizzle-orm';
-import { appSettings } from '../schema/settings';
-import type { DrizzleDb } from '../client';
+import { eq } from "drizzle-orm";
+import { appSettings } from "../schema/settings";
+import type { DrizzleDb } from "../client";
 
 export class SettingsRepository {
   constructor(private readonly db: DrizzleDb) {}
 
   async get<T>(key: string): Promise<T | null> {
+     if (!this.db) return null;
     const rows = await this.db
       .select()
       .from(appSettings)
@@ -32,6 +33,7 @@ export class SettingsRepository {
   }
 
   async set<T>(key: string, value: T): Promise<void> {
+        if (!this.db) return;
     const serialized = JSON.stringify(value);
 
     // Upsert — insert or replace on conflict

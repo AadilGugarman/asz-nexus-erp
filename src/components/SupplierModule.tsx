@@ -75,7 +75,7 @@ export const SupplierModule: React.FC = () => {
     };
 
     addPayment(newPayment);
-    toast.success('Payment Recorded', `₹${Number(payAmount).toLocaleString('en-IN')} paid to ${selectedSupplier.name}. Supplier ledger updated.`);
+      toast.success('Payment Recorded', `₹${Number(payAmount).toLocaleString('en-IN')} paid to ${selectedSupplier?.name || 'supplier'}. Supplier ledger updated.`);
     setShowPaymentModal(false);
     setPayAmount(0);
     setPayRefNo('');

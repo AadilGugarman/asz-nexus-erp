@@ -55,6 +55,7 @@ export class BaseRepository<
   // ── findById ───────────────────────────────────────────────────────────────
 
   async findById(id: string): Promise<TSelect | null> {
+    if (!this.db) return null;
     const rows = await (this.db as any)
       .select()
       .from(this.table)
@@ -66,6 +67,7 @@ export class BaseRepository<
   // ── findAll ────────────────────────────────────────────────────────────────
 
   async findAll(where?: SQL): Promise<TSelect[]> {
+    if (!this.db) return [];
     const q = (this.db as any).select().from(this.table);
     if (where) q.where(where);
     return q as Promise<TSelect[]>;
@@ -79,6 +81,9 @@ export class BaseRepository<
     orderBy?: SQL,
   ): Promise<PagedResult<TSelect>> {
     const { page, limit, offset } = buildPagination(pagination);
+    if (!this.db) {
+      return { items: [], total: 0, page, limit, totalPages: 1 };
+    }
 
     // Count query
     const countQ = (this.db as any).select({ count: count() }).from(this.table);

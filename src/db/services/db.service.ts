@@ -88,6 +88,7 @@ class DbService {
         console.warn(`[DbService] Repository '${name}' accessed but not initialized. Returning dummy.`);
         return {} as T; // Return empty object to prevent crash in dev
       }
+       // If we are in production and this happens, it's a fatal setup error
       throw new Error(
         `[DbService] Repository '${name}' not initialised. ` +
           "Call dbService.init() before using repositories.",

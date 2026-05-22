@@ -12,6 +12,7 @@
  */
 
 import { create } from "zustand";
+import { APP_CONFIG } from "@/config";
 import type { AppSettings, CompanyProfile } from "@/types";
 
 // ── SQLite keys (stored in app_settings table) ────────────────────────────────
@@ -150,6 +151,39 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   // ── loadFromDb ──────────────────────────────────────────────────────────────
   loadFromDb: async () => {
+       // 1. Fallback for Browser Mode (non-Tauri)
+    const isTauri = !!(window as any).__TAURI_INTERNALS__;
+    if (!isTauri) {
+      const saved = localStorage.getItem(DB_KEY_SETTINGS);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          const companiesSaved = localStorage.getItem(DB_KEY_COMPANIES);
+          const activeIdSaved = localStorage.getItem(DB_KEY_ACTIVE_COMPANY);
+          const activeFYSaved = localStorage.getItem(DB_KEY_ACTIVE_FY);
+
+          const nextSettings = mergeSettings(parsed);
+         const nextCompanies = companiesSaved
+            ? JSON.parse(companiesSaved)
+            : [];
+          const nextActiveId = activeIdSaved || (nextCompanies[0]?.id ?? null);
+         const nextActiveFY =
+            activeFYSaved || deriveDefaultActiveFY(nextSettings);
+
+          set({
+            settings: nextSettings,
+            companies: nextCompanies,
+            activeCompanyId: nextActiveId,
+            activeFY: nextActiveFY,
+            isLoaded: true,
+          });
+          return;
+        } catch (e) {
+          console.warn("[SettingsStore] Browser restore failed:", e);
+        }
+      }
+    }
+
     const { dbService } = await import("@/db/services");
     if (!dbService.isReady) {
       if (import.meta.env.DEV)
@@ -332,6 +366,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   // ── _persistToDb ─────────────────────────────────────────────────────────────
   _persistToDb: async (settings, companies, activeId, activeFY) => {
+      // 1. Fallback for Browser Mode (non-Tauri)
+    const isTauri = !!(window as any).__TAURI_INTERNALS__;
+    if (!isTauri) {
+      localStorage.setItem(DB_KEY_SETTINGS, JSON.stringify(settings));
+      localStorage.setItem(DB_KEY_COMPANIES, JSON.stringify(companies));
+      localStorage.setItem(DB_KEY_ACTIVE_COMPANY, activeId || "");
+      localStorage.setItem(DB_KEY_ACTIVE_FY, activeFY || "");
+    }
     try {
       const { dbService } = await import("@/db/services");
       if (!dbService.isReady) {

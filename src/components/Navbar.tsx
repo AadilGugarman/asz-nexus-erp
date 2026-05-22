@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { t } = useAppTranslation("navbar");
   const { settings } = useApp();
-  const coName = settings.company.name;
+  const coName = settings.company?.name || "TFC ERP";
   const initials = getCompanyInitials(coName);
 
   const [mobileOpen, setMobileOpen] = useState(false);

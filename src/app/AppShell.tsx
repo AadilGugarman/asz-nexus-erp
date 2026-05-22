@@ -23,7 +23,7 @@ import { usePreload } from '@/hooks/usePreload';
 import { TitleBar }   from '@/components/window/TitleBar';
 import { Navbar }     from '@/components/Navbar';
 import { TopFilterBar } from '@/components/TopFilterBar';
-
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 // â”€â”€ Lazy module imports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Each import() call becomes a separate Rollup chunk.
 // The chunk is only fetched when the user first visits that tab.
@@ -187,10 +187,12 @@ export const AppShell: React.FC = () => {
         }`}
       >
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-          <TabContent
-            activeTab={activeTab}
-            setActiveTab={handleSetActiveTab}
-          />
+          <ErrorBoundary>
+            <TabContent
+              activeTab={activeTab}
+              setActiveTab={handleSetActiveTab}
+            />
+          </ErrorBoundary>
         </main>
       </div>
 

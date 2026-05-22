@@ -200,7 +200,7 @@ export const SalesBillingModule: React.FC = () => {
                 </button>
                 <div className="flex items-center space-x-2 flex-1 sm:flex-initial min-w-0">
                   <label className={`text-[11px] font-bold uppercase tracking-wider ${labelText} whitespace-nowrap`}>{t('sales.newInvoice.buyer')}</label>
-                  <Combobox value={selectedCustomer.name} onChange={val => { const m = customers.find(c => c.name === val) || customers[0]; if (m) setSelectedCustomerId(m.id); }} options={customers.map(c => c.name)} placeholder={t('sales.form.selectCustomerPlaceholder')} searchPlaceholder={t('sales.form.searchCustomerPlaceholder')} creatable={false} />
+                 <Combobox value={selectedCustomer?.name || ''} onChange={val => { const m = customers.find(c => c.name === val) || customers[0]; if (m) setSelectedCustomerId(m.id); }} options={customers.map(c => c.name)} placeholder={t('sales.form.selectCustomerPlaceholder')} searchPlaceholder={t('sales.form.searchCustomerPlaceholder')} creatable={false} />
                 </div>
               </div>
             </div>

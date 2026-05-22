@@ -81,7 +81,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
     const blob = new Blob([getExportData()], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
-    a.download = `${settings.company.name.replace(/\s+/g, '-').toLowerCase()}-backup-${today}.json`;
+     const coName = settings.company?.name || 'tfc-erp';
+    a.download = `${coName.replace(/\s+/g, '-').toLowerCase()}-backup-${today}.json`;
     a.click(); URL.revokeObjectURL(url);
     toast.success(t('toasts.backupExported.title'), t('toasts.backupExported.description'));
   };
@@ -143,7 +144,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               <div>
                 <p className="text-sm dark:text-slate-300 text-slate-600 font-semibold">{greeting}!</p>
                 <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight mt-1">
-                  {settings.company.name}
+     {settings.company?.name || 'TFC ERP'}
                 </h1>
               </div>
 

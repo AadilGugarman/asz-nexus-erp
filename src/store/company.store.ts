@@ -34,7 +34,7 @@ export const useCompanyStore = create<CompanyState>()((set, get) => ({
   bootstrap: () => {
     const settings = useSettingsStore.getState();
     const hasCompany =
-      readCompaniesCount() > 0 || !!settings.settings.company.name;
+      readCompaniesCount() > 0 || !!settings.settings.company?.name;
     if (import.meta.env.DEV) {
       console.info("[CompanyStore] bootstrap local state:", {
         hasCompany,
@@ -57,7 +57,7 @@ export const useCompanyStore = create<CompanyState>()((set, get) => ({
       const settingsState = useSettingsStore.getState();
       let hasDbCompany =
         settingsState.companies.length > 0 ||
-        !!settingsState.settings.company.name;
+       !!settingsState.settings.company?.name;
       let persistedCompanies: CompanyProfile[] | undefined;
       let activeCompanyId = settingsState.activeCompanyId;
 

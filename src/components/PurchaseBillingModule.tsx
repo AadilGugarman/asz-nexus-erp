@@ -199,7 +199,7 @@ export const PurchaseBillingModule: React.FC = () => {
       billNo,
       date,
       supplierId: selectedSupplier.id,
-      supplierName: selectedSupplier.name,
+      supplierName: selectedSupplier?.name || 'Unknown',
       previousBalance,
       todayAmount,
       freight,
@@ -217,7 +217,7 @@ export const PurchaseBillingModule: React.FC = () => {
       t('purchase.toasts.billSaved.description', {
         billNo,
         amount: todayAmount.toLocaleString('en-IN'),
-        supplier: selectedSupplier.name,
+         supplierName: selectedSupplier?.name || 'Unknown',
       })
     );
     setTimeout(() => {
@@ -353,7 +353,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 <div className="flex items-center space-x-2 flex-1 sm:flex-initial">
                   <label className="text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 whitespace-nowrap">{t('purchase.newInvoice.supplierOrchard')}</label>
                   <Combobox
-                    value={selectedSupplier.name}
+                    value={selectedSupplier?.name || ''}
                     onChange={(val) => {
                       const matched = suppliers.find(s => s.name === val) || suppliers[0];
                       if (matched) setSelectedSupplierId(matched.id);

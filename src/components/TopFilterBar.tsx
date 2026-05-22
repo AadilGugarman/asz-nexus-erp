@@ -1,15 +1,25 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { useApp } from '../context/AppContext';
-import { useToast } from './ui/Toast';
-import { Building2, CalendarRange, Check, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { useApp } from "../context/AppContext";
+import { useToast } from "./ui/Toast";
+import { Building2, CalendarRange, Check, ChevronDown } from "lucide-react";
+
 
 export const TopFilterBar: React.FC = () => {
-  const { settings, activeFY, setActiveFY, fyOptions, companies, activeCompanyId, switchCompany } = useApp();
+  const {
+    settings,
+    activeFY,
+    setActiveFY,
+    fyOptions,
+    companies,
+    activeCompanyId,
+    switchCompany,
+  } = useApp();
   const toast = useToast();
 
-  const activeCompany = companies.find(c => c.id === activeCompanyId);
-  const coName = activeCompany?.company.name || settings.company.name;
+   const activeCompany = companies.find((c) => c.id === activeCompanyId);
+  const coName =
+    activeCompany?.company?.name || settings.company?.name || "My Company";
 
   // Pending selections (not applied yet)
   const [pendingFY, setPendingFY] = useState(activeFY);
@@ -64,14 +74,14 @@ export const TopFilterBar: React.FC = () => {
   const handleApply = () => {
     if (pendingCompanyId !== activeCompanyId) switchCompany(pendingCompanyId);
     if (pendingFY !== activeFY) setActiveFY(pendingFY);
-    const newCoName = companies.find(c => c.id === pendingCompanyId)?.company.name || coName;
+     const newCoName = companies.find(c => c.id === pendingCompanyId)?.company?.name || coName;
     toast.success('Filters Applied', `${newCoName} — FY ${fyLabel(pendingFY)}`);
     setCompanyOpen(false);
     setFyOpen(false);
   };
 
   const fyLabel = (fy: string) => `FY ${fy.split('-')[0]}-${fy.split('-')[1]}`;
-  const pendingCoName = companies.find(c => c.id === pendingCompanyId)?.company.name || coName;
+  const pendingCoName = companies.find(c => c.id === pendingCompanyId)?.company?.name || coName;
 
   return (
     <div className="dark:bg-[var(--card-bg)] bg-white/95 backdrop-blur-xl dark:border-[var(--card-border)] border border-[#dde3ec] rounded-2xl shadow-[0_4px_16px_rgba(10,20,40,0.07)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)] px-4 py-2.5 flex items-center justify-between gap-3 no-print mb-6 relative z-30">

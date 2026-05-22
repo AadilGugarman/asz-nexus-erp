@@ -46,9 +46,9 @@ interface AppearanceState extends AppearancePersistedState {
 const DEFAULT_APPEARANCE: AppearancePersistedState = {
   themePreference: "system",
   fontFamily: "inter",
-  fontSize: "medium",
+  fontSize: "large",
   density: "comfortable",
-  accentColor: "#00c896",
+   accentColor: "#fbbf24", // Mango / Amber 400
   language: DEFAULT_LANGUAGE,
   lowStockAlerts: true,
   animationsEnabled: true,

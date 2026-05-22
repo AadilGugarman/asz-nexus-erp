@@ -68,7 +68,7 @@ export const CustomerModule: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       partyType: 'CUSTOMER',
       partyId: selectedCustomer.id,
-      partyName: selectedCustomer.name,
+       partyName: selectedCustomer?.name || 'Unknown',
       amount: Number(payAmount),
       paymentMode: payMode,
       referenceNo: payRefNo,
@@ -76,7 +76,7 @@ export const CustomerModule: React.FC = () => {
     };
 
     addPayment(newPayment);
-    toast.success('Payment Received', `₹${Number(payAmount).toLocaleString('en-IN')} received from ${selectedCustomer.name}. Customer balance updated.`);
+    toast.success('Payment Received', `₹${Number(payAmount).toLocaleString('en-IN')} received from ${selectedCustomer?.name || 'customer'}. Customer balance updated.`);
     setShowPaymentModal(false);
     setPayAmount(0);
     setPayRefNo('');
