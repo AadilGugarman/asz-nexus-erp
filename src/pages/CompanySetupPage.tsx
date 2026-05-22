@@ -7,21 +7,23 @@
  * localStorage on completion, then redirects to the dashboard.
  */
 
-import React, { Suspense, lazy } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '@/config';
-import { useCompanyStore } from '@/store';
+import React, { Suspense, lazy } from "react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/config";
+import { useCompanyStore, useSettingsStore } from "@/store";
 
 const SetupWizard = lazy(() =>
-  import('@/components/SetupWizard').then((m) => ({ default: m.SetupWizard })),
+  import("@/components/SetupWizard").then((m) => ({ default: m.SetupWizard })),
 );
 
 export const CompanySetupPage: React.FC = () => {
   const navigate = useNavigate();
   const markCompanyCreated = useCompanyStore((s) => s.markCompanyCreated);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     markCompanyCreated();
+    await updateSettings({ setupCompleted: true });
     navigate(ROUTES.dashboard, { replace: true });
   };
 

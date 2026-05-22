@@ -47,3 +47,16 @@ export default Database;
 // ── @tauri-apps/plugin-dialog ─────────────────────────────────────────────────
 export async function save(_opts?: unknown): Promise<string | null> { return null; }
 export async function open(_opts?: unknown): Promise<string | string[] | null> { return null; }
+
+// ── @tauri-apps/api/window ───────────────────────────────────────────────────
+export function getCurrentWindow() {
+  return {
+    show: async () => { console.warn('[tauri-mock] window.show() called'); },
+    setFocus: async () => { console.warn('[tauri-mock] window.setFocus() called'); },
+    hide: async () => { console.warn('[tauri-mock] window.hide() called'); },
+    minimize: async () => {},
+    maximize: async () => {},
+    unmaximize: async () => {},
+    close: async () => {},
+  };
+}

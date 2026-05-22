@@ -10,18 +10,27 @@
  * disabled in production (halves the number of renders on mount).
  */
 
-import './index.css';
+import "./index.css";
 
-import { createRoot } from 'react-dom/client';
-import { StrictMode }  from 'react';
-import App             from './App';
-import { startup }     from './services/startup';
-import { perf }        from './lib/perf';
-import { initAppearanceSystem } from './store/appearance.store';
-import { useStartupStore } from './store/startup.store';
-import { applyDesktopLanguagePreference, initI18n, initI18nLanguageSync } from './i18n';
+import { createRoot } from "react-dom/client";
+import { StrictMode } from "react";
+import App from "./App";
+import { startup } from "./services/startup";
+import { perf } from "./lib/perf";
+import { runStorageMigration } from "./lib/storage.migration";
+import { initAppearanceSystem } from "./store/appearance.store";
+import { useStartupStore } from "./store/startup.store";
+import {
+  applyDesktopLanguagePreference,
+  initI18n,
+  initI18nLanguageSync,
+} from "./i18n";
 
-perf.mark('script-start');
+perf.mark("script-start");
+
+// Migrate storage from apex_* to tfc_erp_* namespace before any other initialization
+const migrationStats = runStorageMigration();
+console.info("[Init] Storage migration:", migrationStats);
 
 // Apply persisted/system appearance settings before first render.
 initAppearanceSystem();
@@ -32,23 +41,31 @@ void applyDesktopLanguagePreference();
 // Launch background tasks immediately — they run while React is mounting
 void useStartupStore.getState().initialize();
 
-const root = document.getElementById('root');
-if (!root) throw new Error('Root element #root not found');
+const root = document.getElementById("root");
+if (!root) throw new Error("Root element #root not found");
 
-const app = (
-  import.meta.env.DEV
-    ? <StrictMode><App /></StrictMode>
-    : <App />
+const app = import.meta.env.DEV ? (
+  <StrictMode>
+    <App />
+  </StrictMode>
+) : (
+  <App />
 );
 
-perf.mark('before-render');
+perf.mark("before-render");
 
 createRoot(root).render(app);
 
 // After React commits the first frame, show the window and schedule preloads
 requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    startup.afterFirstPaint();
-    perf.mark('after-first-paint');
-  });
+  // Remove the initial HTML loader
+  const loader = document.getElementById("initial-loader");
+  if (loader) {
+    loader.style.opacity = "0";
+    setTimeout(() => loader.remove(), 300);
+  }
+
+  // Show the window immediately on the first paint
+  startup.afterFirstPaint();
+  perf.mark("after-first-paint");
 });

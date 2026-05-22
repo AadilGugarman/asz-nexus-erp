@@ -14,26 +14,33 @@
  * The hook is safe to call in multiple components — init() is idempotent.
  */
 
-import { useState, useEffect } from 'react';
-import { dbService } from '@/db/services';
+import { useState, useEffect } from "react";
+import { dbService } from "@/db/services";
 
 export function useDb() {
   const [ready, setReady] = useState(dbService.isReady);
+  const [initialized, setInitialized] = useState(dbService.isReady);
 
   useEffect(() => {
     if (dbService.isReady) {
       setReady(true);
+      setInitialized(true);
       return;
     }
 
     let cancelled = false;
 
     dbService.init().then((ok) => {
-      if (!cancelled) setReady(ok);
+      if (!cancelled) {
+        setReady(ok);
+        setInitialized(true);
+      }
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  return { db: dbService, ready };
+  return { db: dbService, ready, initialized };
 }

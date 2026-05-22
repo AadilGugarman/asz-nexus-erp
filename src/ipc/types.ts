@@ -36,14 +36,14 @@ export interface IpcError {
 
 /** All possible error codes returned by the backend. */
 export type IpcErrorCode =
-  | 'NOT_FOUND'
-  | 'VALIDATION_ERROR'
-  | 'IO_ERROR'
-  | 'SERIALIZATION_ERROR'
-  | 'DATABASE_ERROR'
-  | 'PERMISSION_DENIED'
-  | 'INTERNAL_ERROR'
-  | 'UNKNOWN_ERROR';
+  | "NOT_FOUND"
+  | "VALIDATION_ERROR"
+  | "IO_ERROR"
+  | "SERIALIZATION_ERROR"
+  | "DATABASE_ERROR"
+  | "PERMISSION_DENIED"
+  | "INTERNAL_ERROR"
+  | "UNKNOWN_ERROR";
 
 // ── App domain types ──────────────────────────────────────────────────────────
 
@@ -80,25 +80,40 @@ export interface RefreshRequest {
 
 export interface ChangePasswordRequest {
   current_password: string;
-  new_password:     string;
+  new_password: string;
 }
 
 export interface AuthTokenResponse {
-  access_token:       string;
-  refresh_token:      string;
-  access_expires_at:  number;
+  access_token: string;
+  refresh_token: string;
+  access_expires_at: number;
   refresh_expires_at: number;
-  user_id:            string;
-  role:               string;
+  user_id: string;
+  role: string;
+}
+
+export interface LockConfigRequest {
+  pin_enabled: boolean;
+  app_pin: string | null;
+  auto_lock_minutes: number;
+}
+
+export interface LockConfigResponse {
+  pin_enabled: boolean;
+  auto_lock_minutes: number;
+}
+
+export interface VerifyPinRequest {
+  pin: string;
 }
 
 export interface SessionStatus {
   authenticated: boolean;
-  setup_done:    boolean;
-  user_id:       string | null;
-  role:          string | null;
+  setup_done: boolean;
+  user_id: string | null;
+  role: string | null;
   /** Seconds until access token expires. Negative = already expired. */
-  expires_in:    number;
+  expires_in: number;
 }
 
 // ── Database domain types ─────────────────────────────────────────────────────
@@ -114,7 +129,7 @@ export interface DbStats {
   employees: EmployeeStats;
 }
 
-export type SeedProfileKey = 'lightweight' | 'medium' | 'heavy';
+export type SeedProfileKey = "lightweight" | "medium" | "heavy";
 
 export interface SeedTableCounts {
   fruits: number;
@@ -166,57 +181,56 @@ export interface DbSeedExecutionResult {
 
 // ── Employee domain types ─────────────────────────────────────────────────────
 
-  // ── Backup domain types ───────────────────────────────────────────────────────
+// ── Backup domain types ───────────────────────────────────────────────────────
 
-  /** Metadata for a single backup file on disk. */
-  export interface BackupEntry {
-    /** Filename without the .db extension — used as the unique ID. */
-    id: string;
-    /** Bare filename, e.g. "backup_Manual_20260521_143022_123.db". */
-    filename: string;
-    /** Human-readable label: "Manual" | "Auto" | "PreRestore". */
-    label: string;
-    /** Raw byte size of the backup file. */
-    size_bytes: number;
-    /** Human-readable size string, e.g. "2.4 MB". */
-    size_display: string;
-    /** ISO-8601 UTC timestamp when the file was last modified. */
-    created_at: string;
-    /** Absolute path — for display/reference only. */
-    path: string;
-    /** Whether `PRAGMA quick_check` passed. */
-    is_valid: boolean;
-  }
+/** Metadata for a single backup file on disk. */
+export interface BackupEntry {
+  /** Filename without the .db extension — used as the unique ID. */
+  id: string;
+  /** Bare filename, e.g. "backup_Manual_20260521_143022_123.db". */
+  filename: string;
+  /** Human-readable label: "Manual" | "Auto" | "PreRestore". */
+  label: string;
+  /** Raw byte size of the backup file. */
+  size_bytes: number;
+  /** Human-readable size string, e.g. "2.4 MB". */
+  size_display: string;
+  /** ISO-8601 UTC timestamp when the file was last modified. */
+  created_at: string;
+  /** Absolute path — for display/reference only. */
+  path: string;
+  /** Whether `PRAGMA quick_check` passed. */
+  is_valid: boolean;
+}
 
-  export interface BackupCreateRequest {
-    label?: string;
-    retain?: number;
-  }
+export interface BackupCreateRequest {
+  label?: string;
+  retain?: number;
+}
 
-  export interface BackupDeleteRequest {
-    filename: string;
-  }
+export interface BackupDeleteRequest {
+  filename: string;
+}
 
-  export interface BackupValidateRequest {
-    filename: string;
-  }
+export interface BackupValidateRequest {
+  filename: string;
+}
 
-  export interface BackupRestoreRequest {
-    filename: string;
-  }
+export interface BackupRestoreRequest {
+  filename: string;
+}
 
-  export interface BackupPruneRequest {
-    keep: number;
-  }
+export interface BackupPruneRequest {
+  keep: number;
+}
 
-  export interface RestoreResult {
-    success: boolean;
-    rollback_filename: string | null;
-    message: string;
-  }
+export interface RestoreResult {
+  success: boolean;
+  rollback_filename: string | null;
+  message: string;
+}
 
-
-export type EmployeeRole = 'admin' | 'manager' | 'staff';
+export type EmployeeRole = "admin" | "manager" | "staff";
 
 export interface Employee {
   id: string;
@@ -356,317 +370,317 @@ export interface TaskErrorPayload {
 
 export interface DataChangedPayload {
   domain: string;
-  action: 'created' | 'updated' | 'deleted';
+  action: "created" | "updated" | "deleted";
   id: string | null;
 }
 
 // ── Supplier domain types ─────────────────────────────────────────────────────
 
 export interface Supplier {
-  id:               string;
-  name:             string;
-  code:             string;
-  phone:            string;
-  city:             string;
+  id: string;
+  name: string;
+  code: string;
+  phone: string;
+  city: string;
   previous_balance: number;
 }
 
 export interface CreateSupplierRequest {
-  name:             string;
-  code?:            string;
-  phone?:           string;
-  city?:            string;
+  name: string;
+  code?: string;
+  phone?: string;
+  city?: string;
   previous_balance?: number;
 }
 
 export interface UpdateSupplierRequest {
-  name?:             string;
-  code?:             string;
-  phone?:            string;
-  city?:             string;
+  name?: string;
+  code?: string;
+  phone?: string;
+  city?: string;
   previous_balance?: number;
 }
 
 export interface SupplierFilter {
   search?: string;
-  city?:   string;
-  page?:   number;
-  limit?:  number;
+  city?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface SupplierListResponse {
-  items:       Supplier[];
-  total:       number;
-  page:        number;
-  limit:       number;
+  items: Supplier[];
+  total: number;
+  page: number;
+  limit: number;
   total_pages: number;
 }
 
 // ── Customer domain types ─────────────────────────────────────────────────────
 
 export interface Customer {
-  id:               string;
-  name:             string;
-  phone:            string;
-  city:             string;
+  id: string;
+  name: string;
+  phone: string;
+  city: string;
   previous_balance: number;
 }
 
 export interface CreateCustomerRequest {
-  name:              string;
-  phone?:            string;
-  city?:             string;
+  name: string;
+  phone?: string;
+  city?: string;
   previous_balance?: number;
 }
 
 export interface UpdateCustomerRequest {
-  name?:             string;
-  phone?:            string;
-  city?:             string;
+  name?: string;
+  phone?: string;
+  city?: string;
   previous_balance?: number;
 }
 
 export interface CustomerFilter {
   search?: string;
-  city?:   string;
-  page?:   number;
-  limit?:  number;
+  city?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface CustomerListResponse {
-  items:       Customer[];
-  total:       number;
-  page:        number;
-  limit:       number;
+  items: Customer[];
+  total: number;
+  page: number;
+  limit: number;
   total_pages: number;
 }
 
 // ── Invoice domain types ──────────────────────────────────────────────────────
 
 export interface Invoice {
-  id:                string;
-  invoice_no:        string;
-  date:              string;
-  customer_id:       string;
-  customer_name:     string;
-  items:             string; // JSON
-  previous_balance:  number;
-  today_amount:      number;
-  hamali:            number | null;
-  discount:          number | null;
-  paid_amount:       number;
+  id: string;
+  invoice_no: string;
+  date: string;
+  customer_id: string;
+  customer_name: string;
+  items: string; // JSON
+  previous_balance: number;
+  today_amount: number;
+  hamali: number | null;
+  discount: number | null;
+  paid_amount: number;
   remaining_balance: number;
-  notes:             string | null;
-  created_at:        string;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface CreateInvoiceRequest {
-  invoice_no:        string;
-  date:              string;
-  customer_id:       string;
-  customer_name:     string;
-  items:             string;
-  previous_balance:  number;
-  today_amount:      number;
-  hamali?:           number;
-  discount?:         number;
-  paid_amount:       number;
+  invoice_no: string;
+  date: string;
+  customer_id: string;
+  customer_name: string;
+  items: string;
+  previous_balance: number;
+  today_amount: number;
+  hamali?: number;
+  discount?: number;
+  paid_amount: number;
   remaining_balance: number;
-  notes?:            string;
-  created_at:        string;
+  notes?: string;
+  created_at: string;
 }
 
 export interface InvoiceFilter {
   customer_id?: string;
-  date_from?:   string;
-  date_to?:     string;
-  search?:      string;
-  page?:        number;
-  limit?:       number;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface InvoiceListResponse {
-  items:       Invoice[];
-  total:       number;
-  page:        number;
-  limit:       number;
+  items: Invoice[];
+  total: number;
+  page: number;
+  limit: number;
   total_pages: number;
 }
 
 export interface PurchaseInvoice {
-  id:                string;
-  bill_no:           string;
-  date:              string;
-  supplier_id:       string;
-  supplier_name:     string;
-  items:             string; // JSON
-  previous_balance:  number;
-  today_amount:      number;
-  freight:           number | null;
-  hamali:            number | null;
-  paid_amount:       number;
+  id: string;
+  bill_no: string;
+  date: string;
+  supplier_id: string;
+  supplier_name: string;
+  items: string; // JSON
+  previous_balance: number;
+  today_amount: number;
+  freight: number | null;
+  hamali: number | null;
+  paid_amount: number;
   remaining_balance: number;
-  notes:             string | null;
-  created_at:        string;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface CreatePurchaseInvoiceRequest {
-  bill_no:           string;
-  date:              string;
-  supplier_id:       string;
-  supplier_name:     string;
-  items:             string;
-  previous_balance:  number;
-  today_amount:      number;
-  freight?:          number;
-  hamali?:           number;
-  paid_amount:       number;
+  bill_no: string;
+  date: string;
+  supplier_id: string;
+  supplier_name: string;
+  items: string;
+  previous_balance: number;
+  today_amount: number;
+  freight?: number;
+  hamali?: number;
+  paid_amount: number;
   remaining_balance: number;
-  notes?:            string;
-  created_at:        string;
+  notes?: string;
+  created_at: string;
 }
 
 export interface PurchaseInvoiceFilter {
   supplier_id?: string;
-  date_from?:   string;
-  search?:      string;
-  page?:        number;
-  limit?:       number;
+  date_from?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface PurchaseInvoiceListResponse {
-  items:       PurchaseInvoice[];
-  total:       number;
-  page:        number;
-  limit:       number;
+  items: PurchaseInvoice[];
+  total: number;
+  page: number;
+  limit: number;
   total_pages: number;
 }
 
 // ── Payment domain types ──────────────────────────────────────────────────────
 
-export type PartyType   = 'SUPPLIER' | 'CUSTOMER';
-export type PaymentMode = 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI';
+export type PartyType = "SUPPLIER" | "CUSTOMER";
+export type PaymentMode = "CASH" | "BANK_TRANSFER" | "CHEQUE" | "UPI";
 
 export interface Payment {
-  id:           string;
-  date:         string;
-  party_type:   PartyType;
-  party_id:     string;
-  party_name:   string;
-  amount:       number;
+  id: string;
+  date: string;
+  party_type: PartyType;
+  party_id: string;
+  party_name: string;
+  amount: number;
   payment_mode: PaymentMode;
   reference_no: string | null;
-  notes:        string | null;
+  notes: string | null;
 }
 
 export interface CreatePaymentRequest {
-  date:         string;
-  party_type:   PartyType;
-  party_id:     string;
-  party_name:   string;
-  amount:       number;
+  date: string;
+  party_type: PartyType;
+  party_id: string;
+  party_name: string;
+  amount: number;
   payment_mode: PaymentMode;
   reference_no?: string;
-  notes?:        string;
+  notes?: string;
 }
 
 export interface PaymentFilter {
-  party_id?:   string;
+  party_id?: string;
   party_type?: PartyType;
-  date_from?:  string;
-  page?:       number;
-  limit?:      number;
+  date_from?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface PaymentListResponse {
-  items:       Payment[];
-  total:       number;
-  page:        number;
-  limit:       number;
+  items: Payment[];
+  total: number;
+  page: number;
+  limit: number;
   total_pages: number;
 }
 
 // ── Secure FS domain types ────────────────────────────────────────────────────
 
 export interface FsFileInfo {
-  path:       string;
-  name:       string;
-  exists:     boolean;
-  is_file:    boolean;
-  is_dir:     boolean;
+  path: string;
+  name: string;
+  exists: boolean;
+  is_file: boolean;
+  is_dir: boolean;
   size_bytes: number | null;
   /** Unix timestamp (seconds) as a string, or null. */
-  modified:   string | null;
+  modified: string | null;
 }
 
 export interface FsDirEntry {
-  name:       string;
-  path:       string;
-  is_file:    boolean;
-  is_dir:     boolean;
+  name: string;
+  path: string;
+  is_file: boolean;
+  is_dir: boolean;
   size_bytes: number | null;
 }
 
 export interface FsReadTextResponse {
-  path:       string;
-  content:    string;
+  path: string;
+  content: string;
   size_bytes: number;
 }
 
 export interface FsWriteTextResponse {
-  path:          string;
+  path: string;
   bytes_written: number;
 }
 
 export interface FsReadBytesResponse {
-  path:       string;
+  path: string;
   /** Base64-encoded file contents. */
-  data_b64:   string;
+  data_b64: string;
   size_bytes: number;
 }
 
 export interface FsWriteBytesResponse {
-  path:          string;
+  path: string;
   bytes_written: number;
 }
 
 export interface FsCopyResponse {
-  src:          string;
-  dst:          string;
+  src: string;
+  dst: string;
   bytes_copied: number;
 }
 
 export interface FsSavePdfResponse {
-  path:          string;
+  path: string;
   bytes_written: number;
 }
 
 export interface FsDialogFilter {
-  name:       string;
+  name: string;
   extensions: string[];
 }
 
 export interface FsDialogOpenRequest {
-  title?:        string;
+  title?: string;
   default_path?: string;
-  multiple?:     boolean;
-  directory?:    boolean;
-  filters?:      FsDialogFilter[];
+  multiple?: boolean;
+  directory?: boolean;
+  filters?: FsDialogFilter[];
 }
 
 export interface FsDialogOpenResponse {
-  paths:     string[] | null;
+  paths: string[] | null;
   cancelled: boolean;
 }
 
 export interface FsDialogSaveRequest {
-  title?:        string;
+  title?: string;
   default_path?: string;
-  filters?:      FsDialogFilter[];
+  filters?: FsDialogFilter[];
 }
 
 export interface FsDialogSaveResponse {
-  path:      string | null;
+  path: string | null;
   cancelled: boolean;
 }
 
@@ -675,77 +689,77 @@ export interface FsAllowedRootsResponse {
 }
 
 export interface FsExportCsvRequest {
-  path:         string;
-  headers:      string[];
-  rows:         string[][];
+  path: string;
+  headers: string[];
+  rows: string[][];
   create_dirs?: boolean;
-  unique?:      boolean;
+  unique?: boolean;
 }
 
 export interface FsExportJsonRequest {
-  path:         string;
-  json:         string;
+  path: string;
+  json: string;
   create_dirs?: boolean;
-  unique?:      boolean;
+  unique?: boolean;
 }
 
 export interface FsSavePdfRequest {
-  path:         string;
+  path: string;
   /** Base64-encoded PDF bytes. */
-  data_b64:     string;
+  data_b64: string;
   create_dirs?: boolean;
-  unique?:      boolean;
+  unique?: boolean;
 }
 
 // ── Window domain types ───────────────────────────────────────────────────────
 
 /** Snapshot of a window's current state, returned by win_get_state. */
 export interface WinState {
-  label:         string;
-  title:         string;
-  is_visible:    boolean;
-  is_focused:    boolean;
-  is_maximized:  boolean;
-  is_minimized:  boolean;
+  label: string;
+  title: string;
+  is_visible: boolean;
+  is_focused: boolean;
+  is_maximized: boolean;
+  is_minimized: boolean;
   is_fullscreen: boolean;
-  width:         number;
-  height:        number;
-  x:             number;
-  y:             number;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
 }
 
 export interface WinOpenRequest {
-  label:          string;
-  title:          string;
-  url:            string;
-  width?:         number;
-  height?:        number;
-  min_width?:     number;
-  min_height?:    number;
-  center?:        boolean;
-  resizable?:     boolean;
-  decorations?:   boolean;
+  label: string;
+  title: string;
+  url: string;
+  width?: number;
+  height?: number;
+  min_width?: number;
+  min_height?: number;
+  center?: boolean;
+  resizable?: boolean;
+  decorations?: boolean;
   always_on_top?: boolean;
 }
 
 export interface WinSetSizeRequest {
-  label?:  string;
-  width:   number;
-  height:  number;
+  label?: string;
+  width: number;
+  height: number;
 }
 
 export interface WinSetPositionRequest {
   label?: string;
-  x:      number;
-  y:      number;
+  x: number;
+  y: number;
 }
 
 export interface WinSetTitleRequest {
   label?: string;
-  title:  string;
+  title: string;
 }
 
 export interface WinSetAlwaysOnTopRequest {
-  label?:  string;
-  on_top:  boolean;
+  label?: string;
+  on_top: boolean;
 }

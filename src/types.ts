@@ -21,7 +21,7 @@ export interface SupplierLedgerEntry {
   id: string;
   supplierId: string;
   date: string;
-  type: 'PURCHASE_VEHICLE' | 'PURCHASE_BILL' | 'PAYMENT' | 'OPENING';
+  type: "PURCHASE_VEHICLE" | "PURCHASE_BILL" | "PAYMENT" | "OPENING";
   referenceId?: string;
   referenceNo?: string;
   variety?: string;
@@ -44,7 +44,7 @@ export interface CustomerLedgerEntry {
   id: string;
   customerId: string;
   date: string;
-  type: 'INVOICE' | 'PAYMENT' | 'OPENING';
+  type: "INVOICE" | "PAYMENT" | "OPENING";
   referenceId?: string;
   referenceNo?: string;
   amount: number; // positive for invoice (debit), negative for payment (credit)
@@ -81,8 +81,8 @@ export interface VehicleArrival {
   totalAmount: number;
   freightCharge?: number; // Lorry freight
   hamaliCharge?: number; // Unloading labour
-  advancePaid?: number;  // Driver advance
-  status: 'DRAFT' | 'SAVED';
+  advancePaid?: number; // Driver advance
+  status: "DRAFT" | "SAVED";
   createdAt: string;
 }
 
@@ -126,7 +126,7 @@ export interface StockMovement {
   date: string;
   fruit: string;
   variety: string;
-  type: 'ARRIVAL' | 'PURCHASE_BILL' | 'SALE' | 'ADJUSTMENT';
+  type: "ARRIVAL" | "PURCHASE_BILL" | "SALE" | "ADJUSTMENT";
   reference: string;
   weightChange: number;
   caretChange: number;
@@ -153,7 +153,7 @@ export interface Invoice {
   items: InvoiceItem[];
   previousBalance: number;
   todayAmount: number;
-  hamali?: number;   // Loading fee
+  hamali?: number; // Loading fee
   discount?: number; // Cash discount
   paidAmount: number;
   remainingBalance: number;
@@ -164,16 +164,16 @@ export interface Invoice {
 export interface PaymentReceipt {
   id: string;
   date: string;
-  partyType: 'SUPPLIER' | 'CUSTOMER';
+  partyType: "SUPPLIER" | "CUSTOMER";
   partyId: string;
   partyName: string;
   amount: number;
-  paymentMode: 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI';
+  paymentMode: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "UPI";
   referenceNo?: string;
   notes?: string;
 }
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = "dark" | "light";
 
 export interface CompanySettings {
   name: string;
@@ -209,22 +209,34 @@ export interface InvoiceSettings {
   showUPI: boolean;
   showBankDetails: boolean;
   // Extended fields
-  templateStyle: 'modern' | 'classic' | 'minimal' | 'professional' | 'thermal' | 'pos' | 'receipt';
+  templateStyle:
+    | "modern"
+    | "classic"
+    | "minimal"
+    | "professional"
+    | "thermal"
+    | "pos"
+    | "receipt";
   brandColor: string;
   enableQR: boolean;
   autoInvoiceNo: boolean;
-  invoiceNumberMode: 'sequential' | 'date_based' | 'business_prefix';
+  invoiceNumberMode: "sequential" | "date_based" | "business_prefix";
   businessPrefix: string;
   defaultTaxRate: number;
   paymentDueDays: number;
   showCompanyDetails: boolean;
   showPaymentDetails: boolean;
-  watermarkType: 'none' | 'text' | 'image' | 'logo';
+  watermarkType: "none" | "text" | "image" | "logo";
   watermarkText: string;
   watermarkImage: string; // base64
   watermarkOpacity: number; // 0..1
   watermarkSize: number; // percentage-like scalar, 40..220 recommended
-  watermarkPosition: 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  watermarkPosition:
+    | "center"
+    | "top-left"
+    | "top-right"
+    | "bottom-left"
+    | "bottom-right";
   watermarkRepeat: boolean;
   signatureImage: string; // base64
   invoiceLogo: string; // base64 — overrides company logo on printed invoices
@@ -255,4 +267,5 @@ export interface AppSettings {
   financial: FinancialSettings;
   invoice: InvoiceSettings;
   security: SecuritySettings;
+  setupCompleted: boolean;
 }

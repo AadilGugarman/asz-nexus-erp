@@ -19,7 +19,8 @@
     "settings": "સેટિંગ્સ"
   },
   "actions": {
-    "shortcuts": "શોર્ટકટ્સ"
+    "shortcuts": "શોર્ટકટ્સ",
+    "logout": "લોગઆઉટ"
   },
   "tooltips": {
     "expandSidebar": "સાઇડબાર વિસ્તારો",

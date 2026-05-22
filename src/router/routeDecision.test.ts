@@ -1,47 +1,97 @@
-import { describe, expect, it } from 'vitest';
-import { ROUTES } from '@/config';
-import { decidePostStartupRoute, type RouteDecisionInput } from './routeDecision';
+import { describe, expect, it } from "vitest";
+import { ROUTES } from "@/config";
+import {
+  decidePostStartupRoute,
+  type RouteDecisionInput,
+} from "./routeDecision";
 
 const routeByPriority = (input: RouteDecisionInput): string | null => {
   if (!input.startupReady) return null;
   if (!input.isSetupDone) return ROUTES.setup;
+  if (!input.isSetupComplete) return ROUTES.setup;
   if (!input.isAuthenticated) return ROUTES.login;
-  if (!input.hasCompany) return ROUTES.companySetup;
+  if (!input.hasCompany) return ROUTES.setup;
   if (input.isLocked) return ROUTES.lock;
   return ROUTES.dashboard;
 };
 
-describe('routeDecision matrix', () => {
-  it('covers key guard precedence cases', () => {
-    const cases: Array<{ name: string; input: RouteDecisionInput; expected: string | null }> = [
+describe("routeDecision matrix", () => {
+  it("covers key guard precedence cases", () => {
+    const cases: Array<{
+      name: string;
+      input: RouteDecisionInput;
+      expected: string | null;
+    }> = [
       {
-        name: 'startup pending blocks routing',
-        input: { startupReady: false, isSetupDone: true, isAuthenticated: true, hasCompany: true, isLocked: true },
+        name: "startup pending blocks routing",
+        input: {
+          startupReady: false,
+          isSetupDone: true,
+          isSetupComplete: true,
+          isAuthenticated: true,
+          hasCompany: true,
+          isLocked: true,
+        },
         expected: null,
       },
       {
-        name: 'setup takes precedence over auth/company/lock',
-        input: { startupReady: true, isSetupDone: false, isAuthenticated: true, hasCompany: true, isLocked: true },
+        name: "setup takes precedence over auth/company/lock",
+        input: {
+          startupReady: true,
+          isSetupDone: false,
+          isSetupComplete: false,
+          isAuthenticated: true,
+          hasCompany: true,
+          isLocked: true,
+        },
         expected: ROUTES.setup,
       },
       {
-        name: 'unauthenticated goes to login before company/lock checks',
-        input: { startupReady: true, isSetupDone: true, isAuthenticated: false, hasCompany: true, isLocked: true },
+        name: "unauthenticated goes to login before company/lock checks",
+        input: {
+          startupReady: true,
+          isSetupDone: true,
+          isSetupComplete: true,
+          isAuthenticated: false,
+          hasCompany: true,
+          isLocked: true,
+        },
         expected: ROUTES.login,
       },
       {
-        name: 'missing company goes to onboarding before lock check',
-        input: { startupReady: true, isSetupDone: true, isAuthenticated: true, hasCompany: false, isLocked: true },
-        expected: ROUTES.companySetup,
+        name: "missing company goes to setup until onboarding is complete",
+        input: {
+          startupReady: true,
+          isSetupDone: true,
+          isSetupComplete: false,
+          isAuthenticated: true,
+          hasCompany: false,
+          isLocked: true,
+        },
+        expected: ROUTES.setup,
       },
       {
-        name: 'locked authenticated company goes to lock screen',
-        input: { startupReady: true, isSetupDone: true, isAuthenticated: true, hasCompany: true, isLocked: true },
+        name: "locked authenticated company goes to lock screen",
+        input: {
+          startupReady: true,
+          isSetupDone: true,
+          isSetupComplete: true,
+          isAuthenticated: true,
+          hasCompany: true,
+          isLocked: true,
+        },
         expected: ROUTES.lock,
       },
       {
-        name: 'happy path reaches dashboard',
-        input: { startupReady: true, isSetupDone: true, isAuthenticated: true, hasCompany: true, isLocked: false },
+        name: "happy path reaches dashboard",
+        input: {
+          startupReady: true,
+          isSetupDone: true,
+          isSetupComplete: true,
+          isAuthenticated: true,
+          hasCompany: true,
+          isLocked: false,
+        },
         expected: ROUTES.dashboard,
       },
     ];
@@ -51,7 +101,7 @@ describe('routeDecision matrix', () => {
     }
   });
 
-  it('validates all 32 setup/auth/company/lock combinations', () => {
+  it("validates all 32 setup/auth/company/lock combinations", () => {
     const bools = [false, true] as const;
 
     for (const startupReady of bools) {
@@ -62,6 +112,7 @@ describe('routeDecision matrix', () => {
               const input: RouteDecisionInput = {
                 startupReady,
                 isSetupDone,
+                isSetupComplete: isSetupDone,
                 isAuthenticated,
                 hasCompany,
                 isLocked,

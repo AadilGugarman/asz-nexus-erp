@@ -20,16 +20,22 @@
  *   /company-setup → CompanySetupRoute (auth required, no-company guard)
  */
 
-import React, { Suspense } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { ROUTES } from '@/config';
-import { useAuthStore, useCompanyStore, useLockStore, useStartupStore } from '@/store';
+import React, { Suspense } from "react";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { ROUTES } from "@/config";
+import {
+  useAuthStore,
+  useCompanyStore,
+  useLockStore,
+  useSettingsStore,
+  useStartupStore,
+} from "@/store";
 
-import { ProtectedRoute } from './ProtectedRoute';
-import { PublicRoute }    from './PublicRoute';
-import { PageLoader }     from '@/components/router/PageLoader';
-import { StartupScreen } from '@/components/router/StartupScreen';
-import { decidePostStartupRoute } from './routeDecision';
+import { ProtectedRoute } from "./ProtectedRoute";
+import { PublicRoute } from "./PublicRoute";
+import { PageLoader } from "@/components/router/PageLoader";
+import { StartupScreen } from "@/components/router/StartupScreen";
+import { decidePostStartupRoute } from "./routeDecision";
 
 import {
   LazyAppLayout,
@@ -40,21 +46,27 @@ import {
   LazyNotFoundPage,
   LazyCompanySetupPage,
   LazyLockScreenPage,
-} from './LazyRoutes';
+} from "./LazyRoutes";
 
 /** Root redirect — send to /setup on first run, /dashboard otherwise. */
 const RootRedirect: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === 'ready');
+  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const companyReady = useCompanyStore((s) => s.initialized);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
+  const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
+  const routerReady = startupReady && settingsLoaded && companyReady;
 
-  if (!startupReady) return <StartupScreen message="Bootstrapping application..." />;
+  if (!routerReady)
+    return <StartupScreen message="Bootstrapping application..." />;
 
   const target = decidePostStartupRoute({
     startupReady,
     isSetupDone,
+    isSetupComplete,
     isAuthenticated,
     hasCompany,
     isLocked,
@@ -65,49 +77,69 @@ const RootRedirect: React.FC = () => {
 
 /** Setup route — only accessible when setup is NOT done yet. */
 const SetupRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === 'ready');
+  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const companyReady = useCompanyStore((s) => s.initialized);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
+  const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
+  const routerReady = startupReady && settingsLoaded && companyReady;
 
-  if (!startupReady) return <StartupScreen message="Checking setup status..." />;
-  if (isSetupDone) {
+  if (!routerReady) return <StartupScreen message="Checking setup status..." />;
+
+  // Only redirect if BOTH initial password setup and company wizard are finished.
+  // This allows the user to stay on /setup if they've only created a password but not the company.
+  if (isSetupDone && isSetupComplete) {
     const target = decidePostStartupRoute({
       startupReady,
       isSetupDone,
+      isSetupComplete,
       isAuthenticated,
       hasCompany,
       isLocked,
     });
-    return <Navigate to={target ?? ROUTES.login} replace />;
+    // If the target is still setup (which shouldn't happen if both are true), don't redirect to avoid loops.
+    if (target && target !== ROUTES.setup) {
+      return <Navigate to={target} replace />;
+    }
   }
   return <LazyAuthLayout />;
 };
 
 /** Company-setup route — must be authenticated, must NOT have a company yet. */
 const CompanySetupRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === 'ready');
+  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const companyReady = useCompanyStore((s) => s.initialized);
+  const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
+  const routerReady = startupReady && settingsLoaded && companyReady;
 
-  if (!startupReady) return <StartupScreen message="Checking company onboarding..." />;
-  if (!isAuthenticated)     return <Navigate to={ROUTES.login}     replace />;
+  if (!routerReady)
+    return <StartupScreen message="Checking company onboarding..." />;
+  if (!isAuthenticated) return <Navigate to={ROUTES.login} replace />;
   if (isLocked) return <Navigate to={ROUTES.lock} replace />;
+  if (isSetupComplete) return <Navigate to={ROUTES.dashboard} replace />;
   if (hasCompany) return <Navigate to={ROUTES.dashboard} replace />;
   return <Outlet />;
 };
 
 const LockRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === 'ready');
+  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const setupCompleted = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
 
-  if (!startupReady) return <StartupScreen message="Applying lock policies..." />;
+  if (!startupReady)
+    return <StartupScreen message="Applying lock policies..." />;
   if (!isAuthenticated) return <Navigate to={ROUTES.login} replace />;
-  if (!hasCompany) return <Navigate to={ROUTES.companySetup} replace />;
+  if (!setupCompleted || !hasCompany)
+    return <Navigate to={ROUTES.setup} replace />;
   if (!isLocked) return <Navigate to={ROUTES.dashboard} replace />;
   return <Outlet />;
 };
@@ -133,7 +165,10 @@ export const AppRoutes: React.FC = () => {
 
         {/* ── Company setup (authenticated, no-company guard) ─────────── */}
         <Route element={<CompanySetupRoute />}>
-          <Route path={ROUTES.companySetup} element={<LazyCompanySetupPage />} />
+          <Route
+            path={ROUTES.companySetup}
+            element={<LazyCompanySetupPage />}
+          />
         </Route>
 
         {/* ── Lock screen (authenticated + company + locked) ───────────── */}
@@ -145,22 +180,25 @@ export const AppRoutes: React.FC = () => {
         <Route element={<ProtectedRoute />}>
           <Route element={<LazyAppLayout />}>
             <Route path={ROUTES.dashboard} element={<LazyAppShell />} />
-            <Route path={ROUTES.arrival}   element={<LazyAppShell />} />
-            <Route path={ROUTES.purchase}  element={<LazyAppShell />} />
-            <Route path={ROUTES.sales}     element={<LazyAppShell />} />
+            <Route path={ROUTES.arrival} element={<LazyAppShell />} />
+            <Route path={ROUTES.purchase} element={<LazyAppShell />} />
+            <Route path={ROUTES.sales} element={<LazyAppShell />} />
             <Route path={ROUTES.inventory} element={<LazyAppShell />} />
-            <Route path={ROUTES.parties}   element={<LazyAppShell />} />
-            <Route path={ROUTES.payments}  element={<LazyAppShell />} />
-            <Route path={ROUTES.reports}   element={<LazyAppShell />} />
+            <Route path={ROUTES.parties} element={<LazyAppShell />} />
+            <Route path={ROUTES.payments} element={<LazyAppShell />} />
+            <Route path={ROUTES.reports} element={<LazyAppShell />} />
             <Route path={ROUTES.suppliers} element={<LazyAppShell />} />
             <Route path={ROUTES.customers} element={<LazyAppShell />} />
-            <Route path={ROUTES.settings}  element={<LazyAppShell />} />
+            <Route path={ROUTES.settings} element={<LazyAppShell />} />
           </Route>
         </Route>
 
         {/* ── Utility ────────────────────────────────────────────────── */}
         <Route path={ROUTES.notFound} element={<LazyNotFoundPage />} />
-        <Route path={ROUTES.wildcard} element={<Navigate to={ROUTES.notFound} replace />} />
+        <Route
+          path={ROUTES.wildcard}
+          element={<Navigate to={ROUTES.notFound} replace />}
+        />
       </Routes>
     </Suspense>
   );

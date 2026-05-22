@@ -19,7 +19,8 @@
     "settings": "Settings"
   },
   "actions": {
-    "shortcuts": "Shortcuts"
+    "shortcuts": "Shortcuts",
+    "logout": "Logout"
   },
   "tooltips": {
     "expandSidebar": "Expand sidebar",

@@ -53,7 +53,12 @@ export async function ipcInvoke<T>(
   // ── Browser dev mode ──────────────────────────────────────────────────────
   if (!APP_CONFIG.isTauri) {
     if (import.meta.env.DEV) {
-      console.info(`[ipc] DEV — invoke("${command}") skipped, returning fallback.`, args);
+      console.info(
+        `[ipc] DEV — invoke("${command}") skipped, returning fallback.`,
+        args,
+      );
+      // Artificial delay in dev mode to simulate backend latency and allow UI state changes to be visible
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
     if (fallback === undefined) {
       throw new IpcCallError({

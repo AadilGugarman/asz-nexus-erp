@@ -65,6 +65,24 @@ pub struct ChangePasswordRequest {
     pub new_password:     String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct LockConfigRequest {
+    pub pin_enabled:      bool,
+    pub app_pin:          Option<String>,
+    pub auto_lock_minutes: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LockConfigResponse {
+    pub pin_enabled:      bool,
+    pub auto_lock_minutes: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VerifyPinRequest {
+    pub pin: String,
+}
+
 // ── auth_is_setup_done ────────────────────────────────────────────────────────
 
 /// Check whether the app has been set up (password created).
@@ -114,6 +132,7 @@ pub async fn auth_setup(
 
     // Persist credentials
     auth_store.password_hash = Some(hash);
+    auth_store.refresh_token = Some(pair.refresh_token.clone());
     auth_store.refresh_jti   = Some(extract_jti(&pair.refresh_token, &secret)?);
     auth_store.setup_done    = true;
     store::save(&app_data_dir, &auth_store)?;
@@ -166,8 +185,9 @@ pub async fn auth_login(
     let pair   = tokens::issue("admin", "admin", &secret)?;
     let jti    = extract_jti(&pair.refresh_token, &secret)?;
 
-    // Rotate refresh token — store new jti
-    auth_store.refresh_jti = Some(jti);
+    // Persist the new refresh token alongside its jti.
+    auth_store.refresh_token = Some(pair.refresh_token.clone());
+    auth_store.refresh_jti   = Some(jti);
     store::save(&app_data_dir, &auth_store)?;
 
     // Update in-memory session
@@ -215,8 +235,9 @@ pub async fn auth_refresh(
 
     let new_jti = extract_jti(&new_pair.refresh_token, &secret)?;
 
-    // Atomically replace the stored jti
-    auth_store.refresh_jti = Some(new_jti);
+    // Atomically replace the stored refresh token and its jti.
+    auth_store.refresh_token = Some(new_pair.refresh_token.clone());
+    auth_store.refresh_jti   = Some(new_jti);
     store::save(&app_data_dir, &auth_store)?;
 
     // Update in-memory session with new access token
@@ -233,6 +254,134 @@ pub async fn auth_refresh(
     }))
 }
 
+// ── auth_restore_session ──────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn auth_restore_session(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<IpcResponse<AuthTokenResponse>> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
+
+    let mut auth_store = store::load(&app_data_dir)?;
+    let stored_refresh_token = auth_store.refresh_token.as_deref().ok_or_else(|| {
+        AppError::PermissionDenied("No stored refresh token. Please log in again.".into())
+    })?;
+    let stored_jti = auth_store.refresh_jti.as_deref().ok_or_else(|| {
+        AppError::PermissionDenied("No active refresh token metadata. Please log in again.".into())
+    })?;
+
+    let secret = store::get_or_create_jwt_secret(&app_data_dir)?;
+
+    let (new_pair, _old_jti) = tokens::rotate(
+        stored_refresh_token,
+        stored_jti,
+        "admin",
+        &secret,
+    )?;
+
+    let new_jti = extract_jti(&new_pair.refresh_token, &secret)?;
+    auth_store.refresh_token = Some(new_pair.refresh_token.clone());
+    auth_store.refresh_jti   = Some(new_jti);
+    store::save(&app_data_dir, &auth_store)?;
+
+    let claims = tokens::validate_access(&new_pair.access_token, &secret)?;
+    state.session.set_access_token(new_pair.access_token.clone(), claims);
+
+    Ok(IpcResponse::ok(AuthTokenResponse {
+        access_token:       new_pair.access_token,
+        refresh_token:      new_pair.refresh_token,
+        access_expires_at:  new_pair.access_expires_at,
+        refresh_expires_at: new_pair.refresh_expires_at,
+        user_id:            "admin".to_string(),
+        role:               "admin".to_string(),
+    }))
+}
+
+// ── auth_get_lock_config ─────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn auth_get_lock_config(
+    app: tauri::AppHandle,
+) -> AppResult<IpcResponse<LockConfigResponse>> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
+
+    let auth_store = store::load(&app_data_dir)?;
+    Ok(IpcResponse::ok(LockConfigResponse {
+        pin_enabled: auth_store.pin_enabled,
+        auto_lock_minutes: auth_store.auto_lock_minutes,
+    }))
+}
+
+// ── auth_set_lock_config ─────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn auth_set_lock_config(
+    payload: LockConfigRequest,
+    app: tauri::AppHandle,
+) -> AppResult<IpcResponse<LockConfigResponse>> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
+
+    let mut auth_store = store::load(&app_data_dir)?;
+
+    if !payload.pin_enabled {
+        auth_store.pin_enabled = false;
+        auth_store.pin_hash = None;
+        auth_store.pin_salt = None;
+        auth_store.auto_lock_minutes = 0;
+        store::save(&app_data_dir, &auth_store)?;
+        return Ok(IpcResponse::ok(LockConfigResponse {
+            pin_enabled: false,
+            auto_lock_minutes: 0,
+        }));
+    }
+
+    if let Some(pin_value) = payload.app_pin.clone() {
+        validation::require_non_empty(&pin_value, "app_pin")?;
+        validation::require_min_len(&pin_value, 4, "app_pin")?;
+        validation::require_max_len(&pin_value, 6, "app_pin")?;
+        auth_store.pin_hash = Some(password::hash(&pin_value)?);
+        auth_store.pin_salt = None;
+    } else if auth_store.pin_hash.is_none() {
+        return Ok(IpcResponse::err("VALIDATION_ERROR", "A PIN must be provided when enabling lock protection."));
+    }
+
+    auth_store.pin_enabled = true;
+    auth_store.auto_lock_minutes = payload.auto_lock_minutes.max(0);
+    store::save(&app_data_dir, &auth_store)?;
+
+    Ok(IpcResponse::ok(LockConfigResponse {
+        pin_enabled: auth_store.pin_enabled,
+        auto_lock_minutes: auth_store.auto_lock_minutes,
+    }))
+}
+
+// ── auth_verify_pin ───────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn auth_verify_pin(
+    payload: VerifyPinRequest,
+    app: tauri::AppHandle,
+) -> AppResult<IpcResponse<bool>> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
+
+    let auth_store = store::load(&app_data_dir)?;
+    if !auth_store.pin_enabled {
+        return Ok(IpcResponse::ok(false));
+    }
+
+    let stored_hash = auth_store.pin_hash.as_deref().ok_or_else(|| {
+        AppError::Internal("PIN lock is enabled but stored pin hash is missing.".into())
+    })?;
+
+    let ok = password::verify(&payload.pin, stored_hash)?;
+    Ok(IpcResponse::ok(ok))
+}
+
 // ── auth_logout ───────────────────────────────────────────────────────────────
 
 /// Clear the session and invalidate the stored refresh token.
@@ -245,8 +394,31 @@ pub async fn auth_logout(
         .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
 
     let mut auth_store = store::load(&app_data_dir)?;
+    auth_store.refresh_token = None;
     auth_store.refresh_jti = None;
     store::save(&app_data_dir, &auth_store)?;
+
+    state.session.clear();
+
+    Ok(IpcResponse::ok(true))
+}
+
+// ── auth_reset_app ────────────────────────────────────────────────────────────
+
+/// DANGEROUS: Deletes the auth.json file and clears the in-memory session.
+/// This effectively resets the app to a "first-run" state.
+#[tauri::command]
+pub async fn auth_reset_app(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<IpcResponse<bool>> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
+
+    let path = app_data_dir.join("auth.json");
+    if path.exists() {
+        std::fs::remove_file(path).map_err(|e| AppError::Io(e))?;
+    }
 
     state.session.clear();
 
@@ -309,6 +481,7 @@ pub async fn auth_change_password(
 
     auth_store.password_hash = Some(password::hash(&payload.new_password)?);
     // Invalidate all refresh tokens on password change
+    auth_store.refresh_token = None;
     auth_store.refresh_jti = None;
     store::save(&app_data_dir, &auth_store)?;
 

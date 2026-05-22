@@ -4,21 +4,31 @@
  * (e.g. /login — redirect already-logged-in users to the dashboard)
  */
 
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { ROUTES } from '@/config';
-import { useAuthStore, useCompanyStore, useLockStore, useStartupStore } from '@/store';
-import { StartupScreen } from '@/components/router/StartupScreen';
-import { decidePostStartupRoute } from './routeDecision';
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { ROUTES } from "@/config";
+import {
+  useAuthStore,
+  useCompanyStore,
+  useLockStore,
+  useSettingsStore,
+  useStartupStore,
+} from "@/store";
+import { StartupScreen } from "@/components/router/StartupScreen";
+import { decidePostStartupRoute } from "./routeDecision";
 
 export const PublicRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === 'ready');
+  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const companyReady = useCompanyStore((s) => s.initialized);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
+  const routerReady = startupReady && settingsLoaded && companyReady;
 
-  if (!startupReady) return <StartupScreen message="Initializing startup flow..." />;
+  if (!routerReady)
+    return <StartupScreen message="Initializing startup flow..." />;
 
   if (isAuthenticated) {
     const target = decidePostStartupRoute({

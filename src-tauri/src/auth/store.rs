@@ -26,6 +26,9 @@ pub struct AuthStore {
     /// Argon2id PHC hash of the user's PIN/password.
     pub password_hash: Option<String>,
 
+    /// The currently valid refresh token string, persisted securely.
+    pub refresh_token: Option<String>,
+
     /// The jti of the currently valid refresh token.
     /// When a refresh rotates the token, this is updated atomically.
     /// On logout it is cleared.
@@ -37,6 +40,18 @@ pub struct AuthStore {
 
     /// Whether initial setup has been completed.
     pub setup_done: bool,
+
+    /// Whether app PIN lock is enabled.
+    pub pin_enabled: bool,
+
+    /// Argon2id PHC hash of the user-defined app PIN.
+    pub pin_hash: Option<String>,
+
+    /// Optional salt used for app PIN hashing.
+    pub pin_salt: Option<String>,
+
+    /// Auto-lock timeout in minutes.
+    pub auto_lock_minutes: i64,
 }
 
 // ── File path ─────────────────────────────────────────────────────────────────

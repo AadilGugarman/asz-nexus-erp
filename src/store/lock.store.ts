@@ -1,12 +1,10 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { ipc } from "@/ipc";
 
-type LockReason = 'startup' | 'inactivity' | null;
+type LockReason = "startup" | "inactivity" | null;
 
 interface LockState {
   pinEnabled: boolean;
-  pinSalt: string | null;
-  pinHash: string | null;
   autoLockMinutes: number;
 
   isLocked: boolean;
@@ -18,7 +16,7 @@ interface LockState {
     appPin: string;
     autoLockMinutes: number;
   }) => Promise<void>;
-  bootstrapForStartup: (isAuthenticated: boolean) => void;
+  bootstrapForStartup: (isAuthenticated: boolean) => Promise<void>;
   lock: (reason: Exclude<LockReason, null>) => void;
   unlock: (pin: string) => Promise<boolean>;
   recordActivity: () => void;
@@ -26,150 +24,106 @@ interface LockState {
   clearSessionLock: () => void;
 }
 
-const STORAGE_KEY = 'apex_lock_state_v1';
+export const useLockStore = create<LockState>()((set, get) => ({
+  pinEnabled: false,
+  autoLockMinutes: 0,
+  isLocked: false,
+  lockReason: null,
+  lastActivityAt: Date.now(),
 
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
+  configureSecurity: async ({ pinEnabled, appPin, autoLockMinutes }) => {
+    const pin = appPin.trim();
 
-function randomSalt(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return toHex(bytes);
-}
+    if (!pinEnabled) {
+      await ipc.auth.setLockConfig({
+        pin_enabled: false,
+        app_pin: null,
+        auto_lock_minutes: 0,
+      });
 
-async function hashPin(pin: string, salt: string): Promise<string> {
-  const data = new TextEncoder().encode(`${salt}:${pin}`);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return toHex(new Uint8Array(digest));
-}
+      set({
+        pinEnabled: false,
+        autoLockMinutes: 0,
+      });
+      return;
+    }
 
-export const useLockStore = create<LockState>()(
-  persist(
-    (set, get) => ({
-      pinEnabled: false,
-      pinSalt: null,
-      pinHash: null,
-      autoLockMinutes: 0,
-      isLocked: false,
-      lockReason: null,
-      lastActivityAt: Date.now(),
+    const request = {
+      pin_enabled: true,
+      app_pin: pin.length > 0 ? pin : null,
+      auto_lock_minutes: Math.max(0, autoLockMinutes),
+    };
 
-      configureSecurity: async ({ pinEnabled, appPin, autoLockMinutes }) => {
-        const pin = appPin.trim();
+    await ipc.auth.setLockConfig(request);
+    const config = await ipc.auth.getLockConfig();
 
-        if (!pinEnabled) {
-          set({
-            pinEnabled: false,
-            pinSalt: null,
-            pinHash: null,
-            autoLockMinutes: 0,
-            isLocked: false,
-            lockReason: null,
-          });
-          return;
-        }
+    set({
+      pinEnabled: config.pin_enabled,
+      autoLockMinutes: config.auto_lock_minutes,
+    });
+  },
 
-        const currentSalt = get().pinSalt;
-        const currentHash = get().pinHash;
-        const shouldUpdatePin = pin.length >= 4;
+  bootstrapForStartup: async (isAuthenticated) => {
+    set({ lastActivityAt: Date.now() });
 
-        if (!currentHash && !shouldUpdatePin) {
-          set({
-            pinEnabled: false,
-            autoLockMinutes: 0,
-            isLocked: false,
-            lockReason: null,
-          });
-          return;
-        }
+    try {
+      const config = await ipc.auth.getLockConfig();
+      set({
+        pinEnabled: config.pin_enabled,
+        autoLockMinutes: config.auto_lock_minutes,
+      });
 
-        if (shouldUpdatePin) {
-          const salt = randomSalt();
-          const pinHash = await hashPin(pin, salt);
-          set({
-            pinEnabled: true,
-            pinSalt: salt,
-            pinHash,
-            autoLockMinutes: Math.max(0, autoLockMinutes),
-          });
-          return;
-        }
+      if (isAuthenticated && config.pin_enabled) {
+        set({ isLocked: true, lockReason: "startup" });
+        return;
+      }
+    } catch {
+      // Ignore backend read failures and keep default lock state
+    }
 
-        set({
-          pinEnabled: true,
-          pinSalt: currentSalt,
-          pinHash: currentHash,
-          autoLockMinutes: Math.max(0, autoLockMinutes),
-        });
-      },
+    set({ isLocked: false, lockReason: null });
+  },
 
-      bootstrapForStartup: (isAuthenticated) => {
-        const { pinEnabled, pinHash } = get();
-        set({ lastActivityAt: Date.now() });
+  lock: (reason) => {
+    if (!get().pinEnabled) return;
+    set({ isLocked: true, lockReason: reason });
+  },
 
-        if (isAuthenticated && pinEnabled && !!pinHash) {
-          set({ isLocked: true, lockReason: 'startup' });
-          return;
-        }
-
-        set({ isLocked: false, lockReason: null });
-      },
-
-      lock: (reason) => {
-        const { pinEnabled, pinHash } = get();
-        if (!pinEnabled || !pinHash) return;
-        set({ isLocked: true, lockReason: reason });
-      },
-
-      unlock: async (pin) => {
-        const { pinSalt, pinHash } = get();
-        if (!pinSalt || !pinHash) return false;
-
-        const incomingHash = await hashPin(pin.trim(), pinSalt);
-        const ok = incomingHash === pinHash;
-        if (ok) {
-          set({
-            isLocked: false,
-            lockReason: null,
-            lastActivityAt: Date.now(),
-          });
-        }
-        return ok;
-      },
-
-      recordActivity: () => {
-        set({ lastActivityAt: Date.now() });
-      },
-
-      lockIfInactive: () => {
-        const { autoLockMinutes, pinEnabled, pinHash, isLocked, lastActivityAt } = get();
-        if (!pinEnabled || !pinHash || isLocked || autoLockMinutes <= 0) return;
-
-        const idleMs = Date.now() - lastActivityAt;
-        if (idleMs >= autoLockMinutes * 60_000) {
-          set({ isLocked: true, lockReason: 'inactivity' });
-        }
-      },
-
-      clearSessionLock: () => {
+  unlock: async (pin) => {
+    try {
+      const ok = await ipc.auth.verifyPin({ pin: pin.trim() });
+      if (ok) {
         set({
           isLocked: false,
           lockReason: null,
           lastActivityAt: Date.now(),
         });
-      },
-    }),
-    {
-      name: STORAGE_KEY,
-      partialize: (s) => ({
-        pinEnabled: s.pinEnabled,
-        pinSalt: s.pinSalt,
-        pinHash: s.pinHash,
-        autoLockMinutes: s.autoLockMinutes,
-      }),
-    },
-  ),
-);
+      }
+      return ok;
+    } catch {
+      return false;
+    }
+  },
+
+  recordActivity: () => {
+    set({ lastActivityAt: Date.now() });
+  },
+
+  lockIfInactive: () => {
+    const { autoLockMinutes, pinEnabled, isLocked, lastActivityAt } = get();
+    if (!pinEnabled || isLocked || autoLockMinutes <= 0) return;
+
+    const idleMs = Date.now() - lastActivityAt;
+    if (idleMs >= autoLockMinutes * 60_000) {
+      set({ isLocked: true, lockReason: "inactivity" });
+    }
+  },
+
+  clearSessionLock: () => {
+    set({
+      isLocked: false,
+      lockReason: null,
+      lastActivityAt: Date.now(),
+    });
+  },
+}));

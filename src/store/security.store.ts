@@ -1,5 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { STORAGE_KEYS } from "@/config";
 
 export interface SecurityPreferences {
   sessionTimeout: string;
@@ -17,12 +18,12 @@ interface SecurityState extends SecurityPreferences {
   setDbEncryption: (value: boolean) => void;
 }
 
-const STORAGE_KEY = 'apex_security_prefs';
+const STORAGE_KEY = STORAGE_KEYS.securityPrefs;
 
 export const useSecurityStore = create<SecurityState>()(
   persist(
     (set) => ({
-      sessionTimeout: '60',
+      sessionTimeout: "60",
       twoFactorEnabled: false,
       allowExport: true,
       auditLog: false,

@@ -4,52 +4,157 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TFC - Talha Fruit Co. | Wholesale Fruit Trading ERP</title>
+    <style>
+      /* Prevent white flash before theme is applied */
+      html,
+      body {
+        background-color: #0f172a; /* Default to dark theme slate-900 */
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      html.light,
+      html.light body {
+        background-color: #f8fafc; /* Default to light theme slate-50 */
+      }
+
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease-out;
+      }
+
+      .loader-logo {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #00c896, #00aeef);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 25px rgba(0, 174, 239, 0.2);
+      }
+
+      .loader-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #00aeef;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
     <script>
       (function () {
         try {
-          var raw = localStorage.getItem('apex_appearance');
+          var raw = localStorage.getItem("tfc_erp_appearance");
           var parsed = raw ? JSON.parse(raw) : {};
-          var pref = parsed.themePreference || localStorage.getItem('apex_theme') || 'system';
-          var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var resolved = pref === 'system' ? (systemDark ? 'dark' : 'light') : pref;
+          var pref =
+            parsed.themePreference ||
+            localStorage.getItem("tfc_erp_theme") ||
+            "system";
+          var systemDark = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
+          var resolved =
+            pref === "system" ? (systemDark ? "dark" : "light") : pref;
 
           var root = document.documentElement;
-          root.classList.toggle('dark', resolved === 'dark');
+          root.classList.toggle("dark", resolved === "dark");
           root.dataset.theme = resolved;
-          root.dataset.density = parsed.density || (localStorage.getItem('apex_compact') === 'true' ? 'compact' : 'comfortable');
+          root.dataset.density =
+            parsed.density ||
+            (localStorage.getItem("tfc_erp_density") === "compact"
+              ? "compact"
+              : "comfortable");
 
-          var fontSize = parsed.fontSize || localStorage.getItem('apex_fontsize') || 'medium';
-          var fontSizeMap = { small: '13px', medium: '14px', large: '16px' };
-          root.style.setProperty('--font-size-base', fontSizeMap[fontSize] || '14px');
+          var fontSize =
+            parsed.fontSize ||
+            localStorage.getItem("tfc_erp_font_size") ||
+            "medium";
+          var fontSizeMap = { small: "13px", medium: "14px", large: "16px" };
+          root.style.setProperty(
+            "--font-size-base",
+            fontSizeMap[fontSize] || "14px",
+          );
 
-          var fontFamily = parsed.fontFamily || 'inter';
+          var fontFamily = parsed.fontFamily || "inter";
           var fontMap = {
             inter: "'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif",
             roboto: "'Roboto', 'Segoe UI', 'Inter', Arial, sans-serif",
             segoe: "'Segoe UI', 'Inter', 'Roboto', Arial, sans-serif",
           };
-          root.style.setProperty('--app-font-family', fontMap[fontFamily] || fontMap.inter);
+          root.style.setProperty(
+            "--app-font-family",
+            fontMap[fontFamily] || fontMap.inter,
+          );
 
           var density = root.dataset.density;
-          var densityScale = { compact: '0.92', comfortable: '1', spacious: '1.12' };
-          var rowHeight = { compact: '34px', comfortable: '40px', spacious: '46px' };
-          var inputHeight = { compact: '34px', comfortable: '38px', spacious: '44px' };
-          var cardScale = { compact: '0.9', comfortable: '1', spacious: '1.1' };
-          root.style.setProperty('--density-scale', densityScale[density] || '1');
-          root.style.setProperty('--table-row-height', rowHeight[density] || '40px');
-          root.style.setProperty('--input-height', inputHeight[density] || '38px');
-          root.style.setProperty('--card-padding-scale', cardScale[density] || '1');
+          var densityScale = {
+            compact: "0.92",
+            comfortable: "1",
+            spacious: "1.12",
+          };
+          var rowHeight = {
+            compact: "34px",
+            comfortable: "40px",
+            spacious: "46px",
+          };
+          var inputHeight = {
+            compact: "34px",
+            comfortable: "38px",
+            spacious: "44px",
+          };
+          var cardScale = { compact: "0.9", comfortable: "1", spacious: "1.1" };
+          root.style.setProperty(
+            "--density-scale",
+            densityScale[density] || "1",
+          );
+          root.style.setProperty(
+            "--table-row-height",
+            rowHeight[density] || "40px",
+          );
+          root.style.setProperty(
+            "--input-height",
+            inputHeight[density] || "38px",
+          );
+          root.style.setProperty(
+            "--card-padding-scale",
+            cardScale[density] || "1",
+          );
 
-          var accent = parsed.accentColor || localStorage.getItem('apex_accent') || '#6366f1';
-          root.style.setProperty('--accent-color', accent);
+          var accent =
+            parsed.accentColor ||
+            localStorage.getItem("tfc_erp_accent_color") ||
+            "#6366f1";
+          root.style.setProperty("--accent-color", accent);
 
           var animationsEnabled = parsed.animationsEnabled;
-          if (typeof animationsEnabled !== 'boolean') {
-            animationsEnabled = localStorage.getItem('apex_anims') !== 'false';
+          if (typeof animationsEnabled !== "boolean") {
+            animationsEnabled =
+              localStorage.getItem("tfc_erp_animations_enabled") !== "false";
           }
-          var reduced = !animationsEnabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-          root.dataset.reducedMotion = reduced ? 'true' : 'false';
-          root.dataset.highContrast = window.matchMedia('(forced-colors: active), (prefers-contrast: more)').matches ? 'true' : 'false';
+          var reduced =
+            !animationsEnabled ||
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          root.dataset.reducedMotion = reduced ? "true" : "false";
+          root.dataset.highContrast = window.matchMedia(
+            "(forced-colors: active), (prefers-contrast: more)",
+          ).matches
+            ? "true"
+            : "false";
         } catch (e) {
           // Keep default styles if parsing fails.
         }
@@ -57,6 +162,29 @@
     </script>
   </head>
   <body>
+    <div id="initial-loader">
+      <div class="loader-logo">
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+          <path d="M15 18H9" />
+          <path
+            d="M19 18h2a1 1 0 0 0 1-1v-3.28a1 1 0 0 0-.684-.948l-1.923-.641a1 1 0 0 1-.684-.948V10a1 1 0 0 0-1-1h-3"
+          />
+          <circle cx="7" cy="18" r="2" />
+          <circle cx="17" cy="18" r="2" />
+        </svg>
+      </div>
+      <div class="loader-spinner"></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

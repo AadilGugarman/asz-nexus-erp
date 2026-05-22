@@ -1,8 +1,46 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { Fruit, Supplier, Customer, VehicleArrival, Invoice, PurchaseInvoice, InventoryItem, StockMovement, SupplierLedgerEntry, CustomerLedgerEntry, PaymentReceipt, ThemeMode, AppSettings, CompanyProfile } from '../types';
-import { INITIAL_FRUITS, INITIAL_SUPPLIERS, INITIAL_CUSTOMERS, INITIAL_VEHICLE_ARRIVALS, INITIAL_INVOICES } from '../mockData';
-import { useAppearanceStore } from '@/store/appearance.store';
-import { useSettingsStore } from '@/store/settings.store';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+} from "react";
+import {
+  Fruit,
+  Supplier,
+  Customer,
+  VehicleArrival,
+  Invoice,
+  PurchaseInvoice,
+  InventoryItem,
+  StockMovement,
+  SupplierLedgerEntry,
+  CustomerLedgerEntry,
+  PaymentReceipt,
+  ThemeMode,
+  AppSettings,
+  CompanyProfile,
+} from "../types";
+import {
+  INITIAL_FRUITS,
+  INITIAL_SUPPLIERS,
+  INITIAL_CUSTOMERS,
+  INITIAL_VEHICLE_ARRIVALS,
+  INITIAL_INVOICES,
+} from "../mockData";
+import { STORAGE_KEYS } from "@/config";
+import { useAppearanceStore } from "@/store/appearance.store";
+import { useSettingsStore } from "@/store/settings.store";
+import {
+  useSuppliers,
+  useCustomers,
+  useFruits,
+  useInvoices,
+  usePurchaseInvoices,
+  usePayments,
+  useVehicleArrivals,
+} from "@/hooks/useDbHydration";
+import { dbService } from "@/db/services";
 
 interface AppContextType {
   theme: ThemeMode;
@@ -26,10 +64,10 @@ interface AppContextType {
   deletePurchaseInvoice: (id: string) => void;
   addPayment: (payment: PaymentReceipt) => void;
   deletePayment: (id: string) => void;
-  addSupplier: (supplier: Omit<Supplier, 'id'>) => void;
+  addSupplier: (supplier: Omit<Supplier, "id">) => void;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (id: string) => void;
-  addCustomer: (customer: Omit<Customer, 'id'>) => void;
+  addCustomer: (customer: Omit<Customer, "id">) => void;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (id: string) => void;
   addFruitVariety: (fruitId: string, varietyName: string) => void;
@@ -52,88 +90,80 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const theme = useAppearanceStore((s) => s.resolvedTheme) as ThemeMode;
   const toggleTheme = useAppearanceStore((s) => s.toggleTheme);
 
-  const [fruits, setFruits] = useState<Fruit[]>(() => {
-    const saved = localStorage.getItem('apex_fruits');
-    return saved ? JSON.parse(saved) : INITIAL_FRUITS;
-  });
+  const { data: fruitsFromDb, isLoading: fruitsLoading } = useFruits();
+  const { data: suppliersFromDb, isLoading: suppliersLoading } = useSuppliers();
+  const { data: customersFromDb, isLoading: customersLoading } = useCustomers();
+  const { data: vehiclesFromDb, isLoading: vehiclesLoading } =
+    useVehicleArrivals();
+  const { data: invoicesFromDb, isLoading: invoicesLoading } = useInvoices();
+  const { data: purchaseInvoicesFromDb, isLoading: purchaseInvoicesLoading } =
+    usePurchaseInvoices();
+  const { data: paymentsFromDb, isLoading: paymentsLoading } = usePayments();
 
-  const [suppliers, setSuppliers] = useState<Supplier[]>(() => {
-    const saved = localStorage.getItem('apex_suppliers');
-    return saved ? JSON.parse(saved) : INITIAL_SUPPLIERS;
-  });
+  const [fruits, setFruits] = useState<Fruit[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleArrival[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(
+    [],
+  );
+  const [payments, setPayments] = useState<PaymentReceipt[]>([]);
 
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem('apex_customers');
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
-  });
+  useEffect(() => {
+    if (!fruitsLoading) setFruits(fruitsFromDb);
+  }, [fruitsFromDb, fruitsLoading]);
 
-  const [vehicles, setVehicles] = useState<VehicleArrival[]>(() => {
-    const saved = localStorage.getItem('apex_vehicles');
-    return saved ? JSON.parse(saved) : INITIAL_VEHICLE_ARRIVALS;
-  });
+  useEffect(() => {
+    if (!suppliersLoading) setSuppliers(suppliersFromDb);
+  }, [suppliersFromDb, suppliersLoading]);
 
-  const [invoices, setInvoices] = useState<Invoice[]>(() => {
-    const saved = localStorage.getItem('apex_invoices');
-    return saved ? JSON.parse(saved) : INITIAL_INVOICES;
-  });
+  useEffect(() => {
+    if (!customersLoading) setCustomers(customersFromDb);
+  }, [customersFromDb, customersLoading]);
 
-  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(() => {
-    const saved = localStorage.getItem('apex_purchase_invoices');
-    if (saved) return JSON.parse(saved);
-    // Mock initial purchase invoice
-    return [
-      {
-        id: 'pinv-1',
-        billNo: 'PUR-2026-001',
-        date: '2026-05-13',
-        supplierId: 's2',
-        supplierName: 'Suresh Patel Orchards (Navsari)',
-        previousBalance: 120000,
-        todayAmount: 52000,
-        freight: 1500,
-        hamali: 500,
-        paidAmount: 20000,
-        remainingBalance: 152000, // 120000 + 52000 - 20000
-        notes: 'Direct orchard delivery bill',
-        createdAt: '2026-05-13T09:00:00.000Z',
-        items: [
-          { id: 'pi1', fruit: 'Mango', variety: 'Kesar', caret: 40, weight: 800, rate: 65, amount: 52000 }
-        ]
-      }
-    ];
-  });
+  useEffect(() => {
+    if (!vehiclesLoading) setVehicles(vehiclesFromDb);
+  }, [vehiclesFromDb, vehiclesLoading]);
 
-  const [payments, setPayments] = useState<PaymentReceipt[]>(() => {
-    const saved = localStorage.getItem('apex_payments');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: 'p1', date: '2026-05-13', partyType: 'SUPPLIER', partyId: 's1', partyName: 'Ramesh Agro Traders (Valsad)', amount: 40000, paymentMode: 'BANK_TRANSFER', referenceNo: 'NEFT-8839201', notes: 'Advance payment for season' },
-      { id: 'p2', date: '2026-05-14', partyType: 'CUSTOMER', partyId: 'c1', partyName: 'Metro Fresh Supermarkets', amount: 50000, paymentMode: 'CHEQUE', referenceNo: 'CHQ-009123', notes: 'Invoice payment clearance' },
-      { id: 'p3', date: '2026-05-15', partyType: 'CUSTOMER', partyId: 'c3', partyName: 'APMC Wholesaler - Omkar Traders', amount: 150000, paymentMode: 'UPI', referenceNo: 'UPI-61352219', notes: 'Immediate settlement' }
-    ];
-  });
+  useEffect(() => {
+    if (!invoicesLoading) setInvoices(invoicesFromDb);
+  }, [invoicesFromDb, invoicesLoading]);
 
-  useEffect(() => { localStorage.setItem('apex_fruits', JSON.stringify(fruits)); }, [fruits]);
-  useEffect(() => { localStorage.setItem('apex_suppliers', JSON.stringify(suppliers)); }, [suppliers]);
-  useEffect(() => { localStorage.setItem('apex_customers', JSON.stringify(customers)); }, [customers]);
-  useEffect(() => { localStorage.setItem('apex_vehicles', JSON.stringify(vehicles)); }, [vehicles]);
-  useEffect(() => { localStorage.setItem('apex_invoices', JSON.stringify(invoices)); }, [invoices]);
-  useEffect(() => { localStorage.setItem('apex_purchase_invoices', JSON.stringify(purchaseInvoices)); }, [purchaseInvoices]);
-  useEffect(() => { localStorage.setItem('apex_payments', JSON.stringify(payments)); }, [payments]);
+  useEffect(() => {
+    if (!purchaseInvoicesLoading) setPurchaseInvoices(purchaseInvoicesFromDb);
+  }, [purchaseInvoicesFromDb, purchaseInvoicesLoading]);
+
+  useEffect(() => {
+    if (!paymentsLoading) setPayments(paymentsFromDb);
+  }, [paymentsFromDb, paymentsLoading]);
+
+  const safeDbWrite = async (label: string, action: () => Promise<unknown>) => {
+    if (!dbService.isReady) return;
+    try {
+      await action();
+    } catch (err) {
+      console.error(`[AppContext] DB write failed (${label}):`, err);
+    }
+  };
 
   // ── Settings & Companies — delegated to useSettingsStore (SQLite-backed) ────
-  const settings        = useSettingsStore((s) => s.settings);
-  const updateSettings  = useSettingsStore((s) => s.updateSettings);
-  const companies       = useSettingsStore((s) => s.companies);
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const companies = useSettingsStore((s) => s.companies);
   const activeCompanyId = useSettingsStore((s) => s.activeCompanyId);
-  const addCompany      = useSettingsStore((s) => s.addCompany);
-  const updateCompany   = useSettingsStore((s) => s.updateCompany);
-  const deleteCompany   = useSettingsStore((s) => s.deleteCompany);
-  const switchCompany   = useSettingsStore((s) => s.switchCompany);
+  const activeFY = useSettingsStore((s) => s.activeFY);
+  const setActiveFY = useSettingsStore((s) => s.setActiveFY);
+  const addCompany = useSettingsStore((s) => s.addCompany);
+  const updateCompany = useSettingsStore((s) => s.updateCompany);
+  const deleteCompany = useSettingsStore((s) => s.deleteCompany);
+  const switchCompany = useSettingsStore((s) => s.switchCompany);
 
   // Auto-calculated Inventory & Stock Movements
   const { inventory, stockMovements } = useMemo(() => {
@@ -141,34 +171,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const movements: StockMovement[] = [];
 
     // Process Vehicle Arrivals (Stock IN)
-    vehicles.filter(v => v.status === 'SAVED').forEach(v => {
-      v.rows.forEach(r => {
-        const key = `${v.fruitType}_${r.variety}`;
-        const current = itemsMap.get(key) || { key, fruit: v.fruitType, variety: r.variety, totalWeight: 0, totalCarets: 0 };
-        current.totalWeight += Number(r.weight) || 0;
-        current.totalCarets += Number(r.caret) || 0;
-        itemsMap.set(key, current);
+    vehicles
+      .filter((v) => v.status === "SAVED")
+      .forEach((v) => {
+        v.rows.forEach((r) => {
+          const key = `${v.fruitType}_${r.variety}`;
+          const current = itemsMap.get(key) || {
+            key,
+            fruit: v.fruitType,
+            variety: r.variety,
+            totalWeight: 0,
+            totalCarets: 0,
+          };
+          current.totalWeight += Number(r.weight) || 0;
+          current.totalCarets += Number(r.caret) || 0;
+          itemsMap.set(key, current);
 
-        movements.push({
-          id: `arr-${v.id}-${r.id}`,
-          date: v.date,
-          fruit: v.fruitType,
-          variety: r.variety,
-          type: 'ARRIVAL',
-          reference: `Veh Inward: ${v.vehicleNo} (${r.supplierName})`,
-          weightChange: Number(r.weight) || 0,
-          caretChange: Number(r.caret) || 0,
-          resultingWeight: current.totalWeight,
-          resultingCarets: current.totalCarets
+          movements.push({
+            id: `arr-${v.id}-${r.id}`,
+            date: v.date,
+            fruit: v.fruitType,
+            variety: r.variety,
+            type: "ARRIVAL",
+            reference: `Veh Inward: ${v.vehicleNo} (${r.supplierName})`,
+            weightChange: Number(r.weight) || 0,
+            caretChange: Number(r.caret) || 0,
+            resultingWeight: current.totalWeight,
+            resultingCarets: current.totalCarets,
+          });
         });
       });
-    });
 
     // Process Purchase Invoices (Stock IN)
-    purchaseInvoices.forEach(inv => {
-      inv.items.forEach(item => {
+    purchaseInvoices.forEach((inv) => {
+      inv.items.forEach((item) => {
         const key = `${item.fruit}_${item.variety}`;
-        const current = itemsMap.get(key) || { key, fruit: item.fruit, variety: item.variety, totalWeight: 0, totalCarets: 0 };
+        const current = itemsMap.get(key) || {
+          key,
+          fruit: item.fruit,
+          variety: item.variety,
+          totalWeight: 0,
+          totalCarets: 0,
+        };
         current.totalWeight += Number(item.weight) || 0;
         current.totalCarets += Number(item.caret) || 0;
         itemsMap.set(key, current);
@@ -178,21 +222,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           date: inv.date,
           fruit: item.fruit,
           variety: item.variety,
-          type: 'PURCHASE_BILL',
+          type: "PURCHASE_BILL",
           reference: `Pur Bill: ${inv.billNo} (${inv.supplierName})`,
           weightChange: Number(item.weight) || 0,
           caretChange: Number(item.caret) || 0,
           resultingWeight: current.totalWeight,
-          resultingCarets: current.totalCarets
+          resultingCarets: current.totalCarets,
         });
       });
     });
 
     // Process Sales Invoices (Stock OUT)
-    invoices.forEach(inv => {
-      inv.items.forEach(item => {
+    invoices.forEach((inv) => {
+      inv.items.forEach((item) => {
         const key = `${item.fruit}_${item.lotVariety}`;
-        const current = itemsMap.get(key) || { key, fruit: item.fruit, variety: item.lotVariety, totalWeight: 0, totalCarets: 0 };
+        const current = itemsMap.get(key) || {
+          key,
+          fruit: item.fruit,
+          variety: item.lotVariety,
+          totalWeight: 0,
+          totalCarets: 0,
+        };
         current.totalWeight -= Number(item.weight) || 0;
         current.totalCarets -= Number(item.caret) || 0;
         itemsMap.set(key, current);
@@ -202,102 +252,117 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           date: inv.date,
           fruit: item.fruit,
           variety: item.lotVariety,
-          type: 'SALE',
+          type: "SALE",
           reference: `Inv: ${inv.invoiceNo} (${inv.customerName})`,
           weightChange: -(Number(item.weight) || 0),
           caretChange: -(Number(item.caret) || 0),
           resultingWeight: current.totalWeight,
-          resultingCarets: current.totalCarets
+          resultingCarets: current.totalCarets,
         });
       });
     });
 
-    movements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return { inventory: Array.from(itemsMap.values()), stockMovements: movements };
+    movements.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+    return {
+      inventory: Array.from(itemsMap.values()),
+      stockMovements: movements,
+    };
   }, [vehicles, purchaseInvoices, invoices]);
 
   // Supplier Ledger Calculation
   const getSupplierLedger = (supplierId: string): SupplierLedgerEntry[] => {
-    const supplier = suppliers.find(s => s.id === supplierId);
+    const supplier = suppliers.find((s) => s.id === supplierId);
     if (!supplier) return [];
 
     const entries: SupplierLedgerEntry[] = [];
     let runningBalance = supplier.previousBalance;
 
     entries.push({
-      id: 'opening',
+      id: "opening",
       supplierId,
-      date: '2026-05-01',
-      type: 'OPENING',
+      date: "2026-05-01",
+      type: "OPENING",
       amount: supplier.previousBalance,
-      note: 'Opening Balance',
-      runningBalance
+      note: "Opening Balance",
+      runningBalance,
     });
 
     const purchaseEntries: SupplierLedgerEntry[] = [];
-    vehicles.filter(v => v.status === 'SAVED').forEach(v => {
-      v.rows.filter(r => r.supplierId === supplierId).forEach(r => {
-        purchaseEntries.push({
-          id: `p-${v.id}-${r.id}`,
-          supplierId,
-          date: v.date,
-          type: 'PURCHASE_VEHICLE',
-          referenceId: v.id,
-          referenceNo: v.vehicleNo,
-          variety: `${v.fruitType} - ${r.variety}`,
-          weightKg: r.weight,
-          rate: r.rate,
-          amount: r.amount,
-          note: r.note || `Inward Load ${v.arrivalNo}`,
-          runningBalance: 0
-        });
-      });
-    });
-
-    purchaseInvoices.filter(i => i.supplierId === supplierId).forEach(inv => {
-      purchaseEntries.push({
-        id: `pinv-${inv.id}`,
-        supplierId,
-        date: inv.date,
-        type: 'PURCHASE_BILL',
-        referenceId: inv.id,
-        referenceNo: inv.billNo,
-        variety: `Purchase Bill (${inv.items.length} items)`,
-        amount: inv.todayAmount,
-        note: inv.notes,
-        runningBalance: 0
+    vehicles
+      .filter((v) => v.status === "SAVED")
+      .forEach((v) => {
+        v.rows
+          .filter((r) => r.supplierId === supplierId)
+          .forEach((r) => {
+            purchaseEntries.push({
+              id: `p-${v.id}-${r.id}`,
+              supplierId,
+              date: v.date,
+              type: "PURCHASE_VEHICLE",
+              referenceId: v.id,
+              referenceNo: v.vehicleNo,
+              variety: `${v.fruitType} - ${r.variety}`,
+              weightKg: r.weight,
+              rate: r.rate,
+              amount: r.amount,
+              note: r.note || `Inward Load ${v.arrivalNo}`,
+              runningBalance: 0,
+            });
+          });
       });
 
-      if (inv.paidAmount > 0) {
+    purchaseInvoices
+      .filter((i) => i.supplierId === supplierId)
+      .forEach((inv) => {
         purchaseEntries.push({
-          id: `pinv-pay-${inv.id}`,
+          id: `pinv-${inv.id}`,
           supplierId,
           date: inv.date,
-          type: 'PAYMENT',
+          type: "PURCHASE_BILL",
           referenceId: inv.id,
           referenceNo: inv.billNo,
-          amount: -inv.paidAmount,
-          note: `Immediate cash/bank payment on Purchase Bill ${inv.billNo}`,
-          runningBalance: 0
+          variety: `Purchase Bill (${inv.items.length} items)`,
+          amount: inv.todayAmount,
+          note: inv.notes,
+          runningBalance: 0,
         });
-      }
-    });
+
+        if (inv.paidAmount > 0) {
+          purchaseEntries.push({
+            id: `pinv-pay-${inv.id}`,
+            supplierId,
+            date: inv.date,
+            type: "PAYMENT",
+            referenceId: inv.id,
+            referenceNo: inv.billNo,
+            amount: -inv.paidAmount,
+            note: `Immediate cash/bank payment on Purchase Bill ${inv.billNo}`,
+            runningBalance: 0,
+          });
+        }
+      });
 
     const paymentEntries: SupplierLedgerEntry[] = [];
-    payments.filter(p => p.partyType === 'SUPPLIER' && p.partyId === supplierId).forEach(p => {
-      paymentEntries.push({
-        id: `pay-${p.id}`,
-        supplierId,
-        date: p.date,
-        type: 'PAYMENT',
-        amount: -p.amount,
-        note: `Paid via ${p.paymentMode} ${p.referenceNo ? `(${p.referenceNo})` : ''} - ${p.notes || ''}`,
-        runningBalance: 0
+    payments
+      .filter((p) => p.partyType === "SUPPLIER" && p.partyId === supplierId)
+      .forEach((p) => {
+        paymentEntries.push({
+          id: `pay-${p.id}`,
+          supplierId,
+          date: p.date,
+          type: "PAYMENT",
+          amount: -p.amount,
+          note: `Paid via ${p.paymentMode} ${p.referenceNo ? `(${p.referenceNo})` : ""} - ${p.notes || ""}`,
+          runningBalance: 0,
+        });
       });
-    });
 
-    const combined = [...purchaseEntries, ...paymentEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    combined.forEach(entry => {
+    const combined = [...purchaseEntries, ...paymentEntries].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+    combined.forEach((entry) => {
       runningBalance += entry.amount;
       entry.runningBalance = runningBalance;
       entries.push(entry);
@@ -307,66 +372,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const getCustomerLedger = (customerId: string): CustomerLedgerEntry[] => {
-    const customer = customers.find(c => c.id === customerId);
+    const customer = customers.find((c) => c.id === customerId);
     if (!customer) return [];
 
     const entries: CustomerLedgerEntry[] = [];
     let runningBalance = customer.previousBalance;
 
     entries.push({
-      id: 'opening',
+      id: "opening",
       customerId,
-      date: '2026-05-01',
-      type: 'OPENING',
+      date: "2026-05-01",
+      type: "OPENING",
       amount: customer.previousBalance,
-      note: 'Opening Balance',
-      runningBalance
+      note: "Opening Balance",
+      runningBalance,
     });
 
     const invEntries: CustomerLedgerEntry[] = [];
-    invoices.filter(i => i.customerId === customerId).forEach(inv => {
-      invEntries.push({
-        id: `inv-${inv.id}`,
-        customerId,
-        date: inv.date,
-        type: 'INVOICE',
-        referenceId: inv.id,
-        referenceNo: inv.invoiceNo,
-        amount: inv.todayAmount,
-        note: `Invoice total for ${inv.items.length} items. ${inv.notes || ''}`,
-        runningBalance: 0
-      });
-
-      if (inv.paidAmount > 0) {
+    invoices
+      .filter((i) => i.customerId === customerId)
+      .forEach((inv) => {
         invEntries.push({
-          id: `inv-pay-${inv.id}`,
+          id: `inv-${inv.id}`,
           customerId,
           date: inv.date,
-          type: 'PAYMENT',
+          type: "INVOICE",
           referenceId: inv.id,
           referenceNo: inv.invoiceNo,
-          amount: -inv.paidAmount,
-          note: `Immediate payment received on Invoice ${inv.invoiceNo}`,
-          runningBalance: 0
+          amount: inv.todayAmount,
+          note: `Invoice total for ${inv.items.length} items. ${inv.notes || ""}`,
+          runningBalance: 0,
         });
-      }
-    });
+
+        if (inv.paidAmount > 0) {
+          invEntries.push({
+            id: `inv-pay-${inv.id}`,
+            customerId,
+            date: inv.date,
+            type: "PAYMENT",
+            referenceId: inv.id,
+            referenceNo: inv.invoiceNo,
+            amount: -inv.paidAmount,
+            note: `Immediate payment received on Invoice ${inv.invoiceNo}`,
+            runningBalance: 0,
+          });
+        }
+      });
 
     const paymentEntries: CustomerLedgerEntry[] = [];
-    payments.filter(p => p.partyType === 'CUSTOMER' && p.partyId === customerId).forEach(p => {
-      paymentEntries.push({
-        id: `pay-${p.id}`,
-        customerId,
-        date: p.date,
-        type: 'PAYMENT',
-        amount: -p.amount,
-        note: `Received via ${p.paymentMode} ${p.referenceNo ? `(${p.referenceNo})` : ''} - ${p.notes || ''}`,
-        runningBalance: 0
+    payments
+      .filter((p) => p.partyType === "CUSTOMER" && p.partyId === customerId)
+      .forEach((p) => {
+        paymentEntries.push({
+          id: `pay-${p.id}`,
+          customerId,
+          date: p.date,
+          type: "PAYMENT",
+          amount: -p.amount,
+          note: `Received via ${p.paymentMode} ${p.referenceNo ? `(${p.referenceNo})` : ""} - ${p.notes || ""}`,
+          runningBalance: 0,
+        });
       });
-    });
 
-    const combined = [...invEntries, ...paymentEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    combined.forEach(entry => {
+    const combined = [...invEntries, ...paymentEntries].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+    combined.forEach((entry) => {
       runningBalance += entry.amount;
       entry.runningBalance = runningBalance;
       entries.push(entry);
@@ -376,8 +447,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveVehicleArrival = (newArrival: VehicleArrival) => {
-    setVehicles(prev => {
-      const exists = prev.findIndex(v => v.id === newArrival.id);
+    const isUpdate = vehicles.some((v) => v.id === newArrival.id);
+    setVehicles((prev) => {
+      const exists = prev.findIndex((v) => v.id === newArrival.id);
       if (exists >= 0) {
         const updated = [...prev];
         updated[exists] = newArrival;
@@ -385,31 +457,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [newArrival, ...prev];
     });
+
+    void safeDbWrite("vehicleArrival.save", async () => {
+      const entry = {
+        id: newArrival.id,
+        arrivalNo: newArrival.arrivalNo,
+        date: newArrival.date,
+        day: newArrival.day || "",
+        vehicleNo: newArrival.vehicleNo,
+        vehicleName: newArrival.vehicleName,
+        fruitType: newArrival.fruitType,
+        totalVehicleWeight: newArrival.totalVehicleWeight || 0,
+        driverName: newArrival.driverName,
+        notes: newArrival.notes,
+        rows: JSON.stringify(newArrival.rows || []),
+        totalCarets: newArrival.totalCarets || 0,
+        totalCalculatedWeight: newArrival.totalCalculatedWeight || 0,
+        totalAmount: newArrival.totalAmount || 0,
+        freightCharge: newArrival.freightCharge,
+        hamaliCharge: newArrival.hamaliCharge,
+        advancePaid: newArrival.advancePaid,
+        status: newArrival.status || "SAVED",
+        createdAt: newArrival.createdAt || new Date().toISOString(),
+      };
+      if (isUpdate) {
+        await dbService.vehicleArrivals.update(newArrival.id, entry);
+      } else {
+        await dbService.vehicleArrivals.insert(entry);
+      }
+    });
   };
 
   const deleteVehicleArrival = (id: string) => {
-    setVehicles(prev => prev.filter(v => v.id !== id));
+    setVehicles((prev) => prev.filter((v) => v.id !== id));
+    void safeDbWrite("vehicleArrival.delete", async () => {
+      await dbService.vehicleArrivals.delete(id);
+    });
   };
 
   const saveInvoice = (newInvoice: Invoice) => {
-    setInvoices(prev => {
-      const exists = prev.findIndex(i => i.id === newInvoice.id);
+    const isUpdate = invoices.some((i) => i.id === newInvoice.id);
+    setInvoices((prev) => {
+      const exists = prev.findIndex((i) => i.id === newInvoice.id);
       if (exists >= 0) {
         const updated = [...prev];
         updated[exists] = newInvoice;
         return updated;
       }
       return [newInvoice, ...prev];
+    });
+
+    void safeDbWrite("invoice.save", async () => {
+      const payload = {
+        id: newInvoice.id,
+        invoiceNo: newInvoice.invoiceNo,
+        date: newInvoice.date,
+        customerId: newInvoice.customerId,
+        customerName: newInvoice.customerName,
+        items: JSON.stringify(newInvoice.items || []),
+        previousBalance: newInvoice.previousBalance || 0,
+        todayAmount: newInvoice.todayAmount || 0,
+        hamali: newInvoice.hamali,
+        discount: newInvoice.discount,
+        paidAmount: newInvoice.paidAmount || 0,
+        remainingBalance: newInvoice.remainingBalance || 0,
+        notes: newInvoice.notes,
+        createdAt: newInvoice.createdAt || new Date().toISOString(),
+      };
+      if (isUpdate) {
+        await dbService.invoices.update(newInvoice.id, payload);
+      } else {
+        await dbService.invoices.insert(payload);
+      }
     });
   };
 
   const deleteInvoice = (id: string) => {
-    setInvoices(prev => prev.filter(i => i.id !== id));
+    setInvoices((prev) => prev.filter((i) => i.id !== id));
+    void safeDbWrite("invoice.delete", async () => {
+      await dbService.invoices.delete(id);
+    });
   };
 
   const savePurchaseInvoice = (newInvoice: PurchaseInvoice) => {
-    setPurchaseInvoices(prev => {
-      const exists = prev.findIndex(i => i.id === newInvoice.id);
+    const isUpdate = purchaseInvoices.some((i) => i.id === newInvoice.id);
+    setPurchaseInvoices((prev) => {
+      const exists = prev.findIndex((i) => i.id === newInvoice.id);
       if (exists >= 0) {
         const updated = [...prev];
         updated[exists] = newInvoice;
@@ -417,64 +550,223 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [newInvoice, ...prev];
     });
+
+    void safeDbWrite("purchaseInvoice.save", async () => {
+      const payload = {
+        id: newInvoice.id,
+        billNo: newInvoice.billNo,
+        date: newInvoice.date,
+        supplierId: newInvoice.supplierId,
+        supplierName: newInvoice.supplierName,
+        items: JSON.stringify(newInvoice.items || []),
+        previousBalance: newInvoice.previousBalance || 0,
+        todayAmount: newInvoice.todayAmount || 0,
+        freight: newInvoice.freight,
+        hamali: newInvoice.hamali,
+        paidAmount: newInvoice.paidAmount || 0,
+        remainingBalance: newInvoice.remainingBalance || 0,
+        notes: newInvoice.notes,
+        createdAt: newInvoice.createdAt || new Date().toISOString(),
+      };
+      if (isUpdate) {
+        await dbService.purchaseInvoices.update(newInvoice.id, payload);
+      } else {
+        await dbService.purchaseInvoices.insert(payload);
+      }
+    });
   };
 
   const deletePurchaseInvoice = (id: string) => {
-    setPurchaseInvoices(prev => prev.filter(i => i.id !== id));
+    setPurchaseInvoices((prev) => prev.filter((i) => i.id !== id));
+    void safeDbWrite("purchaseInvoice.delete", async () => {
+      await dbService.purchaseInvoices.delete(id);
+    });
   };
 
   const addPayment = (payment: PaymentReceipt) => {
-    setPayments(prev => [payment, ...prev]);
+    setPayments((prev) => [payment, ...prev]);
+    void safeDbWrite("payment.insert", async () => {
+      await dbService.payments.insert({
+        id: payment.id,
+        date: payment.date,
+        partyType: payment.partyType,
+        partyId: payment.partyId,
+        partyName: payment.partyName,
+        amount: payment.amount,
+        paymentMode: payment.paymentMode,
+        referenceNo: payment.referenceNo,
+        notes: payment.notes,
+      });
+    });
   };
 
   const deletePayment = (id: string) => {
-    setPayments(prev => prev.filter(p => p.id !== id));
+    setPayments((prev) => prev.filter((p) => p.id !== id));
+    void safeDbWrite("payment.delete", async () => {
+      await dbService.payments.delete(id);
+    });
   };
 
-  const addSupplier = (supplier: Omit<Supplier, 'id'>) => {
+  const addSupplier = (supplier: Omit<Supplier, "id">) => {
     const newId = `s-${Date.now()}`;
-    setSuppliers(prev => [...prev, { id: newId, ...supplier }]);
-  };
-  const updateSupplier = (supplier: Supplier) => {
-    setSuppliers(prev => prev.map(s => s.id === supplier.id ? supplier : s));
-  };
-  const deleteSupplier = (id: string) => {
-    setSuppliers(prev => prev.filter(s => s.id !== id));
+    const newSupplier: Supplier = { id: newId, ...supplier };
+    setSuppliers((prev) => [...prev, newSupplier]);
+
+    void safeDbWrite("supplier.insert", async () => {
+      await dbService.suppliers.insert({
+        id: newSupplier.id,
+        name: newSupplier.name,
+        code: newSupplier.code || "",
+        phone: newSupplier.phone || "",
+        city: newSupplier.city || "",
+        previousBalance: newSupplier.previousBalance || 0,
+      });
+    });
   };
 
-  const addCustomer = (customer: Omit<Customer, 'id'>) => {
+  const updateSupplier = (supplier: Supplier) => {
+    setSuppliers((prev) =>
+      prev.map((s) => (s.id === supplier.id ? supplier : s)),
+    );
+    void safeDbWrite("supplier.update", async () => {
+      await dbService.suppliers.update(supplier.id, {
+        name: supplier.name,
+        code: supplier.code || "",
+        phone: supplier.phone || "",
+        city: supplier.city || "",
+        previousBalance: supplier.previousBalance || 0,
+      });
+    });
+  };
+
+  const deleteSupplier = (id: string) => {
+    setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    void safeDbWrite("supplier.delete", async () => {
+      await dbService.suppliers.delete(id);
+    });
+  };
+
+  const addCustomer = (customer: Omit<Customer, "id">) => {
     const newId = `c-${Date.now()}`;
-    setCustomers(prev => [...prev, { id: newId, ...customer }]);
+    const newCustomer: Customer = { id: newId, ...customer };
+    setCustomers((prev) => [...prev, newCustomer]);
+
+    void safeDbWrite("customer.insert", async () => {
+      await dbService.customers.insert({
+        id: newCustomer.id,
+        name: newCustomer.name,
+        phone: newCustomer.phone || "",
+        city: newCustomer.city || "",
+        previousBalance: newCustomer.previousBalance || 0,
+      });
+    });
   };
+
   const updateCustomer = (customer: Customer) => {
-    setCustomers(prev => prev.map(c => c.id === customer.id ? customer : c));
+    setCustomers((prev) =>
+      prev.map((c) => (c.id === customer.id ? customer : c)),
+    );
+    void safeDbWrite("customer.update", async () => {
+      await dbService.customers.update(customer.id, {
+        name: customer.name,
+        phone: customer.phone || "",
+        city: customer.city || "",
+        previousBalance: customer.previousBalance || 0,
+      });
+    });
   };
+
   const deleteCustomer = (id: string) => {
-    setCustomers(prev => prev.filter(c => c.id !== id));
+    setCustomers((prev) => prev.filter((c) => c.id !== id));
+    void safeDbWrite("customer.delete", async () => {
+      await dbService.customers.delete(id);
+    });
   };
 
   const addFruitVariety = (fruitId: string, varietyName: string) => {
-    setFruits(prev => prev.map(f => {
-      if (f.id === fruitId && !f.varieties.includes(varietyName)) {
-        return { ...f, varieties: [...f.varieties, varietyName] };
-      }
-      return f;
-    }));
+    setFruits((prev) => {
+      return prev.map((f) => {
+        if (f.id === fruitId && !f.varieties.includes(varietyName)) {
+          const updatedVarieties = [...f.varieties, varietyName];
+          void safeDbWrite("fruit.updateVarieties", async () => {
+            await dbService.fruits.update(fruitId, {
+              varieties: JSON.stringify(updatedVarieties),
+            });
+          });
+          return { ...f, varieties: updatedVarieties };
+        }
+        return f;
+      });
+    });
   };
 
   const addFruit = (fruitName: string) => {
     const trimmed = fruitName.trim();
     if (!trimmed) return;
-    setFruits(prev => {
-      if (prev.some(f => f.name.toLowerCase() === trimmed.toLowerCase())) return prev;
-      return [...prev, { id: `f-${Date.now()}`, name: trimmed, varieties: ['Standard', 'Premium'] }];
+    const newFruit: Fruit = {
+      id: `f-${Date.now()}`,
+      name: trimmed,
+      varieties: ["Standard", "Premium"],
+    };
+    setFruits((prev) => {
+      if (prev.some((f) => f.name.toLowerCase() === trimmed.toLowerCase()))
+        return prev;
+      return [...prev, newFruit];
+    });
+
+    void safeDbWrite("fruit.insert", async () => {
+      await dbService.fruits.insert({
+        id: newFruit.id,
+        name: newFruit.name,
+        varieties: JSON.stringify(newFruit.varieties),
+      });
     });
   };
 
   // ── App Settings ────────────────────────────
   const resetAllData = () => {
-    const keys = ['apex_fruits','apex_suppliers','apex_customers','apex_vehicles','apex_invoices','apex_purchase_invoices','apex_payments','apex_settings','apex_companies','apex_active_company','apex_appearance','apex_theme','apex_fontsize','apex_compact','apex_accent','apex_lang','apex_lowstock','apex_anims'];
-    keys.forEach(k => localStorage.removeItem(k));
+    // Remove all persisted business data from SQLite in the background.
+    void safeDbWrite("resetAllData", async () => {
+      const fruitRows = await dbService.fruits.findAll();
+      for (const row of fruitRows) {
+        await dbService.fruits.delete(row.id);
+      }
+      const supplierRows = await dbService.suppliers.findAll();
+      for (const row of supplierRows) {
+        await dbService.suppliers.delete(row.id);
+      }
+      const customerRows = await dbService.customers.findAll();
+      for (const row of customerRows) {
+        await dbService.customers.delete(row.id);
+      }
+      const vehicleRows = await dbService.vehicleArrivals.findAll();
+      for (const row of vehicleRows) {
+        await dbService.vehicleArrivals.delete(row.id);
+      }
+      const invoiceRows = await dbService.invoices.findAll();
+      for (const row of invoiceRows) {
+        await dbService.invoices.delete(row.id);
+      }
+      const purchaseRows = await dbService.purchaseInvoices.findAll();
+      for (const row of purchaseRows) {
+        await dbService.purchaseInvoices.delete(row.id);
+      }
+      const paymentRows = await dbService.payments.findAll();
+      for (const row of paymentRows) {
+        await dbService.payments.delete(row.id);
+      }
+    });
+
+    // Clear local UI preferences and app cache keys.
+    const keys = [
+      STORAGE_KEYS.settings,
+      STORAGE_KEYS.companies,
+      STORAGE_KEYS.activeCompany,
+      STORAGE_KEYS.appearance,
+      STORAGE_KEYS.activeFY,
+    ];
+    keys.forEach((k) => localStorage.removeItem(k));
+
     setFruits(INITIAL_FRUITS);
     setSuppliers(INITIAL_SUPPLIERS);
     setCustomers(INITIAL_CUSTOMERS);
@@ -485,7 +777,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const getExportData = (): string => {
-    return JSON.stringify({ version: '4.0', timestamp: new Date().toISOString(), settings, fruits, suppliers, customers, vehicles, invoices, purchaseInvoices, payments }, null, 2);
+    return JSON.stringify(
+      {
+        version: "4.0",
+        timestamp: new Date().toISOString(),
+        settings,
+        fruits,
+        suppliers,
+        customers,
+        vehicles,
+        invoices,
+        purchaseInvoices,
+        payments,
+      },
+      null,
+      2,
+    );
   };
 
   const importData = (json: string): boolean => {
@@ -502,15 +809,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateSettings(data.settings);
       }
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   };
 
   // ── Financial Year ──────────────────────────
-  const fyStartMD = settings.financial.financialYearStart || '04-01'; // MM-DD
+  const fyStartMD = settings.financial.financialYearStart || "04-01"; // MM-DD
   const fyOptions = useMemo(() => {
     const years: string[] = [];
     const now = new Date();
-    const [sm] = fyStartMD.split('-').map(Number);
+    const [sm] = fyStartMD.split("-").map(Number);
     const curYear = now.getFullYear();
     const base = now.getMonth() + 1 >= sm ? curYear : curYear - 1;
     for (let y = base; y >= base - 4; y--) {
@@ -519,59 +828,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return years;
   }, [fyStartMD]);
 
-  const [activeFY, setActiveFY] = useState<string>(() => {
-    const saved = localStorage.getItem('apex_active_fy');
-    return saved || fyOptions[0] || '';
-  });
-
-  useEffect(() => { localStorage.setItem('apex_active_fy', activeFY); }, [activeFY]);
-
   return (
-    <AppContext.Provider value={{
-      theme,
-      toggleTheme,
-      fruits,
-      suppliers,
-      customers,
-      vehicles,
-      invoices,
-      purchaseInvoices,
-      payments,
-      inventory,
-      stockMovements,
-      getSupplierLedger,
-      getCustomerLedger,
-      saveVehicleArrival,
-      deleteVehicleArrival,
-      saveInvoice,
-      deleteInvoice,
-      savePurchaseInvoice,
-      deletePurchaseInvoice,
-      addPayment,
-      deletePayment,
-      addSupplier,
-      updateSupplier,
-      deleteSupplier,
-      addCustomer,
-      updateCustomer,
-      deleteCustomer,
-      addFruitVariety,
-      addFruit,
-      settings,
-      updateSettings,
-      resetAllData,
-      importData,
-      getExportData,
-      activeFY,
-      setActiveFY,
-      fyOptions,
-      companies,
-      activeCompanyId,
-      addCompany,
-      updateCompany,
-      deleteCompany,
-      switchCompany
-    }}>
+    <AppContext.Provider
+      value={{
+        theme,
+        toggleTheme,
+        fruits,
+        suppliers,
+        customers,
+        vehicles,
+        invoices,
+        purchaseInvoices,
+        payments,
+        inventory,
+        stockMovements,
+        getSupplierLedger,
+        getCustomerLedger,
+        saveVehicleArrival,
+        deleteVehicleArrival,
+        saveInvoice,
+        deleteInvoice,
+        savePurchaseInvoice,
+        deletePurchaseInvoice,
+        addPayment,
+        deletePayment,
+        addSupplier,
+        updateSupplier,
+        deleteSupplier,
+        addCustomer,
+        updateCustomer,
+        deleteCustomer,
+        addFruitVariety,
+        addFruit,
+        settings,
+        updateSettings,
+        resetAllData,
+        importData,
+        getExportData,
+        activeFY,
+        setActiveFY,
+        fyOptions,
+        companies,
+        activeCompanyId,
+        addCompany,
+        updateCompany,
+        deleteCompany,
+        switchCompany,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
@@ -579,6 +883,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (!context) throw new Error('useApp must be used within an AppProvider');
+  if (!context) throw new Error("useApp must be used within an AppProvider");
   return context;
 };

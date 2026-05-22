@@ -111,8 +111,13 @@ pub fn run() {
                 commands::auth::auth_setup,
                 commands::auth::auth_login,
                 commands::auth::auth_refresh,
+                commands::auth::auth_restore_session,
+                commands::auth::auth_get_lock_config,
+                commands::auth::auth_set_lock_config,
+                commands::auth::auth_verify_pin,
                 commands::auth::auth_logout,
                 commands::auth::auth_check,
+                commands::auth::auth_reset_app,
                 commands::auth::auth_change_password,
                 // ── Database ─────────────────────────────────────────────────
                 commands::db::db_get_stats,

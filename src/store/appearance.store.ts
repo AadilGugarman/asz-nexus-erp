@@ -1,15 +1,19 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { STORAGE_KEYS } from '@/config';
-import { DEFAULT_LANGUAGE, normalizeLanguage, type AppLanguage } from '@/types/language';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { STORAGE_KEYS, LEGACY_KEYS } from "@/config";
+import {
+  DEFAULT_LANGUAGE,
+  normalizeLanguage,
+  type AppLanguage,
+} from "@/types/language";
 
 const APPEARANCE_STORAGE_KEY = STORAGE_KEYS.appearance;
 
-type ResolvedTheme = 'light' | 'dark';
-export type ThemePreference = ResolvedTheme | 'system';
-export type FontFamilyOption = 'inter' | 'roboto' | 'segoe';
-export type FontSizeOption = 'small' | 'medium' | 'large';
-export type DensityOption = 'compact' | 'comfortable' | 'spacious';
+type ResolvedTheme = "light" | "dark";
+export type ThemePreference = ResolvedTheme | "system";
+export type FontFamilyOption = "inter" | "roboto" | "segoe";
+export type FontSizeOption = "small" | "medium" | "large";
+export type DensityOption = "compact" | "comfortable" | "spacious";
 
 interface AppearancePersistedState {
   themePreference: ThemePreference;
@@ -40,11 +44,11 @@ interface AppearanceState extends AppearancePersistedState {
 }
 
 const DEFAULT_APPEARANCE: AppearancePersistedState = {
-  themePreference: 'system',
-  fontFamily: 'inter',
-  fontSize: 'medium',
-  density: 'comfortable',
-  accentColor: '#00c896',
+  themePreference: "system",
+  fontFamily: "inter",
+  fontSize: "medium",
+  density: "comfortable",
+  accentColor: "#00c896",
   language: DEFAULT_LANGUAGE,
   lowStockAlerts: true,
   animationsEnabled: true,
@@ -57,36 +61,36 @@ const FONT_MAP: Record<FontFamilyOption, string> = {
 };
 
 const FONT_SIZE_MAP: Record<FontSizeOption, string> = {
-  small: '13px',
-  medium: '14px',
-  large: '16px',
+  small: "13px",
+  medium: "14px",
+  large: "16px",
 };
 
 const DENSITY_SCALE_MAP: Record<DensityOption, string> = {
-  compact: '0.92',
-  comfortable: '1',
-  spacious: '1.12',
+  compact: "0.92",
+  comfortable: "1",
+  spacious: "1.12",
 };
 
 const TABLE_ROW_HEIGHT_MAP: Record<DensityOption, string> = {
-  compact: '34px',
-  comfortable: '40px',
-  spacious: '46px',
+  compact: "34px",
+  comfortable: "40px",
+  spacious: "46px",
 };
 
 const INPUT_HEIGHT_MAP: Record<DensityOption, string> = {
-  compact: '34px',
-  comfortable: '38px',
-  spacious: '44px',
+  compact: "34px",
+  comfortable: "38px",
+  spacious: "44px",
 };
 
 const CARD_PADDING_MAP: Record<DensityOption, string> = {
-  compact: '0.9',
-  comfortable: '1',
-  spacious: '1.1',
+  compact: "0.9",
+  comfortable: "1",
+  spacious: "1.1",
 };
 
-const isBrowser = typeof window !== 'undefined';
+const isBrowser = typeof window !== "undefined";
 
 interface RGB {
   r: number;
@@ -95,20 +99,22 @@ interface RGB {
 }
 
 function getSystemTheme(): ResolvedTheme {
-  if (!isBrowser) return 'dark';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  if (!isBrowser) return "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 function clampByte(value: number): number {
   return Math.max(0, Math.min(255, Math.round(value)));
 }
 
-function normalizeHexColor(input: string, fallback = '#6366f1'): string {
+function normalizeHexColor(input: string, fallback = "#6366f1"): string {
   const value = input.trim();
-  const hex = value.startsWith('#') ? value.slice(1) : value;
+  const hex = value.startsWith("#") ? value.slice(1) : value;
 
   if (/^[0-9a-fA-F]{3}$/.test(hex)) {
-    const [r, g, b] = hex.split('');
+    const [r, g, b] = hex.split("");
     return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
   }
 
@@ -129,7 +135,7 @@ function hexToRgb(hexColor: string): RGB {
 }
 
 function rgbToHex(rgb: RGB): string {
-  const toHex = (n: number) => clampByte(n).toString(16).padStart(2, '0');
+  const toHex = (n: number) => clampByte(n).toString(16).padStart(2, "0");
   return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
 }
 
@@ -154,8 +160,11 @@ function relativeLuminance({ r, g, b }: RGB): number {
   return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
 }
 
-function resolveTheme(preference: ThemePreference, systemTheme: ResolvedTheme): ResolvedTheme {
-  return preference === 'system' ? systemTheme : preference;
+function resolveTheme(
+  preference: ThemePreference,
+  systemTheme: ResolvedTheme,
+): ResolvedTheme {
+  return preference === "system" ? systemTheme : preference;
 }
 
 function parseJSON<T>(raw: string | null): T | null {
@@ -171,13 +180,15 @@ function getLegacyBoolean(key: string, fallback: boolean): boolean {
   if (!isBrowser) return fallback;
   const value = window.localStorage.getItem(key);
   if (value === null) return fallback;
-  return value !== 'false';
+  return value !== "false";
 }
 
 function getInitialAppearanceState(): AppearancePersistedState {
   if (!isBrowser) return DEFAULT_APPEARANCE;
 
-  const persisted = parseJSON<Partial<AppearancePersistedState>>(window.localStorage.getItem(APPEARANCE_STORAGE_KEY));
+  const persisted = parseJSON<Partial<AppearancePersistedState>>(
+    window.localStorage.getItem(APPEARANCE_STORAGE_KEY),
+  );
   if (persisted) {
     return {
       ...DEFAULT_APPEARANCE,
@@ -185,76 +196,111 @@ function getInitialAppearanceState(): AppearancePersistedState {
     };
   }
 
-  const legacyTheme = window.localStorage.getItem('apex_theme');
-  const legacyFontSize = window.localStorage.getItem('apex_fontsize');
-  const legacyCompact = window.localStorage.getItem('apex_compact');
-  const legacyAccent = window.localStorage.getItem('apex_accent');
-  const legacyLang = window.localStorage.getItem('apex_lang');
+  const legacyTheme = window.localStorage.getItem(LEGACY_KEYS.theme);
+  const legacyFontSize = window.localStorage.getItem(LEGACY_KEYS.fontSize);
+  const legacyCompact = window.localStorage.getItem(LEGACY_KEYS.density);
+  const legacyAccent = window.localStorage.getItem(LEGACY_KEYS.accentColor);
+  const legacyLang = window.localStorage.getItem(LEGACY_KEYS.language);
 
   return {
     themePreference:
-      legacyTheme === 'light' || legacyTheme === 'dark'
+      legacyTheme === "light" || legacyTheme === "dark"
         ? legacyTheme
         : DEFAULT_APPEARANCE.themePreference,
     fontFamily: DEFAULT_APPEARANCE.fontFamily,
     fontSize:
-      legacyFontSize === 'small' || legacyFontSize === 'medium' || legacyFontSize === 'large'
+      legacyFontSize === "small" ||
+      legacyFontSize === "medium" ||
+      legacyFontSize === "large"
         ? legacyFontSize
         : DEFAULT_APPEARANCE.fontSize,
-    density: legacyCompact === 'true' ? 'compact' : DEFAULT_APPEARANCE.density,
+    density: legacyCompact === "true" ? "compact" : DEFAULT_APPEARANCE.density,
     accentColor: legacyAccent || DEFAULT_APPEARANCE.accentColor,
     language: normalizeLanguage(legacyLang) || DEFAULT_APPEARANCE.language,
-    lowStockAlerts: getLegacyBoolean('apex_lowstock', true),
-    animationsEnabled: getLegacyBoolean('apex_anims', true),
+    lowStockAlerts: getLegacyBoolean(LEGACY_KEYS.lowStockAlerts, true),
+    animationsEnabled: getLegacyBoolean(LEGACY_KEYS.animationsEnabled, true),
   };
 }
 
-function applyAppearanceToDom(state: Pick<AppearanceState,
-  | 'resolvedTheme'
-  | 'fontFamily'
-  | 'fontSize'
-  | 'density'
-  | 'accentColor'
-  | 'animationsEnabled'
->) {
+function applyAppearanceToDom(
+  state: Pick<
+    AppearanceState,
+    | "resolvedTheme"
+    | "fontFamily"
+    | "fontSize"
+    | "density"
+    | "accentColor"
+    | "animationsEnabled"
+  >,
+) {
   if (!isBrowser) return;
 
   const root = document.documentElement;
   const normalizedAccent = normalizeHexColor(state.accentColor);
   const accentRgb = hexToRgb(normalizedAccent);
-  const lightMixTarget = state.resolvedTheme === 'dark'
-    ? { r: 203, g: 213, b: 225 }
-    : { r: 255, g: 255, b: 255 };
-  const darkMixTarget = state.resolvedTheme === 'dark'
-    ? { r: 15, g: 23, b: 42 }
-    : { r: 30, g: 41, b: 59 };
+  const lightMixTarget =
+    state.resolvedTheme === "dark"
+      ? { r: 203, g: 213, b: 225 }
+      : { r: 255, g: 255, b: 255 };
+  const darkMixTarget =
+    state.resolvedTheme === "dark"
+      ? { r: 15, g: 23, b: 42 }
+      : { r: 30, g: 41, b: 59 };
 
-  const primaryLight = rgbToHex(mixColors(accentRgb, lightMixTarget, state.resolvedTheme === 'dark' ? 0.3 : 0.2));
-  const primaryDark = rgbToHex(mixColors(accentRgb, darkMixTarget, state.resolvedTheme === 'dark' ? 0.28 : 0.18));
-  const primaryContrast = relativeLuminance(accentRgb) > 0.45 ? '#0f172a' : '#ffffff';
+  const primaryLight = rgbToHex(
+    mixColors(
+      accentRgb,
+      lightMixTarget,
+      state.resolvedTheme === "dark" ? 0.3 : 0.2,
+    ),
+  );
+  const primaryDark = rgbToHex(
+    mixColors(
+      accentRgb,
+      darkMixTarget,
+      state.resolvedTheme === "dark" ? 0.28 : 0.18,
+    ),
+  );
+  const primaryContrast =
+    relativeLuminance(accentRgb) > 0.45 ? "#0f172a" : "#ffffff";
 
-  root.classList.toggle('dark', state.resolvedTheme === 'dark');
+  root.classList.toggle("dark", state.resolvedTheme === "dark");
   root.dataset.theme = state.resolvedTheme;
   root.dataset.density = state.density;
 
-  root.style.setProperty('--app-font-family', FONT_MAP[state.fontFamily]);
-  root.style.setProperty('--font-size-base', FONT_SIZE_MAP[state.fontSize]);
-  root.style.setProperty('--density-scale', DENSITY_SCALE_MAP[state.density]);
-  root.style.setProperty('--table-row-height', TABLE_ROW_HEIGHT_MAP[state.density]);
-  root.style.setProperty('--input-height', INPUT_HEIGHT_MAP[state.density]);
-  root.style.setProperty('--card-padding-scale', CARD_PADDING_MAP[state.density]);
-  root.style.setProperty('--accent-color', normalizedAccent);
-  root.style.setProperty('--primary', normalizedAccent);
-  root.style.setProperty('--primary-rgb', `${accentRgb.r} ${accentRgb.g} ${accentRgb.b}`);
-  root.style.setProperty('--primary-light', primaryLight);
-  root.style.setProperty('--primary-dark', primaryDark);
-  root.style.setProperty('--primary-contrast', primaryContrast);
-  root.style.setProperty('--motion-factor', state.animationsEnabled ? '1' : '0');
+  root.style.setProperty("--app-font-family", FONT_MAP[state.fontFamily]);
+  root.style.setProperty("--font-size-base", FONT_SIZE_MAP[state.fontSize]);
+  root.style.setProperty("--density-scale", DENSITY_SCALE_MAP[state.density]);
+  root.style.setProperty(
+    "--table-row-height",
+    TABLE_ROW_HEIGHT_MAP[state.density],
+  );
+  root.style.setProperty("--input-height", INPUT_HEIGHT_MAP[state.density]);
+  root.style.setProperty(
+    "--card-padding-scale",
+    CARD_PADDING_MAP[state.density],
+  );
+  root.style.setProperty("--accent-color", normalizedAccent);
+  root.style.setProperty("--primary", normalizedAccent);
+  root.style.setProperty(
+    "--primary-rgb",
+    `${accentRgb.r} ${accentRgb.g} ${accentRgb.b}`,
+  );
+  root.style.setProperty("--primary-light", primaryLight);
+  root.style.setProperty("--primary-dark", primaryDark);
+  root.style.setProperty("--primary-contrast", primaryContrast);
+  root.style.setProperty(
+    "--motion-factor",
+    state.animationsEnabled ? "1" : "0",
+  );
 }
 
 const initialPersisted = getInitialAppearanceState();
 const initialSystemTheme = getSystemTheme();
-const initialResolvedTheme = resolveTheme(initialPersisted.themePreference, initialSystemTheme);
+const initialResolvedTheme = resolveTheme(
+  initialPersisted.themePreference,
+  initialSystemTheme,
+);
 
 export const useAppearanceStore = create<AppearanceState>()(
   persist(
@@ -265,7 +311,10 @@ export const useAppearanceStore = create<AppearanceState>()(
 
       setThemePreference: (themePreference) =>
         set((state) => {
-          const resolvedTheme = resolveTheme(themePreference, state.systemTheme);
+          const resolvedTheme = resolveTheme(
+            themePreference,
+            state.systemTheme,
+          );
           const next = { themePreference, resolvedTheme };
           applyAppearanceToDom({ ...state, ...next });
           return next;
@@ -312,13 +361,17 @@ export const useAppearanceStore = create<AppearanceState>()(
 
       toggleTheme: () => {
         const state = get();
-        const nextPreference: ThemePreference = state.resolvedTheme === 'dark' ? 'light' : 'dark';
+        const nextPreference: ThemePreference =
+          state.resolvedTheme === "dark" ? "light" : "dark";
         get().setThemePreference(nextPreference);
       },
 
       setSystemTheme: (systemTheme) =>
         set((state) => {
-          const resolvedTheme = resolveTheme(state.themePreference, systemTheme);
+          const resolvedTheme = resolveTheme(
+            state.themePreference,
+            systemTheme,
+          );
           const next = { systemTheme, resolvedTheme };
           applyAppearanceToDom({ ...state, ...next });
           return next;
@@ -329,7 +382,10 @@ export const useAppearanceStore = create<AppearanceState>()(
           const reset = {
             ...DEFAULT_APPEARANCE,
             systemTheme: state.systemTheme,
-            resolvedTheme: resolveTheme(DEFAULT_APPEARANCE.themePreference, state.systemTheme),
+            resolvedTheme: resolveTheme(
+              DEFAULT_APPEARANCE.themePreference,
+              state.systemTheme,
+            ),
           };
           applyAppearanceToDom(reset);
           return reset;
@@ -349,7 +405,10 @@ export const useAppearanceStore = create<AppearanceState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        const resolvedTheme = resolveTheme(state.themePreference, state.systemTheme);
+        const resolvedTheme = resolveTheme(
+          state.themePreference,
+          state.systemTheme,
+        );
         state.resolvedTheme = resolvedTheme;
         applyAppearanceToDom({ ...state, resolvedTheme });
       },
@@ -363,28 +422,35 @@ export function initAppearanceSystem() {
 
   if (!isBrowser) return;
 
-  const darkMedia = window.matchMedia('(prefers-color-scheme: dark)');
-  const reduceMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const contrastMedia = window.matchMedia('(forced-colors: active), (prefers-contrast: more)');
+  const darkMedia = window.matchMedia("(prefers-color-scheme: dark)");
+  const reduceMotionMedia = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  );
+  const contrastMedia = window.matchMedia(
+    "(forced-colors: active), (prefers-contrast: more)",
+  );
 
   const handleThemeChange = (e: MediaQueryListEvent) => {
-    useAppearanceStore.getState().setSystemTheme(e.matches ? 'dark' : 'light');
+    useAppearanceStore.getState().setSystemTheme(e.matches ? "dark" : "light");
   };
 
   const applyAccessibilityFlags = () => {
     document.documentElement.dataset.reducedMotion =
-      !useAppearanceStore.getState().animationsEnabled || reduceMotionMedia.matches
-        ? 'true'
-        : 'false';
-    document.documentElement.dataset.highContrast = contrastMedia.matches ? 'true' : 'false';
+      !useAppearanceStore.getState().animationsEnabled ||
+      reduceMotionMedia.matches
+        ? "true"
+        : "false";
+    document.documentElement.dataset.highContrast = contrastMedia.matches
+      ? "true"
+      : "false";
   };
 
   const handleReducedMotion = () => applyAccessibilityFlags();
   const handleContrast = () => applyAccessibilityFlags();
 
-  darkMedia.addEventListener('change', handleThemeChange);
-  reduceMotionMedia.addEventListener('change', handleReducedMotion);
-  contrastMedia.addEventListener('change', handleContrast);
+  darkMedia.addEventListener("change", handleThemeChange);
+  reduceMotionMedia.addEventListener("change", handleReducedMotion);
+  contrastMedia.addEventListener("change", handleContrast);
 
   applyAccessibilityFlags();
 

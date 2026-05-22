@@ -1,14 +1,18 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
 
-import { APP_CONFIG, STORAGE_KEYS } from '@/config';
-import { ipc } from '@/ipc';
-import { useAppearanceStore } from '@/store';
-import { DEFAULT_LANGUAGE, normalizeLanguage, type AppLanguage } from '@/types/language';
+import { APP_CONFIG, STORAGE_KEYS, LEGACY_KEYS } from "@/config";
+import { ipc } from "@/ipc";
+import { useAppearanceStore } from "@/store";
+import {
+  DEFAULT_LANGUAGE,
+  normalizeLanguage,
+  type AppLanguage,
+} from "@/types/language";
 
-import { namespaces, resources } from './resources';
+import { namespaces, resources } from "./resources";
 
-const LEGACY_LANGUAGE_KEY = 'apex_lang';
+const LEGACY_LANGUAGE_KEY = LEGACY_KEYS.language;
 
 let isInitialized = false;
 let hasLanguageSync = false;
@@ -18,22 +22,26 @@ function readLanguageFromStorageValue(raw: string | null): string | null {
 
   try {
     const parsed = JSON.parse(raw) as unknown;
-    if (typeof parsed !== 'object' || parsed === null) return null;
+    if (typeof parsed !== "object" || parsed === null) return null;
 
-    if ('state' in parsed && typeof parsed.state === 'object' && parsed.state !== null) {
+    if (
+      "state" in parsed &&
+      typeof parsed.state === "object" &&
+      parsed.state !== null
+    ) {
       const state = parsed.state as { language?: unknown };
-      return typeof state.language === 'string' ? state.language : null;
+      return typeof state.language === "string" ? state.language : null;
     }
 
     const flattened = parsed as { language?: unknown };
-    return typeof flattened.language === 'string' ? flattened.language : null;
+    return typeof flattened.language === "string" ? flattened.language : null;
   } catch {
     return null;
   }
 }
 
 function hasExplicitLanguagePreference(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
 
   const nextStoreRaw = window.localStorage.getItem(STORAGE_KEYS.appearance);
   const nextStoreLanguage = readLanguageFromStorageValue(nextStoreRaw);
@@ -43,7 +51,7 @@ function hasExplicitLanguagePreference(): boolean {
 }
 
 function getLanguageFromRuntime(): AppLanguage {
-  if (typeof navigator === 'undefined') return DEFAULT_LANGUAGE;
+  if (typeof navigator === "undefined") return DEFAULT_LANGUAGE;
   return normalizeLanguage(navigator.language);
 }
 
@@ -64,19 +72,17 @@ export function initI18n(): void {
 
   const fromStore = normalizeLanguage(useAppearanceStore.getState().language);
 
-  void i18n
-    .use(initReactI18next)
-    .init({
-      resources,
-      ns: namespaces,
-      defaultNS: 'common',
-      lng: fromStore,
-      fallbackLng: DEFAULT_LANGUAGE,
-      interpolation: {
-        escapeValue: false,
-      },
-      returnNull: false,
-    });
+  void i18n.use(initReactI18next).init({
+    resources,
+    ns: namespaces,
+    defaultNS: "common",
+    lng: fromStore,
+    fallbackLng: DEFAULT_LANGUAGE,
+    interpolation: {
+      escapeValue: false,
+    },
+    returnNull: false,
+  });
 }
 
 export function initI18nLanguageSync(): void {
@@ -98,7 +104,7 @@ export function initI18nLanguageSync(): void {
     }
   });
 
-  i18n.on('languageChanged', (language) => {
+  i18n.on("languageChanged", (language) => {
     const normalized = normalizeLanguage(language);
     const state = useAppearanceStore.getState();
 
@@ -106,7 +112,7 @@ export function initI18nLanguageSync(): void {
       state.setLanguage(normalized);
     }
 
-    if (typeof document !== 'undefined') {
+    if (typeof document !== "undefined") {
       document.documentElement.lang = normalized;
     }
   });
