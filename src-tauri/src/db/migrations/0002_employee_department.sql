@@ -1,5 +1,19 @@
--- Migration v2: add department column to employees
+-- Migration 0002: employee and department tables
 
-ALTER TABLE employees ADD COLUMN department TEXT NOT NULL DEFAULT '';
+CREATE TABLE IF NOT EXISTS departments (
+    id          TEXT    PRIMARY KEY NOT NULL,
+    name        TEXT    NOT NULL,
+    created_at  TEXT    NOT NULL
+);
 
-CREATE INDEX IF NOT EXISTS idx_employees_department ON employees (department);
+CREATE TABLE IF NOT EXISTS employees (
+    id             TEXT    PRIMARY KEY NOT NULL,
+    name           TEXT    NOT NULL,
+    department_id  TEXT,
+    phone          TEXT    NOT NULL DEFAULT '',
+    email          TEXT    NOT NULL DEFAULT '',
+    salary         REAL    NOT NULL DEFAULT 0,
+    joined_at      TEXT,
+    created_at     TEXT    NOT NULL,
+    FOREIGN KEY (department_id) REFERENCES departments(id)
+);

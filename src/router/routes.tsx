@@ -51,17 +51,14 @@ import {
 /** Root redirect — send to /setup on first run, /dashboard otherwise. */
 const RootRedirect: React.FC = () => {
   const startupReady = useStartupStore((s) => s.phase === "ready");
-  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
-  const companyReady = useCompanyStore((s) => s.initialized);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
-  const routerReady = startupReady && settingsLoaded && companyReady;
 
-  if (!routerReady)
-    return <StartupScreen message="Bootstrapping application..." />;
+  if (!startupReady)
+    return <StartupScreen message="Preparing application..." />;
 
   const target = decidePostStartupRoute({
     startupReady,
@@ -78,20 +75,18 @@ const RootRedirect: React.FC = () => {
 /** Setup route — only accessible when setup is NOT done yet. */
 const SetupRoute: React.FC = () => {
   const startupReady = useStartupStore((s) => s.phase === "ready");
-  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
-  const companyReady = useCompanyStore((s) => s.initialized);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
-  const routerReady = startupReady && settingsLoaded && companyReady;
 
-  if (!routerReady) return <StartupScreen message="Checking setup status..." />;
+  if (!startupReady)
+    return <StartupScreen message="Checking setup status..." />;
 
-  // Only redirect if BOTH initial password setup and company wizard are finished.
-  // This allows the user to stay on /setup if they've only created a password but not the company.
-  if (isSetupDone && isSetupComplete) {
+  // If password setup is already done, we shouldn't be here.
+  // Unless we are moving to company onboarding.
+  if (isSetupDone) {
     const target = decidePostStartupRoute({
       startupReady,
       isSetupDone,
@@ -100,7 +95,7 @@ const SetupRoute: React.FC = () => {
       hasCompany,
       isLocked,
     });
-    // If the target is still setup (which shouldn't happen if both are true), don't redirect to avoid loops.
+
     if (target && target !== ROUTES.setup) {
       return <Navigate to={target} replace />;
     }
@@ -111,36 +106,55 @@ const SetupRoute: React.FC = () => {
 /** Company-setup route — must be authenticated, must NOT have a company yet. */
 const CompanySetupRoute: React.FC = () => {
   const startupReady = useStartupStore((s) => s.phase === "ready");
-  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
-  const companyReady = useCompanyStore((s) => s.initialized);
+  const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasCompany = useCompanyStore((s) => s.hasCompany);
-  const isLocked = useLockStore((s) => s.isLocked);
-  const routerReady = startupReady && settingsLoaded && companyReady;
-
-  if (!routerReady)
-    return <StartupScreen message="Checking company onboarding..." />;
-  if (!isAuthenticated) return <Navigate to={ROUTES.login} replace />;
-  if (isLocked) return <Navigate to={ROUTES.lock} replace />;
-  if (isSetupComplete) return <Navigate to={ROUTES.dashboard} replace />;
-  if (hasCompany) return <Navigate to={ROUTES.dashboard} replace />;
-  return <Outlet />;
-};
-
-const LockRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === "ready");
-  const setupCompleted = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
 
   if (!startupReady)
-    return <StartupScreen message="Applying lock policies..." />;
-  if (!isAuthenticated) return <Navigate to={ROUTES.login} replace />;
-  if (!setupCompleted || !hasCompany)
-    return <Navigate to={ROUTES.setup} replace />;
-  if (!isLocked) return <Navigate to={ROUTES.dashboard} replace />;
+    return <StartupScreen message="Checking onboarding status..." />;
+
+  const target = decidePostStartupRoute({
+    startupReady,
+    isSetupDone,
+    isSetupComplete,
+    isAuthenticated,
+    hasCompany,
+    isLocked,
+  });
+
+  if (target && target !== ROUTES.companySetup) {
+    return <Navigate to={target} replace />;
+  }
+
+  return <Outlet />;
+};
+
+const LockRoute: React.FC = () => {
+  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const isSetupDone = useAuthStore((s) => s.isSetupDone);
+  const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasCompany = useCompanyStore((s) => s.hasCompany);
+  const isLocked = useLockStore((s) => s.isLocked);
+
+  if (!startupReady)
+    return <StartupScreen message="Applying security policies..." />;
+
+  const target = decidePostStartupRoute({
+    startupReady,
+    isSetupDone,
+    isSetupComplete,
+    isAuthenticated,
+    hasCompany,
+    isLocked,
+  });
+
+  if (target && target !== ROUTES.lock) {
+    return <Navigate to={target} replace />;
+  }
+
   return <Outlet />;
 };
 

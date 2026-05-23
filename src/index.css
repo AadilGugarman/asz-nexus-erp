@@ -26,11 +26,12 @@
     --table-row-height: 40px;
     --input-height: 38px;
     --card-padding-scale: 1;
-    --accent-color: #00c896;
-    --primary: #00c896;
-    --primary-light: #00aeef;
-    --primary-dark: #0396cc;
-    --primary-rgb: 0 200 150;
+    /* Accent color variables are fixed neutrals — accent selection has no visual effect. */
+    --accent-color: #6366f1;
+    --primary: #6366f1;
+    --primary-light: #818cf8;
+    --primary-dark: #4f46e5;
+    --primary-rgb: 99 102 241;
     --primary-contrast: #ffffff;
     --motion-factor: 1;
   }
@@ -47,7 +48,7 @@
     --surface-border: #dde3ec;
     --input-bg: #ffffff;
     --input-border: #c8d3e0;
-    --input-focus-border: var(--primary);
+    --input-focus-border: #2563eb;
     --text-primary: #0d1b2e;
     --text-secondary: #3d5166;
     --text-muted: #5e7490;
@@ -78,7 +79,7 @@
     /* Inputs: same as card, clear border */
     --input-bg: #131e30;
     --input-border: #2a4060;
-    --input-focus-border: var(--primary);
+    --input-focus-border: #3b82f6;
     /* Text: bright white → sky-tinted secondary */
     --text-primary: #e8f0fe;
     --text-secondary: #94b4d4;
@@ -106,8 +107,8 @@
   }
 
   ::selection {
-    background-color: color-mix(in srgb, var(--primary) 80%, transparent);
-    color: var(--primary-contrast);
+    background-color: #dbeafe;
+    color: #1e3a5f;
   }
 
   button, a, input, select, textarea, [role='button'] {
@@ -126,9 +127,9 @@
   table, [data-financial], .font-mono { font-variant-numeric: tabular-nums; }
 
   :focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--accent-color) 82%, white 18%);
+    outline: 2px solid #3b82f6;
     outline-offset: 2px;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 22%, transparent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
   }
 
   /* ── REDUCED MOTION ────────────────────────────── */
@@ -162,10 +163,10 @@
 
   /* ── FOCUS RINGS ───────────────────────────────── */
   html:not(.dark) input:focus, html:not(.dark) select:focus, html:not(.dark) textarea:focus {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   }
   html.dark input:focus, html.dark select:focus, html.dark textarea:focus {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
   }
 
   /* ══════════════════════════════════════════════════
@@ -246,7 +247,7 @@
   .erp-input::placeholder { color: var(--text-muted); }
   .erp-input:focus {
     border-color: var(--input-focus-border);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   }
 
   /* ── Primary Button ────────────────────────────── */
@@ -368,6 +369,58 @@
   /* ── AuthLayout dark bg stays intentionally dark ── */
   html.dark .bg-slate-950.min-h-screen { background-color: #060d18 !important; }
   html.dark .bg-slate-900.border.border-slate-800.rounded-2xl { background-color: var(--card-bg) !important; border-color: var(--card-border) !important; }
+
+  /* ══════════════════════════════════════════════════
+     COMPANY WIZARD — always light, never dark
+     The wizard is a focused onboarding flow that must
+     stay light regardless of the app theme setting.
+  ══════════════════════════════════════════════════ */
+  [data-wizard-light],
+  [data-wizard-light] * {
+    color-scheme: light !important;
+  }
+  html.dark [data-wizard-light] {
+    background-color: #f8fafc !important;
+    color: #0d1b2e !important;
+  }
+  html.dark [data-wizard-light] .bg-white {
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(10,20,40,0.07), 0 4px 14px rgba(10,20,40,0.05) !important;
+    color: #0d1b2e !important;
+  }
+  html.dark [data-wizard-light] .bg-slate-50 { background-color: #f8fafc !important; }
+  html.dark [data-wizard-light] .bg-white\/90 { background-color: rgba(255,255,255,0.9) !important; }
+  html.dark [data-wizard-light] .border-slate-200 { border-color: #e2e8f0 !important; }
+  html.dark [data-wizard-light] .border-slate-200\/80 { border-color: rgba(226,232,240,0.8) !important; }
+  html.dark [data-wizard-light] .border-slate-100 { border-color: #f1f5f9 !important; }
+  html.dark [data-wizard-light] .text-slate-900 { color: #0f172a !important; }
+  html.dark [data-wizard-light] .text-slate-700 { color: #334155 !important; }
+  html.dark [data-wizard-light] .text-slate-600 { color: #475569 !important; }
+  html.dark [data-wizard-light] .text-slate-500 { color: #64748b !important; }
+  html.dark [data-wizard-light] .text-slate-400 { color: #94a3b8 !important; }
+  html.dark [data-wizard-light] .text-slate-300 { color: #cbd5e1 !important; }
+  html.dark [data-wizard-light] .text-slate-200 { color: #e2e8f0 !important; }
+  html.dark [data-wizard-light] .text-slate-100 { color: #f1f5f9 !important; }
+  html.dark [data-wizard-light] .bg-slate-100 { background-color: #f1f5f9 !important; }
+  html.dark [data-wizard-light] .bg-slate-200 { background-color: #e2e8f0 !important; }
+  html.dark [data-wizard-light] .hover\:bg-slate-100:hover { background-color: #f1f5f9 !important; }
+  html.dark [data-wizard-light] .hover\:bg-slate-200\/80:hover { background-color: rgba(226,232,240,0.8) !important; }
+  html.dark [data-wizard-light] .hover\:bg-slate-50:hover { background-color: #f8fafc !important; }
+  html.dark [data-wizard-light] input,
+  html.dark [data-wizard-light] select,
+  html.dark [data-wizard-light] textarea {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #e2e8f0 !important;
+  }
+  html.dark [data-wizard-light] input::placeholder,
+  html.dark [data-wizard-light] textarea::placeholder { color: #94a3b8 !important; }
+  html.dark [data-wizard-light] input:focus,
+  html.dark [data-wizard-light] select:focus,
+  html.dark [data-wizard-light] textarea:focus {
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15) !important;
+  }
+  html.dark [data-wizard-light] .bg-slate-50\/50 { background-color: rgba(248,250,252,0.5) !important; }
 }
 
 @layer utilities {
@@ -391,64 +444,14 @@
   select, textarea { min-height: var(--input-height); }
   table tbody tr { min-height: var(--table-row-height); }
 
-  /* ── Accent remap — targeted, not wildcard ─────── */
-  /* Only remaps primary accent families. Semantic colors (rose/amber/sky/orange) are excluded. */
-
-  :where([class~='text-emerald-500'],[class~='text-emerald-600'],[class~='text-emerald-700'],
-    [class~='text-teal-500'],[class~='text-teal-600'],[class~='text-cyan-500'],[class~='text-cyan-600'],
-    [class~='text-blue-500'],[class~='text-blue-600'],[class~='text-indigo-500'],[class~='text-indigo-600'],
-    [class~='text-violet-500'],[class~='text-violet-600']) { color: var(--primary) !important; }
-
-  :where([class~='text-emerald-300'],[class~='text-emerald-400'],[class~='text-teal-300'],[class~='text-teal-400'],
-    [class~='text-cyan-300'],[class~='text-cyan-400'],[class~='text-blue-300'],[class~='text-blue-400'],
-    [class~='text-indigo-300'],[class~='text-indigo-400'],[class~='text-violet-300'],[class~='text-violet-400']) {
-    color: color-mix(in srgb, var(--primary) 88%, white 12%) !important;
-  }
-
-  :where([class~='bg-emerald-500'],[class~='bg-emerald-600'],[class~='bg-teal-500'],[class~='bg-teal-600'],
-    [class~='bg-cyan-500'],[class~='bg-cyan-600'],[class~='bg-blue-500'],[class~='bg-blue-600'],
-    [class~='bg-indigo-500'],[class~='bg-indigo-600'],[class~='bg-violet-500'],[class~='bg-violet-600']) {
-    background-color: var(--primary) !important; color: var(--primary-contrast) !important;
-  }
-
-  :where([class~='hover:bg-emerald-500'],[class~='hover:bg-emerald-600'],[class~='hover:bg-teal-500'],
-    [class~='hover:bg-teal-600'],[class~='hover:bg-cyan-500'],[class~='hover:bg-cyan-600'],
-    [class~='hover:bg-blue-500'],[class~='hover:bg-blue-600'],[class~='hover:bg-indigo-500'],
-    [class~='hover:bg-indigo-600'],[class~='hover:bg-violet-500'],[class~='hover:bg-violet-600']):hover {
-    background-color: var(--primary-dark) !important; color: var(--primary-contrast) !important;
-  }
-
-  :where([class~='bg-emerald-50'],[class~='bg-teal-50'],[class~='bg-cyan-50'],
-    [class~='bg-blue-50'],[class~='bg-indigo-50'],[class~='bg-violet-50']) {
-    background-color: rgb(var(--primary-rgb) / 0.08) !important;
-  }
-
-  :where([class~='focus:ring-emerald-500'],[class~='focus:ring-teal-500'],[class~='focus:ring-cyan-500'],
-    [class~='focus:ring-blue-500'],[class~='focus:ring-indigo-500'],[class~='focus:ring-violet-500']):focus {
-    --tw-ring-color: rgb(var(--primary-rgb) / 0.4) !important;
-  }
-
-  :where([class~='focus:border-emerald-500'],[class~='focus:border-teal-500'],[class~='focus:border-cyan-500'],
-    [class~='focus:border-blue-500'],[class~='focus:border-indigo-500'],[class~='focus:border-violet-500']):focus {
-    border-color: var(--primary) !important;
-  }
-
-  :where([class~='from-emerald-500'],[class~='from-emerald-600'],[class~='from-teal-500'],[class~='from-teal-600'],
-    [class~='from-cyan-500'],[class~='from-cyan-600'],[class~='from-blue-500'],[class~='from-blue-600'],
-    [class~='from-indigo-500'],[class~='from-indigo-600'],[class~='from-violet-500'],[class~='from-violet-600']) {
-    --tw-gradient-from: var(--primary) var(--tw-gradient-from-position) !important;
-    --tw-gradient-to: rgb(var(--primary-rgb) / 0) var(--tw-gradient-to-position) !important;
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-  }
-
-  :where([class~='to-emerald-500'],[class~='to-emerald-600'],[class~='to-teal-500'],[class~='to-teal-600'],
-    [class~='to-cyan-500'],[class~='to-cyan-600'],[class~='to-blue-500'],[class~='to-blue-600'],
-    [class~='to-indigo-500'],[class~='to-indigo-600'],[class~='to-violet-500'],[class~='to-violet-600']) {
-    --tw-gradient-to: var(--primary-dark) var(--tw-gradient-to-position) !important;
-  }
+  /* ── Accent remap — REMOVED ───────────────────────────────────────────────
+     All var(--primary) background, border, gradient, and focus-ring remaps
+     have been removed. The accent color setting has no visual effect anywhere
+     in the UI. All colours are fixed and independent of accent selection.
+  ─────────────────────────────────────────────────────────────────────────── */
 
   .theme-accent-gradient {
-    background-image: linear-gradient(135deg, color-mix(in srgb, var(--primary) 86%, white 14%), var(--primary-light) 52%, var(--primary-dark));
+    background-image: linear-gradient(135deg, #6366f1, #4f46e5);
   }
 
   /* ── Print Styles ──────────────────────────────── */

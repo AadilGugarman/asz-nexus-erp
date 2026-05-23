@@ -88,12 +88,14 @@ export interface VehicleArrival {
 
 export interface PurchaseInvoiceItem {
   id: string;
-  fruit: string;
+  fruitCategory: string;  // e.g. "Mango", "Banana"
+  fruit: string;          // kept for backward compat (same as fruitCategory)
   variety: string;
   caret: number;
   weight: number;
   rate: number;
   amount: number;
+  rowNote?: string;       // per-row supplier note
 }
 
 export interface PurchaseInvoice {
@@ -102,6 +104,9 @@ export interface PurchaseInvoice {
   date: string;
   supplierId: string;
   supplierName: string;
+  // Vehicle Inward fields (independent of VehicleArrival module)
+  vehicleNo?: string;
+  declaredWeight?: number;
   items: PurchaseInvoiceItem[];
   previousBalance: number;
   todayAmount: number;
@@ -136,7 +141,8 @@ export interface StockMovement {
 
 export interface InvoiceItem {
   id: string;
-  fruit: string;
+  fruitCategory: string;  // e.g. "Mango"
+  fruit: string;          // kept for backward compat
   lotVariety: string;
   caret: number;
   weight: number;
@@ -150,11 +156,15 @@ export interface Invoice {
   date: string;
   customerId: string;
   customerName: string;
+  // Vehicle Inward fields (independent of VehicleArrival module)
+  vehicleNo?: string;
+  declaredWeight?: number;
   items: InvoiceItem[];
   previousBalance: number;
   todayAmount: number;
-  hamali?: number; // Loading fee
-  discount?: number; // Cash discount
+  freight?: number;       // Bhaada
+  hamali?: number;        // kept for backward compat on existing records
+  discount?: number;      // legacy field — no longer set by new invoices
   paidAmount: number;
   remainingBalance: number;
   notes?: string;

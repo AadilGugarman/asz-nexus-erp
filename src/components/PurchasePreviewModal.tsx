@@ -2,6 +2,7 @@ import React from 'react';
 import { PurchaseInvoice } from '../types';
 import { X, Printer, FileText } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { fmtDate } from '@/utils/format';
 
 interface PurchasePreviewModalProps {
   invoice: PurchaseInvoice | null;
@@ -57,7 +58,7 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
                   <div className="text-[9px] font-black tracking-[0.2em] uppercase text-teal-500">Direct Purchase Bill</div>
                   <div className="text-[22px] font-black font-mono text-teal-900 leading-tight mt-0.5">{invoice.billNo}</div>
                 </div>
-                <div className="text-[11px] font-mono text-slate-600 mt-2 font-semibold">{invoice.date}</div>
+                <div className="text-[11px] font-mono text-slate-600 mt-2 font-semibold">{fmtDate(invoice.date)}</div>
               </div>
             </div>
 

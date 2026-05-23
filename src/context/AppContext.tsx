@@ -21,13 +21,6 @@ import {
   AppSettings,
   CompanyProfile,
 } from "../types";
-import {
-  INITIAL_FRUITS,
-  INITIAL_SUPPLIERS,
-  INITIAL_CUSTOMERS,
-  INITIAL_VEHICLE_ARRIVALS,
-  INITIAL_INVOICES,
-} from "../mockData";
 import { STORAGE_KEYS } from "@/config";
 import { useAppearanceStore } from "@/store/appearance.store";
 import { useSettingsStore } from "@/store/settings.store";
@@ -96,53 +89,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const theme = useAppearanceStore((s) => s.resolvedTheme) as ThemeMode;
   const toggleTheme = useAppearanceStore((s) => s.toggleTheme);
 
-  const { data: fruitsFromDb, isLoading: fruitsLoading } = useFruits();
-  const { data: suppliersFromDb, isLoading: suppliersLoading } = useSuppliers();
-  const { data: customersFromDb, isLoading: customersLoading } = useCustomers();
-  const { data: vehiclesFromDb, isLoading: vehiclesLoading } =
-    useVehicleArrivals();
-  const { data: invoicesFromDb, isLoading: invoicesLoading } = useInvoices();
-  const { data: purchaseInvoicesFromDb, isLoading: purchaseInvoicesLoading } =
-    usePurchaseInvoices();
-  const { data: paymentsFromDb, isLoading: paymentsLoading } = usePayments();
-
-  const [fruits, setFruits] = useState<Fruit[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [vehicles, setVehicles] = useState<VehicleArrival[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(
-    [],
-  );
-  const [payments, setPayments] = useState<PaymentReceipt[]>([]);
-
-  useEffect(() => {
-    if (!fruitsLoading) setFruits(fruitsFromDb);
-  }, [fruitsFromDb, fruitsLoading]);
-
-  useEffect(() => {
-    if (!suppliersLoading) setSuppliers(suppliersFromDb);
-  }, [suppliersFromDb, suppliersLoading]);
-
-  useEffect(() => {
-    if (!customersLoading) setCustomers(customersFromDb);
-  }, [customersFromDb, customersLoading]);
-
-  useEffect(() => {
-    if (!vehiclesLoading) setVehicles(vehiclesFromDb);
-  }, [vehiclesFromDb, vehiclesLoading]);
-
-  useEffect(() => {
-    if (!invoicesLoading) setInvoices(invoicesFromDb);
-  }, [invoicesFromDb, invoicesLoading]);
-
-  useEffect(() => {
-    if (!purchaseInvoicesLoading) setPurchaseInvoices(purchaseInvoicesFromDb);
-  }, [purchaseInvoicesFromDb, purchaseInvoicesLoading]);
-
-  useEffect(() => {
-    if (!paymentsLoading) setPayments(paymentsFromDb);
-  }, [paymentsFromDb, paymentsLoading]);
+  const { data: fruits, isLoading: fruitsLoading } = useFruits();
+  const { data: suppliers, isLoading: suppliersLoading } = useSuppliers();
+  const { data: customers, isLoading: customersLoading } = useCustomers();
+  const { data: vehicles, isLoading: vehiclesLoading } = useVehicleArrivals();
+  const { data: invoices, isLoading: invoicesLoading } = useInvoices();
+  const { data: purchaseInvoices, isLoading: purchaseInvoicesLoading } = usePurchaseInvoices();
+  const { data: payments, isLoading: paymentsLoading } = usePayments();
 
   const safeDbWrite = async (label: string, action: () => Promise<unknown>) => {
     if (!dbService.isReady) return;
@@ -767,11 +720,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     ];
     keys.forEach((k) => localStorage.removeItem(k));
 
-    setFruits(INITIAL_FRUITS);
-    setSuppliers(INITIAL_SUPPLIERS);
-    setCustomers(INITIAL_CUSTOMERS);
-    setVehicles(INITIAL_VEHICLE_ARRIVALS);
-    setInvoices(INITIAL_INVOICES);
+    setFruits([]);
+    setSuppliers([]);
+    setCustomers([]);
+    setVehicles([]);
+    setInvoices([]);
     setPurchaseInvoices([]);
     setPayments([]);
   };

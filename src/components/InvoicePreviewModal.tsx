@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { useToast } from './ui/Toast';
 import { InvoiceTemplateRenderer } from './invoice/InvoiceTemplateRenderer';
 import { normalizeInvoiceTemplate } from '../utils/invoice-number';
+import { fmtDate } from '@/utils/format';
 
 interface InvoicePreviewModalProps {
   invoice: Invoice | null;
@@ -36,7 +37,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoic
             </div>
             <div>
               <h3 className="text-sm font-bold dark:text-white text-slate-900">Invoice Preview</h3>
-              <p className="text-[11px] dark:text-slate-400 text-slate-500 font-mono">{invoice.invoiceNo} · {invoice.date} · {template}</p>
+              <p className="text-[11px] dark:text-slate-400 text-slate-500 font-mono">{invoice.invoiceNo} · {fmtDate(invoice.date)} · {template}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">

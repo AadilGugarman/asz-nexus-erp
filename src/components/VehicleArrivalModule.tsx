@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { VehicleArrival, PurchaseRow } from '../types';
+import { fmtDate } from '@/utils/format';
 import { VehicleSpreadsheet } from './VehicleSpreadsheet';
 import { VehiclePreviewModal } from './VehiclePreviewModal';
 import { Truck, Save, Plus, FileSpreadsheet, Search, Filter, Eye, Edit3, Trash2, AlertTriangle, Calendar, Calculator } from 'lucide-react';
@@ -509,7 +510,7 @@ export const VehicleArrivalModule: React.FC = () => {
                           <span className="font-bold dark:text-slate-200 text-slate-900 block text-sm">{veh.arrivalNo}</span>
                           <span className="text-[11px] dark:text-slate-400 text-slate-600 flex items-center mt-0.5 font-sans">
                             <Calendar className="w-3 h-3 mr-1 text-emerald-500" />
-                            {veh.date} ({veh.day})
+                            {fmtDate(veh.date)} ({veh.day})
                           </span>
                         </td>
                         <td className="py-4 px-3 font-sans">

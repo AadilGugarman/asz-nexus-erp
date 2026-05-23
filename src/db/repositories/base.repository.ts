@@ -70,7 +70,8 @@ export class BaseRepository<
     if (!this.db) return [];
     const q = (this.db as any).select().from(this.table);
     if (where) q.where(where);
-    return q as Promise<TSelect[]>;
+    const rows = await q;
+    return rows as TSelect[];
   }
 
   // ── findPaged ──────────────────────────────────────────────────────────────

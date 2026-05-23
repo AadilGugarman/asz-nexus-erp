@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentReceipt } from '../types';
+import { fmtDate } from '@/utils/format';
 import { Combobox } from './ui/Combobox';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
@@ -587,7 +588,7 @@ export const PaymentsModule: React.FC = () => {
                         <td className="py-3.5 px-4">
                           <div className="flex items-center space-x-1.5 font-mono text-xs text-[#475569] font-semibold">
                             <Calendar className="w-3.5 h-3.5 text-[#94a3b8]" />
-                            <span>{p.date}</span>
+                            <span>{fmtDate(p.date)}</span>
                           </div>
                         </td>
                         <td className="py-3.5 px-3">
@@ -717,7 +718,7 @@ export const PaymentsModule: React.FC = () => {
                       <div className="text-[8px] font-black tracking-[0.2em] uppercase text-amber-500">
                         {previewPayment.partyType === 'SUPPLIER' ? 'PAYMENT VOUCHER' : 'PAYMENT RECEIPT'}
                       </div>
-                      <div className="text-[11px] font-mono font-bold text-amber-900 mt-0.5">{previewPayment.date}</div>
+                      <div className="text-[11px] font-mono font-bold text-amber-900 mt-0.5">{fmtDate(previewPayment.date)}</div>
                     </div>
                   </div>
                 </div>

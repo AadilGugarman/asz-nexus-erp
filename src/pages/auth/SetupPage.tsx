@@ -32,28 +32,17 @@ export const SetupPage: React.FC = () => {
 
   // Already set up — go to login if the user is not authenticated yet.
   useEffect(() => {
-    if (isSetupDone && !isAuth) navigate(ROUTES.login, { replace: true });
+    if (isSetupDone && !isAuth) {
+      navigate(ROUTES.login, { replace: true });
+    }
   }, [isSetupDone, isAuth, navigate]);
 
-  // If the user is already authenticated and onboarding is complete, go to dashboard.
+  // If the user is already authenticated but onboarding is incomplete, go to company setup.
   useEffect(() => {
-    if (isAuth && setupCompleted && hasCompany) {
-      navigate(ROUTES.dashboard, { replace: true });
+    if (isAuth && (!setupCompleted || !hasCompany)) {
+      navigate(ROUTES.companySetup, { replace: true });
     }
   }, [isAuth, setupCompleted, hasCompany, navigate]);
-
-  const markCompanyCreated = useCompanyStore((s) => s.markCompanyCreated);
-
-  const handleSetupComplete = async () => {
-    try {
-      await useSettingsStore
-        .getState()
-        .updateSettings({ setupCompleted: true });
-      markCompanyCreated();
-    } finally {
-      navigate(ROUTES.dashboard, { replace: true });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +74,7 @@ export const SetupPage: React.FC = () => {
   if (showSuccess) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300">
-        <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+        <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mb-4">
           <svg
             className="w-8 h-8"
             fill="none"
@@ -102,22 +91,6 @@ export const SetupPage: React.FC = () => {
         </div>
         <h2 className="text-xl font-bold text-slate-100">Password Created!</h2>
         <p className="text-slate-400 mt-2">Initializing your workspace...</p>
-      </div>
-    );
-  }
-
-  if (isAuth && !setupCompleted) {
-    if (import.meta.env.DEV) {
-      console.log(
-        "[SetupPage] Rendering SetupWizard. isAuth:",
-        isAuth,
-        "setupCompleted:",
-        setupCompleted,
-      );
-    }
-    return (
-      <div className="fixed inset-0 z-[9999] bg-slate-950">
-        <SetupWizard onComplete={handleSetupComplete} />
       </div>
     );
   }
@@ -151,7 +124,7 @@ export const SetupPage: React.FC = () => {
             clearError();
           }}
           placeholder="Min. 4 characters"
-          className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           autoFocus
           autoComplete="new-password"
           disabled={isLoading}
@@ -175,7 +148,7 @@ export const SetupPage: React.FC = () => {
             clearError();
           }}
           placeholder="Re-enter password"
-          className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           autoComplete="new-password"
           disabled={isLoading}
         />
@@ -190,7 +163,7 @@ export const SetupPage: React.FC = () => {
       <button
         type="submit"
         disabled={isLoading || !password || !confirm}
-        className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors"
+        className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors"
       >
         {isLoading ? (
           <span className="flex items-center justify-center gap-2">
@@ -198,7 +171,7 @@ export const SetupPage: React.FC = () => {
             Setting up…
           </span>
         ) : (
-          "Create Password & Continue"
+          "Continue"
         )}
       </button>
     </form>

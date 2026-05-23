@@ -134,17 +134,24 @@ export const authIpc = {
   changePassword: (req: ChangePasswordRequest): Promise<boolean> =>
     ipcInvoke<boolean>(CMD.auth.changePassword, req, true),
 
-  getLockConfig: (): Promise<LockConfigResponse> =>
-    ipcInvoke<LockConfigResponse>(
-      CMD.auth.getLockConfig,
-      {},
-      { pin_enabled: false, auto_lock_minutes: 0 },
-    ),
+  getLockConfig: (): Promise<LockConfigResponse> => {
+    const fallback: LockConfigResponse = {
+      pin_enabled: localStorage.getItem("tfc_erp_pin_enabled") === "true",
+      auto_lock_minutes: Number(localStorage.getItem("tfc_erp_auto_lock_minutes") || 0),
+    };
+    return ipcInvoke<LockConfigResponse>(CMD.auth.getLockConfig, {}, fallback);
+  },
 
   setLockConfig: (req: LockConfigRequest): Promise<LockConfigResponse> =>
     ipcInvoke<LockConfigResponse>(CMD.auth.setLockConfig, req, {
-      pin_enabled: false,
-      auto_lock_minutes: 0,
+      pin_enabled: req.pin_enabled,
+      auto_lock_minutes: req.auto_lock_minutes,
+    }).then((res) => {
+      if (!APP_CONFIG.isTauri) {
+        localStorage.setItem("tfc_erp_pin_enabled", String(req.pin_enabled));
+        localStorage.setItem("tfc_erp_auto_lock_minutes", String(req.auto_lock_minutes));
+      }
+      return res;
     }),
 
   verifyPin: (req: VerifyPinRequest): Promise<boolean> =>

@@ -5,6 +5,7 @@ import { useLockStore } from "./lock.store";
 import { dbService } from "@/db/services";
 import { useSettingsStore } from "./settings.store";
 import { backupService } from "@/services/backup.service";
+import { toast } from "sonner";
 
 interface StartupState {
   phase: "idle" | "initializing" | "ready" | "error";
@@ -57,24 +58,26 @@ export const useStartupStore = create<StartupState>()((set, get) => ({
 
     try {
       dbReady = await dbService.init();
+      if (dbReady && import.meta.env.DEV) {
+        toast.success("Database connection established.");
+      }
       set({
         isDbReady: dbReady,
         message: dbReady
-          ? "Database initialized..."
-          : "Database unavailable; continuing startup with fallback state.",
+          ? "Database connected..."
+          : "Database unavailable; using local storage.",
       });
       logStartup(`Database init complete: ${dbReady}`);
     } catch (error) {
       set({
         isDbReady: false,
-        message: "Database initialization failed; continuing startup.",
+        message: "Database connection failed.",
       });
       console.warn("[Startup] DB init failed:", error);
     }
 
-    set({ message: "Syncing application state..." });
-
-      // 1. First, load settings (this is the foundation for everything else)
+    // 1. First, load settings (this is the foundation for everything else)
+    set({ message: "Restoring preferences..." });
     try {
       await useSettingsStore.getState().loadFromDb();
       logStartup("Settings restored");
@@ -82,53 +85,61 @@ export const useStartupStore = create<StartupState>()((set, get) => ({
       console.warn("[Startup] Settings load failed:", e);
     }
 
-    // 2. Now run other restoration tasks that might depend on settings
+    // 2. Load Company State (Definitive check)
+    set({ message: "Verifying company data..." });
     try {
-    try {
-      await Promise.all([
-      
-        (async () => {
-          try {
-            useCompanyStore.getState().bootstrap();
-            await useCompanyStore.getState().bootstrapFromDb();
-                     logStartup("Company state restored");
-          } catch (e) {
-            console.warn("[Startup] Company bootstrap failed:", e);
-          }
-        })(),
-        (async () => {
-          try {
-            await useAuthStore.getState().initialize();
-            logStartup("Authentication restoration complete");
-          } catch (e) {
-            console.warn("[Startup] Auth initialization failed:", e);
-          }
-        })(),
-        (async () => {
-          try {
-            await backupService.init();
-            logStartup("Backup metadata initialized");
-          } catch (e) {
-            console.warn("[Startup] Backup service init failed:", e);
-          }
-        })(),
-      ]);
-    } catch (error) {
-      console.warn("[Startup] Parallel initialization had errors:", error);
+      // Sync bootstrap from settings store first
+      useCompanyStore.getState().bootstrap();
+      // Then async reconciliation from SQLite
+      await useCompanyStore.getState().bootstrapFromDb();
+      logStartup("Company state reconciled");
+    } catch (e) {
+      console.warn("[Startup] Company bootstrap failed:", e);
     }
 
-    set({ message: "Applying security checks..." });
+    // 3. Auth Restoration
+    set({ message: "Checking security session..." });
+    try {
+      await useAuthStore.getState().initialize();
+      logStartup("Authentication checked");
+    } catch (e) {
+      console.warn("[Startup] Auth initialization failed:", e);
+    }
+
+    // Ensure we wait for a moment for stores to settle
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 4. Lock Store (depends on auth)
+    set({ message: "Applying security policies..." });
     try {
       const isAuthenticated = useAuthStore.getState().isAuthenticated;
       await useLockStore.getState().bootstrapForStartup(isAuthenticated);
-      logStartup("Lock store bootstrap complete");
+      logStartup("Lock store initialized");
     } catch (error) {
       console.warn("[Startup] Lock bootstrap failed:", error);
     }
 
+    // 5. Backup Service
+    try {
+      await backupService.init();
+      logStartup("Backup service ready");
+    } catch (e) {
+      console.warn("[Startup] Backup service init failed:", e);
+    }
+
+    // FINAL VALIDATION: Ensure we have a consistent view of the world
+    const finalHasCompany = useCompanyStore.getState().hasCompany;
+    const finalSetupComplete =
+      useSettingsStore.getState().settings.setupCompleted;
+    const finalIsAuthenticated = useAuthStore.getState().isAuthenticated;
+
     if (import.meta.env.DEV) {
-      // Artificial delay to prevent UI flashing and allow the user to see the startup sequence
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      console.info("[Startup] Final Validation:", {
+        finalHasCompany,
+        finalSetupComplete,
+        finalIsAuthenticated,
+        companiesCount: useSettingsStore.getState().companies.length,
+      });
     }
 
     set({

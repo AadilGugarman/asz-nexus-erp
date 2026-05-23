@@ -10,10 +10,11 @@ use serde_json::json;
 
 use crate::error::{AppError, AppResult};
 
-const SETTINGS_KEY_APP: &str = "app_settings";
-const SETTINGS_KEY_COMPANIES: &str = "companies";
-const SETTINGS_KEY_ACTIVE_COMPANY: &str = "active_company_id";
-const SETTINGS_KEY_SEED_META: &str = "demo_seed_metadata";
+const SETTINGS_KEY_APP: &str = "tfc_erp_settings";
+const SETTINGS_KEY_COMPANIES: &str = "tfc_erp_companies";
+const SETTINGS_KEY_ACTIVE_COMPANY: &str = "tfc_erp_active_company";
+const SETTINGS_KEY_ACTIVE_FY: &str = "tfc_erp_active_fy";
+const SETTINGS_KEY_SEED_META: &str = "tfc_erp_demo_seed_metadata";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SeedTableCounts {
@@ -374,7 +375,12 @@ pub fn reset_demo_data(conn: &mut Connection) -> AppResult<SeedResetResponse> {
 
 pub fn reseed_demo_data(conn: &mut Connection, profile: &str) -> AppResult<SeedExecutionResponse> {
     let spec = find_profile(profile)?;
-    let tx = conn.transaction().map_err(db_err)?;
+
+    // Use IMMEDIATE transaction to ensure we get a write lock even if frontend is reading
+    let tx = conn
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .map_err(db_err)?;
+
     let deleted_counts = count_existing(&tx)?;
     clear_erp_tables(&tx)?;
 
@@ -978,19 +984,19 @@ fn seed_settings(
     start_date: NaiveDate,
     end_date: NaiveDate,
 ) -> AppResult<String> {
-    let company_name = "Nexus Fresh Commission Agents".to_string();
+    let company_name = "Talha Fruit Co.".to_string();
     let app_settings = json!({
         "company": {
             "name": company_name,
             "tagline": "Wholesale fruit merchants and commission agents",
-            "address": "APMC Yard, Gate 3, Market Line Road",
-            "phone": "+91 98765 00001",
-            "email": "ops@nexusfresh.local",
+            "address": "APMC Yard, Market Road, Gate No. 2",
+            "phone": "+91 98765 43210",
+            "email": "contact@talhafruit.co",
             "gstin": "24ABCDE1234F1ZX",
             "bankName": "State Bank of India",
             "accountNo": "458901230001",
             "ifsc": "SBIN0004589",
-            "upiId": "nexusfresh@upi",
+            "upiId": "talhafruit@upi",
             "logo": ""
         },
         "financial": {
@@ -1012,7 +1018,7 @@ fn seed_settings(
             "showUPI": true,
             "showBankDetails": true,
             "templateStyle": "modern",
-            "brandColor": "#15803d",
+            "brandColor": "#fbbf24",
             "enableQR": true,
             "autoInvoiceNo": true,
             "invoiceNumberMode": "sequential",
@@ -1036,7 +1042,8 @@ fn seed_settings(
             "appPin": "",
             "autoLockMinutes": 0,
             "pinEnabled": false
-        }
+        },
+        "setupCompleted": true
     });
 
     let companies = json!([
@@ -1070,11 +1077,13 @@ fn seed_settings(
         (SETTINGS_KEY_APP, app_settings),
         (SETTINGS_KEY_COMPANIES, companies),
         (SETTINGS_KEY_ACTIVE_COMPANY, json!("co-demo-main")),
+        (SETTINGS_KEY_ACTIVE_FY, json!("2026-27")),
+        ("tfc_erp_setup_done", json!(true)),
         (SETTINGS_KEY_SEED_META, seed_meta),
     ];
 
     let mut stmt = tx
-        .prepare("INSERT INTO app_settings (key, value) VALUES (?1, ?2)")
+        .prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?1, ?2)")
         .map_err(db_err)?;
     for (key, value) in entries {
         stmt.execute(params![key, value.to_string()]).map_err(db_err)?;
@@ -1090,7 +1099,8 @@ fn shift_date(
     stride: u32,
     rng: &mut SeedRng,
 ) -> NaiveDate {
-    let span = total_days.max(1) as i64;
+    // Add +1 to span to allow dates to reach 'today' (start_date + total_days)
+    let span = (total_days as i64 + 1).max(1);
     let offset = ((index * stride) as i64 + (rng.range_usize(0, 3) as i64)).rem_euclid(span);
     start_date + Duration::days(offset)
 }

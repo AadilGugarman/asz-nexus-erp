@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
+import { fmtDate } from '@/utils/format';
 import { useApp } from '../context/AppContext';
 import { Package, Search, Filter, ArrowUpRight, ArrowDownRight, Layers, AlertTriangle, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { Combobox } from './ui/Combobox';
@@ -321,7 +322,7 @@ export const InventoryModule: React.FC = () => {
                     const isStockIn = m.type === 'ARRIVAL' || m.type === 'PURCHASE_BILL';
                     return (
                       <tr key={m.id} className="font-sans group">
-                        <td className="py-3.5 px-4 font-mono text-[#64748b] whitespace-nowrap text-xs">{m.date}</td>
+                        <td className="py-3.5 px-4 font-mono text-[#64748b] whitespace-nowrap text-xs">{fmtDate(m.date)}</td>
                         <td className="py-3.5 px-3">
                           {isStockIn ? (
                             <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase flex items-center w-max font-mono">

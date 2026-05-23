@@ -42,7 +42,7 @@ export const LockScreenPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
       <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900/95 shadow-2xl overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-cyan-500 via-emerald-500 to-lime-400" />
+        <div className="h-2 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300" />
 
         <div className="p-10">
           <div className="mb-8">
@@ -63,7 +63,7 @@ export const LockScreenPage: React.FC = () => {
                 if (error) setError(null);
               }}
               placeholder="Enter 4-6 digit PIN"
-              className="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-slate-100 tracking-[0.35em] text-center text-2xl font-semibold outline-none focus:border-emerald-500"
+              className="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-slate-100 tracking-[0.35em] text-center text-2xl font-semibold outline-none focus:border-amber-500"
               disabled={busy}
             />
 
@@ -72,7 +72,7 @@ export const LockScreenPage: React.FC = () => {
             <button
               type="submit"
               disabled={busy || pin.length < 4}
-              className="w-full rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 font-semibold transition-colors"
+              className="w-full rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 font-semibold transition-colors"
             >
               {busy ? 'Unlocking...' : 'Unlock Workspace'}
             </button>

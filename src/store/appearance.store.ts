@@ -280,15 +280,9 @@ function applyAppearanceToDom(
     "--card-padding-scale",
     CARD_PADDING_MAP[state.density],
   );
-  root.style.setProperty("--accent-color", normalizedAccent);
-  root.style.setProperty("--primary", normalizedAccent);
-  root.style.setProperty(
-    "--primary-rgb",
-    `${accentRgb.r} ${accentRgb.g} ${accentRgb.b}`,
-  );
-  root.style.setProperty("--primary-light", primaryLight);
-  root.style.setProperty("--primary-dark", primaryDark);
-  root.style.setProperty("--primary-contrast", primaryContrast);
+  // Accent color variables are intentionally NOT written to the DOM.
+  // The accent color setting is persisted in state for future use but has
+  // no visual effect — all UI colours are fixed and independent of accent.
   root.style.setProperty(
     "--motion-factor",
     state.animationsEnabled ? "1" : "0",

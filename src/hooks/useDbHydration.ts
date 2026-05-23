@@ -3,19 +3,21 @@
  * Hooks for loading business data from SQLite into React state.
  *
  * These hooks handle:
- *   - Initial load from DB
+ *   - Initial load from DB (with optional company scoping)
  *   - Async hydration
  *   - Error handling
- *   - Fallback to empty state
+ *   - Fallback to localStorage in browser mode
  *
  * Usage:
- *   const { suppliers, isLoading, error } = useSuppliers();
- *   const { invoices } = useInvoices();
+ *   const { data: suppliers, isLoading, error } = useSuppliers();
+ *   const { data: invoices } = useInvoices();
  */
 
 import { useEffect, useState, useCallback } from "react";
 import { dbService } from "@/db/services";
 import { useStartupStore } from "@/store/startup.store";
+import { useSettingsStore } from "@/store/settings.store";
+import { APP_CONFIG, STORAGE_KEYS } from "@/config";
 import type {
   Supplier,
   Customer,
@@ -36,9 +38,10 @@ export interface UseDbState<T> {
 }
 
 function createDbLoader<TDb, TClient>(
-  loader: () => Promise<TDb[]>,
+  loader: (companyId?: string) => Promise<TDb[]>,
   transformer: (db: TDb) => TClient,
   name: string,
+  storageKey?: string,
 ): () => UseDbState<TClient> {
   return function useLoader(): UseDbState<TClient> {
     const [data, setData] = useState<TClient[]>([]);
@@ -47,16 +50,53 @@ function createDbLoader<TDb, TClient>(
 
     const startupPhase = useStartupStore((s) => s.phase);
     const isDbReady = useStartupStore((s) => s.isDbReady);
+    const activeCompanyId = useSettingsStore((s) => s.activeCompanyId);
+    const isTauri = APP_CONFIG.isTauri;
 
     const load = useCallback(async () => {
-      if (!dbService.isReady) {
+      // ── Browser Fallback ──────────────────────────────────────────────────
+      if (!isTauri) {
+        if (!storageKey) {
+          setData([]);
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          const saved = localStorage.getItem(storageKey);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const records = Array.isArray(parsed) ? parsed : [];
+            setData(records);
+          }
+        } catch (e) {
+          console.warn(
+            `[useDbHydration] Browser fallback failed for ${name}:`,
+            e,
+          );
+        } finally {
+          setIsLoading(false);
+        }
         return;
       }
 
+      // ── Tauri / SQLite ─────────────────────────────────────────────────────
+      if (!isDbReady || !dbService.isReady) {
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
       try {
-        setIsLoading(true);
-        setError(null);
-        const dbRecords = await loader();
+        const dbRecords = await loader(activeCompanyId ?? undefined);
+
+        if (import.meta.env.DEV) {
+          console.info(
+            `[useDbHydration] ${name}: found ${dbRecords.length} records for company ${activeCompanyId}.`,
+          );
+        }
+
         const transformed = dbRecords.map(transformer);
         setData(transformed);
       } catch (err) {
@@ -67,22 +107,26 @@ function createDbLoader<TDb, TClient>(
       } finally {
         setIsLoading(false);
       }
-    }, [loader, transformer, name]);
+    }, [isDbReady, isTauri, activeCompanyId]);
 
     useEffect(() => {
+      if (!isTauri) {
+        void load();
+        return;
+      }
+
       if (startupPhase === "idle" && !isDbReady) {
         return;
       }
 
       if (!isDbReady) {
         setData([]);
-        setError(null);
         setIsLoading(false);
         return;
       }
 
       void load();
-    }, [startupPhase, isDbReady, load]);
+    }, [startupPhase, isDbReady, isTauri, load]);
 
     return { data, isLoading, error, refetch: load };
   };
@@ -90,9 +134,8 @@ function createDbLoader<TDb, TClient>(
 
 // ── Suppliers ─────────────────────────────────────────────────────────────────
 
-async function loadSuppliers() {
-  const dbSuppliers = await dbService.suppliers.findAll();
-  return dbSuppliers || [];
+async function loadSuppliers(companyId?: string) {
+  return await dbService.suppliers.findAll(undefined, companyId);
 }
 
 function dbToSupplier(db: any): Supplier {
@@ -110,13 +153,13 @@ export const useSuppliers = createDbLoader(
   loadSuppliers,
   dbToSupplier,
   "suppliers",
+  STORAGE_KEYS.suppliers,
 );
 
 // ── Customers ─────────────────────────────────────────────────────────────────
 
-async function loadCustomers() {
-  const dbCustomers = await dbService.customers.findAll();
-  return dbCustomers || [];
+async function loadCustomers(companyId?: string) {
+  return await dbService.customers.findAll(undefined, companyId);
 }
 
 function dbToCustomer(db: any): Customer {
@@ -133,13 +176,13 @@ export const useCustomers = createDbLoader(
   loadCustomers,
   dbToCustomer,
   "customers",
+  STORAGE_KEYS.customers,
 );
 
 // ── Fruits ────────────────────────────────────────────────────────────────────
 
-async function loadFruits() {
-  const dbFruits = await dbService.fruits.findAll();
-  return dbFruits || [];
+async function loadFruits(companyId?: string) {
+  return await dbService.fruits.findAll(undefined, companyId);
 }
 
 function dbToFruit(db: any): Fruit {
@@ -158,13 +201,17 @@ function dbToFruit(db: any): Fruit {
   };
 }
 
-export const useFruits = createDbLoader(loadFruits, dbToFruit, "fruits");
+export const useFruits = createDbLoader(
+  loadFruits,
+  dbToFruit,
+  "fruits",
+  STORAGE_KEYS.fruits,
+);
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
 
-async function loadInvoices() {
-  const dbInvoices = await dbService.invoices.findAll();
-  return dbInvoices || [];
+async function loadInvoices(companyId?: string) {
+  return await dbService.invoices.findAll(undefined, companyId);
 }
 
 function dbToInvoice(db: any): Invoice {
@@ -198,13 +245,13 @@ export const useInvoices = createDbLoader(
   loadInvoices,
   dbToInvoice,
   "invoices",
+  STORAGE_KEYS.invoices,
 );
 
 // ── Purchase Invoices ─────────────────────────────────────────────────────────
 
-async function loadPurchaseInvoices() {
-  const dbInvoices = await dbService.purchaseInvoices.findAll();
-  return dbInvoices || [];
+async function loadPurchaseInvoices(companyId?: string) {
+  return await dbService.purchaseInvoices.findAll(undefined, companyId);
 }
 
 function dbToPurchaseInvoice(db: any): PurchaseInvoice {
@@ -238,13 +285,13 @@ export const usePurchaseInvoices = createDbLoader(
   loadPurchaseInvoices,
   dbToPurchaseInvoice,
   "purchaseInvoices",
+  STORAGE_KEYS.purchaseInvoices,
 );
 
 // ── Payments ──────────────────────────────────────────────────────────────────
 
-async function loadPayments() {
-  const dbPayments = await dbService.payments.findAll();
-  return dbPayments || [];
+async function loadPayments(companyId?: string) {
+  return await dbService.payments.findAll(undefined, companyId);
 }
 
 function dbToPayment(db: any): PaymentReceipt {
@@ -265,13 +312,13 @@ export const usePayments = createDbLoader(
   loadPayments,
   dbToPayment,
   "payments",
+  STORAGE_KEYS.payments,
 );
 
 // ── Vehicle Arrivals ──────────────────────────────────────────────────────────
 
-async function loadVehicleArrivals() {
-  const dbArrivals = await dbService.vehicleArrivals.findAll();
-  return dbArrivals || [];
+async function loadVehicleArrivals(companyId?: string) {
+  return await dbService.vehicleArrivals.findAll(undefined, companyId);
 }
 
 function dbToVehicleArrival(db: any): VehicleArrival {
@@ -310,4 +357,5 @@ export const useVehicleArrivals = createDbLoader(
   loadVehicleArrivals,
   dbToVehicleArrival,
   "vehicleArrivals",
+  STORAGE_KEYS.vehicles,
 );

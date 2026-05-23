@@ -12,14 +12,14 @@
  */
 
 import { create } from "zustand";
-import { APP_CONFIG } from "@/config";
+import { APP_CONFIG, STORAGE_KEYS } from "@/config";
 import type { AppSettings, CompanyProfile } from "@/types";
 
-// ── SQLite keys (stored in app_settings table) ────────────────────────────────
-const DB_KEY_SETTINGS = "app_settings";
-const DB_KEY_COMPANIES = "companies";
-const DB_KEY_ACTIVE_COMPANY = "active_company_id";
-const DB_KEY_ACTIVE_FY = "active_fy";
+// ── Keys ──────────────────────────────────────────────────────────────────────
+const DB_KEY_SETTINGS = STORAGE_KEYS.settings;
+const DB_KEY_COMPANIES = STORAGE_KEYS.companies;
+const DB_KEY_ACTIVE_COMPANY = STORAGE_KEYS.activeCompany;
+const DB_KEY_ACTIVE_FY = STORAGE_KEYS.activeFY;
 
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
@@ -100,10 +100,11 @@ interface SettingsState {
   updateSettings: (partial: Partial<AppSettings>) => Promise<void>;
 
   // Company management — mirrors AppContext API
-  addCompany: (profile: CompanyProfile) => void;
-  updateCompany: (profile: CompanyProfile) => void;
-  deleteCompany: (id: string) => void;
-  switchCompany: (id: string) => void;
+  addCompany: (profile: CompanyProfile) => Promise<void>;
+  updateCompany: (profile: CompanyProfile) => Promise<void>;
+  deleteCompany: (id: string) => Promise<void>;
+  switchCompany: (id: string) => Promise<void>;
+  resetSettings: () => Promise<void>;
 
   /** Internal: persist full state to SQLite. Non-blocking. */
   _persistToDb: (
@@ -111,7 +112,7 @@ interface SettingsState {
     companies: CompanyProfile[],
     activeId: string | null,
     activeFY: string,
-  ) => void;
+  ) => Promise<void>;
 }
 
 function deriveDefaultActiveFY(settings: AppSettings): string {
@@ -151,47 +152,45 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   // ── loadFromDb ──────────────────────────────────────────────────────────────
   loadFromDb: async () => {
-       // 1. Fallback for Browser Mode (non-Tauri)
-    const isTauri = !!(window as any).__TAURI_INTERNALS__;
-    if (!isTauri) {
+    const isTauri = APP_CONFIG.isTauri;
+
+    // Always try to restore from localStorage first as a baseline/fallback
+    let localData: Partial<AppSettings> | null = null;
+    let localCompanies: CompanyProfile[] = [];
+    try {
       const saved = localStorage.getItem(DB_KEY_SETTINGS);
       if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          const companiesSaved = localStorage.getItem(DB_KEY_COMPANIES);
-          const activeIdSaved = localStorage.getItem(DB_KEY_ACTIVE_COMPANY);
-          const activeFYSaved = localStorage.getItem(DB_KEY_ACTIVE_FY);
-
-          const nextSettings = mergeSettings(parsed);
-         const nextCompanies = companiesSaved
-            ? JSON.parse(companiesSaved)
-            : [];
-          const nextActiveId = activeIdSaved || (nextCompanies[0]?.id ?? null);
-         const nextActiveFY =
-            activeFYSaved || deriveDefaultActiveFY(nextSettings);
-
-          set({
-            settings: nextSettings,
-            companies: nextCompanies,
-            activeCompanyId: nextActiveId,
-            activeFY: nextActiveFY,
-            isLoaded: true,
-          });
-          return;
-        } catch (e) {
-          console.warn("[SettingsStore] Browser restore failed:", e);
-        }
+        localData = JSON.parse(saved);
+        const companiesSaved = localStorage.getItem(DB_KEY_COMPANIES);
+        if (companiesSaved) localCompanies = JSON.parse(companiesSaved);
       }
+    } catch (e) {
+      console.warn("[SettingsStore] LocalStorage check failed:", e);
+    }
+
+    if (!isTauri) {
+      if (localData) {
+        const nextSettings = mergeSettings(localData);
+        set({
+          settings: nextSettings,
+          companies: localCompanies,
+          activeCompanyId:
+            localStorage.getItem(DB_KEY_ACTIVE_COMPANY) ||
+            (localCompanies[0]?.id ?? null),
+          activeFY:
+            localStorage.getItem(DB_KEY_ACTIVE_FY) ||
+            deriveDefaultActiveFY(nextSettings),
+          isLoaded: true,
+        });
+      } else {
+        set({ isLoaded: true });
+      }
+      return;
     }
 
     const { dbService } = await import("@/db/services");
     if (!dbService.isReady) {
-      if (import.meta.env.DEV)
-        console.warn(
-          "[SettingsStore] Database is not ready. Skipping SQLite restore.",
-        );
-      set({ isLoaded: true });
-      return;
+      await dbService.init();
     }
 
     try {
@@ -203,11 +202,47 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
           dbService.settings.get<string>(DB_KEY_ACTIVE_FY),
         ]);
 
+      const hasDbData =
+        dbSettings || (Array.isArray(dbCompanies) && dbCompanies.length > 0);
+
+      // If DB is empty but localStorage has data, prefer localStorage (recovery case)
+      if (!hasDbData && localData) {
+        if (import.meta.env.DEV)
+          console.info(
+            "[SettingsStore] DB empty, recovering from LocalStorage...",
+          );
+        const nextSettings = mergeSettings(localData);
+        set({
+          settings: nextSettings,
+          companies: localCompanies,
+          activeCompanyId:
+            localStorage.getItem(DB_KEY_ACTIVE_COMPANY) ||
+            (localCompanies[0]?.id ?? null),
+          activeFY:
+            localStorage.getItem(DB_KEY_ACTIVE_FY) ||
+            deriveDefaultActiveFY(nextSettings),
+          isLoaded: true,
+        });
+        // Try to re-persist to DB
+        void get()._persistToDb(
+          nextSettings,
+          localCompanies,
+          get().activeCompanyId,
+          get().activeFY,
+        );
+        return;
+      }
+
       const nextSettings =
         dbSettings && typeof dbSettings === "object"
           ? mergeSettings(dbSettings)
-          : DEFAULT_SETTINGS;
-      const nextCompanies = Array.isArray(dbCompanies) ? dbCompanies : [];
+          : localData
+            ? mergeSettings(localData)
+            : DEFAULT_SETTINGS;
+
+      const nextCompanies = Array.isArray(dbCompanies)
+        ? dbCompanies
+        : localCompanies;
       const nextActiveCompanyId =
         typeof dbActiveId === "string" && dbActiveId
           ? dbActiveId
@@ -226,8 +261,19 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       });
     } catch (e) {
       if (import.meta.env.DEV)
-        console.warn("[SettingsStore] loadFromDb failed:", e);
-      set({ isLoaded: true });
+        console.warn(
+          "[SettingsStore] loadFromDb failed, falling back to localData:",
+          e,
+        );
+      if (localData) {
+        set({
+          settings: mergeSettings(localData),
+          companies: localCompanies,
+          isLoaded: true,
+        });
+      } else {
+        set({ isLoaded: true });
+      }
     }
   },
 
@@ -235,9 +281,27 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   updateSettings: async (partial) => {
     const current = get();
     const nextSettings = { ...current.settings, ...partial };
+
+    // Safety check: Don't allow resetting setupCompleted to false if we have companies
+    if (partial.setupCompleted === false && current.companies.length > 0) {
+      if (import.meta.env.DEV)
+        console.warn(
+          "[SettingsStore] Prevented resetting setupCompleted to false because companies exist.",
+        );
+      nextSettings.setupCompleted = true;
+    }
+
+    // CRITICAL: Ensure we don't overwrite with empty companies if we know they exist
+    // This handles potential race conditions where companies are being added
+    let nextCompanies = current.companies;
+    if (nextCompanies.length === 0 && nextSettings.company.name) {
+      // If settings has a company name but companies list is empty,
+      // it's likely a legacy single-company state or a race condition.
+      // We should NOT overwrite the DB with an empty list.
+    }
+
     set({ settings: nextSettings });
 
-    let nextCompanies = current.companies;
     const activeCompanyId = current.activeCompanyId;
 
     if (partial.company || partial.financial || partial.invoice) {
@@ -282,76 +346,125 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   },
 
   // ── addCompany ──────────────────────────────────────────────────────────────
-  addCompany: (profile) => {
-    const next = [...get().companies, profile];
-    const activeCompanyId = get().activeCompanyId ?? profile.id;
-    set({ companies: next, activeCompanyId });
-    void get()._persistToDb(
-      get().settings,
-      next,
+  addCompany: async (profile) => {
+    const current = get();
+    const nextCompanies = [...current.companies, profile];
+    const activeCompanyId = current.activeCompanyId ?? profile.id;
+
+    // If this is the first company being added, sync it to the main settings object too
+    let nextSettings = current.settings;
+    if (nextCompanies.length === 1 || !current.activeCompanyId) {
+      nextSettings = {
+        ...current.settings,
+        company: profile.company,
+        financial: profile.financial,
+        invoice: profile.invoice,
+      };
+    }
+
+    set({
+      companies: nextCompanies,
+      activeCompanyId,
+      settings: nextSettings,
+    });
+
+    await get()._persistToDb(
+      nextSettings,
+      nextCompanies,
       activeCompanyId,
       get().activeFY,
     );
   },
 
   // ── updateCompany ────────────────────────────────────────────────────────────
-  updateCompany: (profile) => {
-    const next = get().companies.map((c) =>
+  updateCompany: async (profile) => {
+    const current = get();
+    const nextCompanies = current.companies.map((c) =>
       c.id === profile.id ? profile : c,
     );
-    set({ companies: next });
-    const { activeFY } = get();
-    if (profile.id === get().activeCompanyId) {
+    set({ companies: nextCompanies });
+
+    const { activeFY, activeCompanyId } = current;
+    if (profile.id === activeCompanyId) {
       const nextSettings = {
-        ...get().settings,
+        ...current.settings,
         company: profile.company,
         financial: profile.financial,
         invoice: profile.invoice,
       };
       set({ settings: nextSettings });
-      void get()._persistToDb(
+      await get()._persistToDb(
         nextSettings,
-        next,
-        get().activeCompanyId,
+        nextCompanies,
+        activeCompanyId,
         activeFY,
       );
     } else {
-      void get()._persistToDb(
-        get().settings,
-        next,
-        get().activeCompanyId,
+      await get()._persistToDb(
+        current.settings,
+        nextCompanies,
+        activeCompanyId,
         activeFY,
       );
     }
   },
 
   // ── deleteCompany ────────────────────────────────────────────────────────────
-  deleteCompany: (id) => {
-    if (get().companies.length <= 1) return; // always keep at least one
-    const next = get().companies.filter((c) => c.id !== id);
-    const { settings, activeCompanyId, activeFY } = get();
+  deleteCompany: async (id) => {
+    const current = get();
+    if (current.companies.length <= 1) return; // always keep at least one
+
+    const nextCompanies = current.companies.filter((c) => c.id !== id);
+    const { activeCompanyId, activeFY } = current;
     const nextActiveId =
-      activeCompanyId === id ? (next[0]?.id ?? null) : activeCompanyId;
-    const updates: Partial<SettingsState> = { companies: next };
+      activeCompanyId === id ? (nextCompanies[0]?.id ?? null) : activeCompanyId;
+
+    const updates: Partial<SettingsState> = { companies: nextCompanies };
+    let nextSettings = current.settings;
+
     if (nextActiveId !== activeCompanyId) {
       updates.activeCompanyId = nextActiveId;
+      const target = nextCompanies.find((c) => c.id === nextActiveId);
+      if (target) {
+        nextSettings = {
+          ...current.settings,
+          company: target.company,
+          financial: target.financial,
+          invoice: target.invoice,
+        };
+        updates.settings = nextSettings;
+      }
     }
+
     set(updates);
-    void get()._persistToDb(settings, next, nextActiveId, activeFY);
+    await get()._persistToDb(
+      nextSettings,
+      nextCompanies,
+      nextActiveId,
+      activeFY,
+    );
   },
 
   // ── switchCompany ────────────────────────────────────────────────────────────
-  switchCompany: (id) => {
-    const target = get().companies.find((c) => c.id === id);
+  switchCompany: async (id) => {
+    const current = get();
+    const target = current.companies.find((c) => c.id === id);
     if (!target) return;
+
     const nextSettings = {
-      ...get().settings,
+      ...current.settings,
       company: target.company,
       financial: target.financial,
       invoice: target.invoice,
     };
+
     set({ activeCompanyId: id, settings: nextSettings });
-    void get()._persistToDb(nextSettings, get().companies, id, get().activeFY);
+    await get()._persistToDb(
+      nextSettings,
+      current.companies,
+      id,
+      current.activeFY,
+    );
   },
 
   setActiveFY: (fy) => {
@@ -364,49 +477,54 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     );
   },
 
-  // ── _persistToDb ─────────────────────────────────────────────────────────────
-  _persistToDb: async (settings, companies, activeId, activeFY) => {
-      // 1. Fallback for Browser Mode (non-Tauri)
-    const isTauri = !!(window as any).__TAURI_INTERNALS__;
-    if (!isTauri) {
-      localStorage.setItem(DB_KEY_SETTINGS, JSON.stringify(settings));
-      localStorage.setItem(DB_KEY_COMPANIES, JSON.stringify(companies));
-      localStorage.setItem(DB_KEY_ACTIVE_COMPANY, activeId || "");
-      localStorage.setItem(DB_KEY_ACTIVE_FY, activeFY || "");
-    }
-    try {
-      const { dbService } = await import("@/db/services");
-      if (!dbService.isReady) {
-        const initialized = await dbService.init();
-        if (!initialized) {
-          if (import.meta.env.DEV)
-            console.warn(
-              "[SettingsStore] DB init failed, skipping persistence",
-            );
-          return;
-        }
-      }
-
-      if (import.meta.env.DEV) {
-        console.info(
-          "[SettingsStore] Persisting settings and companies to SQLite",
-          {
-            activeId,
-            activeFY,
-            companyCount: companies.length,
-          },
-        );
-      }
-
+  resetSettings: async () => {
+    set({
+      settings: DEFAULT_SETTINGS,
+      companies: [],
+      activeCompanyId: null,
+      isLoaded: true,
+    });
+    localStorage.clear();
+    const { dbService } = await import("@/db/services");
+    if (dbService.isReady) {
       await Promise.all([
-        dbService.settings.set(DB_KEY_SETTINGS, settings),
-        dbService.settings.set(DB_KEY_COMPANIES, companies),
-        dbService.settings.set(DB_KEY_ACTIVE_COMPANY, activeId),
-        dbService.settings.set(DB_KEY_ACTIVE_FY, activeFY),
+        dbService.settings.delete(DB_KEY_SETTINGS),
+        dbService.settings.delete(DB_KEY_COMPANIES),
+        dbService.settings.delete(DB_KEY_ACTIVE_COMPANY),
+        dbService.settings.delete(DB_KEY_ACTIVE_FY),
       ]);
+    }
+  },
+
+  // ── _persistToDb ─────────────────────────────────────────────────────────────
+  _persistToDb: async (s, companies, activeId, activeFY) => {
+    // 1. Dual-persistence: Always update localStorage as a fallback/cache
+    try {
+      localStorage.setItem(DB_KEY_SETTINGS, JSON.stringify(s));
+      localStorage.setItem(DB_KEY_COMPANIES, JSON.stringify(companies));
+      if (activeId) localStorage.setItem(DB_KEY_ACTIVE_COMPANY, activeId);
+      if (activeFY) localStorage.setItem(DB_KEY_ACTIVE_FY, activeFY);
     } catch (e) {
-      if (import.meta.env.DEV)
-        console.warn("[SettingsStore] _persistToDb failed:", e);
+      console.warn("[SettingsStore] LocalStorage persistence failed:", e);
+    }
+
+    // 2. Authoritative SQLite persistence (only in Tauri)
+    if (APP_CONFIG.isTauri) {
+      const { dbService } = await import("@/db/services");
+      if (!dbService.isReady) await dbService.init();
+
+      try {
+        await Promise.all([
+          dbService.settings.set(DB_KEY_SETTINGS, s),
+          dbService.settings.set(DB_KEY_COMPANIES, companies),
+          dbService.settings.set(DB_KEY_ACTIVE_COMPANY, activeId),
+          dbService.settings.set(DB_KEY_ACTIVE_FY, activeFY),
+        ]);
+        if (import.meta.env.DEV)
+          console.info("[SettingsStore] SQLite persistence complete");
+      } catch (error) {
+        console.error("[SettingsStore] SQLite persistence failed:", error);
+      }
     }
   },
 }));

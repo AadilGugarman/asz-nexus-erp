@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
+import { fmtDate } from '@/utils/format';
 import { useApp } from '../context/AppContext';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
@@ -248,7 +249,7 @@ export const PartiesModule: React.FC = () => {
                 {supplierLedgerTable.pageRows.map(e => {
                   const isPurch = e.type === 'PURCHASE_VEHICLE' || e.type === 'PURCHASE_BILL';
                   return (<tr key={e.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50 font-sans">
-                    <td className="py-2.5 px-4 font-mono text-xs dark:text-slate-300 text-slate-700">{e.date}</td>
+                    <td className="py-2.5 px-4 font-mono text-xs dark:text-slate-300 text-slate-700">{fmtDate(e.date)}</td>
                     <td className="py-2.5 px-3">{isPurch ? <span className="text-[9px] font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded flex items-center w-max"><ArrowUpRight className="w-3 h-3 mr-0.5" />Purchase</span> : e.type === 'PAYMENT' ? <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center w-max"><ArrowDownRight className="w-3 h-3 mr-0.5" />Payment</span> : <span className="text-[9px] font-bold dark:text-slate-400 text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Opening</span>}</td>
                     <td className="py-2.5 px-3 dark:text-slate-300 text-slate-700 font-semibold truncate max-w-[150px]">{e.referenceNo || e.variety || e.note || '—'}</td>
                     <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">{e.amount > 0 ? `₹${e.amount.toLocaleString('en-IN')}` : '—'}</td>
@@ -271,7 +272,7 @@ export const PartiesModule: React.FC = () => {
               <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                 {customerLedgerTable.pageRows.map(e => (
                   <tr key={e.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50 font-sans">
-                    <td className="py-2.5 px-4 font-mono text-xs dark:text-slate-300 text-slate-700">{e.date}</td>
+                    <td className="py-2.5 px-4 font-mono text-xs dark:text-slate-300 text-slate-700">{fmtDate(e.date)}</td>
                     <td className="py-2.5 px-3">{e.type === 'INVOICE' ? <span className="text-[9px] font-bold text-indigo-500 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded flex items-center w-max"><ArrowUpRight className="w-3 h-3 mr-0.5" />Invoice</span> : e.type === 'PAYMENT' ? <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center w-max"><ArrowDownRight className="w-3 h-3 mr-0.5" />Payment</span> : <span className="text-[9px] font-bold dark:text-slate-400 text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Opening</span>}</td>
                     <td className="py-2.5 px-3 dark:text-slate-300 text-slate-700 font-semibold truncate max-w-[150px]">{e.referenceNo || e.note || '—'}</td>
                     <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">{e.amount > 0 ? `₹${e.amount.toLocaleString('en-IN')}` : '—'}</td>

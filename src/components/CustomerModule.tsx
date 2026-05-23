@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserCheck, Search, DollarSign, Printer, ArrowUpRight, ArrowDownRight, ArrowUpDown } from 'lucide-react';
+import { fmtDate } from '@/utils/format';
 import { PaymentReceipt } from '../types';
 import { useToast } from './ui/Toast';
 import { StatementPreview } from './ui/StatementPreview';
@@ -300,7 +301,7 @@ export const CustomerModule: React.FC = () => {
 
                       return (
                         <tr key={entry.id} className="font-sans group">
-                          <td className="py-4 px-4 font-mono font-medium text-[#64748b] text-xs">{entry.date}</td>
+                          <td className="py-4 px-4 font-mono font-medium text-[#64748b] text-xs">{fmtDate(entry.date)}</td>
                           <td className="py-4 px-3 font-sans">
                             {isOpening && <span className="bg-[#f1f5f9] text-[#475569] px-2.5 py-1 rounded-lg text-[10px] font-semibold font-mono">OPENING</span>}
                             {isInvoice && <span className="bg-sky-500/10 text-sky-700 border border-sky-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowUpRight className="w-3.5 h-3.5 mr-1 text-sky-600" /> BILL INVOICE</span>}
@@ -422,7 +423,7 @@ export const CustomerModule: React.FC = () => {
               <tbody>
                 {ledgerEntries.map((entry, idx) => (
                   <tr key={entry.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                    <td className="py-2.5 px-3 font-mono text-[10px] text-slate-600">{entry.date}</td>
+                    <td className="py-2.5 px-3 font-mono text-[10px] text-slate-600">{fmtDate(entry.date)}</td>
                     <td className="py-2.5 px-3 text-[10px] font-semibold text-slate-700">{entry.type === 'INVOICE' ? 'Invoice' : entry.type === 'PAYMENT' ? 'Payment' : 'Opening'}</td>
                     <td className="py-2.5 px-3 text-[10px] text-slate-600 truncate max-w-[150px]">{entry.referenceNo || '—'}</td>
                     <td className="py-2.5 px-3 text-right font-mono font-bold text-[10.5px] text-rose-700">{entry.amount > 0 ? `₹${entry.amount.toLocaleString('en-IN')}` : ''}</td>

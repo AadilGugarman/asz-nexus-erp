@@ -25,14 +25,14 @@ export const AuthLayout: React.FC = () => {
       <div className="relative w-full max-w-md">
         {/* Brand header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/12 border border-emerald-500/25 mb-4">
-            <span className="text-2xl font-bold text-emerald-400">T</span>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/12 border border-amber-500/25 mb-4">
+            <span className="text-2xl font-bold text-amber-500">T</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
             TFC ERP
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Fruit Commission Management
+            Talha Fruit Co. Management
           </p>
         </div>
 

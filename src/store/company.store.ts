@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useSettingsStore } from "./settings.store";
+import { STORAGE_KEYS } from "@/config";
 import type { CompanyProfile } from "@/types";
 
 interface CompanyState {
@@ -52,57 +53,95 @@ export const useCompanyStore = create<CompanyState>()((set, get) => ({
   bootstrapFromDb: async () => {
     try {
       const { dbService } = await import("@/db/services");
-      if (!dbService.isReady) return;
-
-      const settingsState = useSettingsStore.getState();
-      let hasDbCompany =
-        settingsState.companies.length > 0 ||
-       !!settingsState.settings.company?.name;
-      let persistedCompanies: CompanyProfile[] | undefined;
-      let activeCompanyId = settingsState.activeCompanyId;
-
-      if (!hasDbCompany) {
-        persistedCompanies =
-          await dbService.settings.get<CompanyProfile[]>("companies");
-        if (
-          Array.isArray(persistedCompanies) &&
-          persistedCompanies.length > 0
-        ) {
-          hasDbCompany = true;
-        }
+      if (!dbService.isReady) {
+        await dbService.init();
       }
 
-      if (!hasDbCompany) {
-        const appSettings = await dbService.settings.get<{
-          company?: { name?: string };
-        }>("app_settings");
-        hasDbCompany = !!appSettings?.company?.name;
+      const settingsState = useSettingsStore.getState();
+
+      // 1. Direct query to SQLite as source of truth
+      const [persistedCompanies, dbSettings, rawCheck] = await Promise.all([
+        dbService.settings.get<CompanyProfile[]>(STORAGE_KEYS.companies),
+        dbService.settings.get<{ company?: { name?: string } }>(STORAGE_KEYS.settings),
+        // Raw SQL check as a failsafe to confirm table has data
+        (async () => {
+          try {
+             const { getDb } = await import("@/db/client");
+             const db = await getDb();
+             // Check if app_settings table has any records related to companies
+             const result = await db.select(`SELECT * FROM app_settings WHERE key = '${STORAGE_KEYS.companies}' OR key = '${STORAGE_KEYS.settings}'`);
+             return result;
+          } catch (e) {
+             return null;
+          }
+        })()
+      ]);
+
+      const hasDbCompanyList =
+        Array.isArray(persistedCompanies) && persistedCompanies.length > 0;
+      const hasDbSingleCompany = !!dbSettings?.company?.name;
+      
+      // Check raw result as well
+      const hasRawData = Array.isArray(rawCheck) && rawCheck.length > 0;
+
+      const hasDbCompany = hasDbCompanyList || hasDbSingleCompany || hasRawData;
+
+      if (import.meta.env.DEV) {
+        console.info("[CompanyStore] bootstrapFromDb status:", {
+          hasDbCompanyList,
+          hasDbSingleCompany,
+          hasRawData,
+          persistedCompaniesCount: persistedCompanies?.length ?? 0,
+          dbSettingsCompanyName: dbSettings?.company?.name,
+          rawCheckKeys: Array.isArray(rawCheck) ? rawCheck.map((r: any) => r.key) : 'none'
+        });
       }
 
       if (hasDbCompany) {
-        if (persistedCompanies && persistedCompanies.length > 0) {
+        // Sync back to settings store if needed
+        if (hasDbCompanyList) {
           useSettingsStore.setState({ companies: persistedCompanies });
-          activeCompanyId =
-            activeCompanyId ?? persistedCompanies[0]?.id ?? null;
         }
 
-        const computedActiveCompanyId =
-          activeCompanyId ??
-          settingsState.companies[0]?.id ??
-          get().activeCompanyId ??
-          null;
+        const activeCompanyId = 
+          settingsState.activeCompanyId ?? 
+          (hasDbCompanyList ? persistedCompanies[0].id : null);
 
         if (import.meta.env.DEV) {
-          console.info("[CompanyStore] bootstrapFromDb detected DB company", {
-            computedActiveCompanyId,
-            persistedCompaniesCount: persistedCompanies?.length ?? 0,
-          });
+          console.info("[CompanyStore] Verified company in DB:", { activeCompanyId });
         }
 
         set({
           hasCompany: true,
-          activeCompanyId: computedActiveCompanyId,
+          activeCompanyId,
         });
+      } else {
+        // Fallback: Check localStorage regardless of environment (dual-persistence recovery)
+        const savedCompanies = localStorage.getItem(STORAGE_KEYS.companies);
+        const savedSettings = localStorage.getItem(STORAGE_KEYS.settings);
+        
+        if (savedCompanies || savedSettings) {
+          try {
+            const parsedCompanies = savedCompanies ? JSON.parse(savedCompanies) : [];
+            const parsedSettings = savedSettings ? JSON.parse(savedSettings) : {};
+            
+            const hasLocalData = (Array.isArray(parsedCompanies) && parsedCompanies.length > 0) || !!parsedSettings?.company?.name;
+            
+            if (hasLocalData) {
+              if (import.meta.env.DEV) console.info("[CompanyStore] Verified company in LocalStorage recovery path");
+              set({ 
+                hasCompany: true, 
+                activeCompanyId: parsedCompanies[0]?.id || settingsState.activeCompanyId 
+              });
+              return;
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+        
+        if (import.meta.env.DEV) console.warn("[CompanyStore] No company found in DB or LocalStorage.");
+        set({ hasCompany: false, activeCompanyId: null });
       }
     } catch (error) {
       if (import.meta.env.DEV)

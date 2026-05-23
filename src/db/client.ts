@@ -21,9 +21,9 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { drizzle } from 'drizzle-orm/sqlite-proxy';
-import * as schema from './schema';
-import { APP_CONFIG } from '@/config';
+import { drizzle } from "drizzle-orm/sqlite-proxy";
+import * as schema from "./schema";
+import { APP_CONFIG } from "@/config";
 
 export type DrizzleDb = ReturnType<typeof drizzle>;
 
@@ -42,30 +42,41 @@ export async function getDb(): Promise<DrizzleDb | null> {
   if (_db) return _db;
 
   // Dynamically import Tauri SQL plugin (only available in Tauri runtime)
-  const Database = (await import('@tauri-apps/plugin-sql' as any)).default as {
+  const Database = (await import("@tauri-apps/plugin-sql" as any)).default as {
     load: (url: string) => Promise<{
       execute: (sql: string, params: unknown[]) => Promise<void>;
-      select: (sql: string, params: unknown[]) => Promise<Record<string, unknown>[]>;
+      select: (
+        sql: string,
+        params: unknown[],
+      ) => Promise<Record<string, unknown>[]>;
     }>;
   };
 
-  const sqliteDb = await Database.load('sqlite:tfc_erp.db');
+  const sqliteDb = await Database.load("sqlite:tfc_erp.db");
 
   _db = drizzle(
     async (sql, params, method) => {
       try {
-        if (method === 'run') {
+        if (method === "run") {
           await sqliteDb.execute(sql, params as unknown[]);
           return { rows: [] };
         }
+
         const rows = await sqliteDb.select(sql, params as unknown[]);
-        // sqlite-proxy expects rows as arrays, not objects
-        const keys = rows.length > 0 ? Object.keys(rows[0]) : [];
-        return {
-          rows: rows.map((row: Record<string, unknown>) => keys.map((k) => row[k])),
-        };
+
+        // Drizzle's sqlite-proxy expects an array of arrays if method is 'values',
+        // otherwise it expects an array of objects for 'all' and 'get'.
+        if (method === "values") {
+          if (rows.length === 0) return { rows: [] };
+          const keys = Object.keys(rows[0]);
+          return {
+            rows: rows.map((row: any) => keys.map((key) => row[key])),
+          };
+        }
+
+        return { rows };
       } catch (err) {
-        if (import.meta.env.DEV) console.error('[db] Query error:', err);
+        if (import.meta.env.DEV) console.error("[db] Query error:", err);
         throw err;
       }
     },

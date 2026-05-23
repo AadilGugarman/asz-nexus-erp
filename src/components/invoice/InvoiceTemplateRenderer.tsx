@@ -2,6 +2,7 @@ import React from 'react';
 import { QrCode } from 'lucide-react';
 import { CompanySettings, Invoice, InvoiceSettings } from '../../types';
 import { normalizeInvoiceTemplate } from '../../utils/invoice-number';
+import { fmtDate } from '../../utils/format';
 
 interface InvoiceTemplateRendererProps {
   invoice: Invoice;
@@ -97,7 +98,7 @@ const SharedHeader: React.FC<{ invoice: Invoice; company: CompanySettings; setti
           <p className={`${compact ? 'text-[8px]' : 'text-[9px]'} font-bold uppercase tracking-[0.18em]`}>Invoice</p>
           <p className={`${compact ? 'text-[12px]' : 'text-[18px]'} font-black mt-0.5 text-slate-900`}>{invoice.invoiceNo}</p>
         </div>
-        <p className={`${compact ? 'text-[9px]' : 'text-[10px]'} font-semibold text-slate-500 mt-1.5`}>Date: {invoice.date}</p>
+        <p className={`${compact ? 'text-[9px]' : 'text-[10px]'} font-semibold text-slate-500 mt-1.5`}>Date: {fmtDate(invoice.date)}</p>
       </div>
     </div>
   );
@@ -168,7 +169,7 @@ const ThermalTemplate: React.FC<{ invoice: Invoice; company: CompanySettings; se
 
         <div className="py-2 border-b border-dashed border-slate-400">
           <div className="flex justify-between"><span>Invoice</span><span>{invoice.invoiceNo}</span></div>
-          <div className="flex justify-between"><span>Date</span><span>{invoice.date}</span></div>
+          <div className="flex justify-between"><span>Date</span><span>{fmtDate(invoice.date)}</span></div>
           <div className="flex justify-between"><span>Customer</span><span className="truncate max-w-[180px] text-right">{invoice.customerName}</span></div>
         </div>
 

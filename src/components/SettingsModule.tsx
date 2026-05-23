@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 // Utility to generate company initials (max 3, skip common words)
 const getCompanyInitials = (name: string) => {
@@ -65,6 +66,7 @@ import {
 import { CompanyProfile, Invoice } from "../types";
 import type { AppLanguage } from "@/types/language";
 import { formatInvoiceNumber } from "../utils/invoice-number";
+import { fmtDate } from "../utils/format";
 import { InvoiceTemplateRenderer } from "./invoice/InvoiceTemplateRenderer";
 import { DataTable, Pagination } from "./ui/table";
 
@@ -107,6 +109,7 @@ export const SettingsModule: React.FC = () => {
   const {
     themePreference,
     setThemePreference,
+    resolvedTheme,
     fontFamily,
     setFontFamily,
     fontSize,
@@ -266,6 +269,7 @@ export const SettingsModule: React.FC = () => {
     await resetApp();
   };
 
+  const location = useLocation();
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
 
@@ -348,6 +352,28 @@ export const SettingsModule: React.FC = () => {
     setCfSaving(false);
     setShowCompanyModal(true);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const section = params.get("section");
+    if (section === "companies") setActiveSection("COMPANIES");
+    else if (section === "financial") setActiveSection("FINANCIAL");
+    else if (section === "invoice") setActiveSection("INVOICE");
+    else if (section === "masters") setActiveSection("MASTERS");
+    else if (section === "backup") setActiveSection("BACKUP");
+    else if (section === "appearance") setActiveSection("APPEARANCE");
+    else if (section === "security") setActiveSection("SECURITY");
+
+    const action = params.get("action");
+    const companyId = params.get("companyId");
+    if (action === "create") {
+      resetCompanyForm();
+      setShowCompanyModal(true);
+    } else if (action === "edit" && companyId) {
+      const company = companies.find((c) => c.id === companyId);
+      if (company) openEditCompany(company);
+    }
+  }, [location.search, companies]);
 
   const cfStep1Valid = cfName.trim().length >= 2 && cfPhone.trim().length >= 6;
   const cfStep2Valid = cfInvPrefix.trim().length > 0 && cfInvStart > 0;
@@ -512,8 +538,6 @@ export const SettingsModule: React.FC = () => {
       desc: "App PIN, auto-lock timer",
     },
   ];
-
- 
 
   // ── Input helper ──
   const Inp = ({
@@ -759,12 +783,30 @@ export const SettingsModule: React.FC = () => {
                   onClick={() => setActiveSection(s.id)}
                   className={`w-full flex items-center space-x-3 px-4 py-3.5 text-left transition-all cursor-pointer border-b dark:border-slate-800/60 border-slate-100 last:border-0 ${
                     active
-                      ? "dark:bg-cyan-500/10 bg-cyan-50 text-cyan-700 dark:text-cyan-400 border-l-[3px] border-l-cyan-500"
+                      ? "border-l-[3px]"
                       : "dark:text-slate-300 text-slate-700 dark:hover:bg-slate-800/50 hover:bg-slate-50"
                   }`}
+                  style={
+                    active
+                      ? {
+                          backgroundColor:
+                            resolvedTheme === "dark"
+                              ? "rgba(6,182,212,0.1)"
+                              : "rgba(6,182,212,0.08)",
+                          color:
+                            resolvedTheme === "dark" ? "#22d3ee" : "#0891b2",
+                          borderLeftColor: "#06b6d4",
+                        }
+                      : undefined
+                  }
                 >
                   <div
-                    className={`p-1.5 rounded-lg ${active ? "dark:bg-cyan-500/20 bg-cyan-100" : "dark:bg-slate-800 bg-slate-100"}`}
+                    className={`p-1.5 rounded-lg ${active ? "" : "dark:bg-slate-800 bg-slate-100"}`}
+                    style={
+                      active
+                        ? { backgroundColor: "rgba(6,182,212,0.15)" }
+                        : undefined
+                    }
                   >
                     {s.icon}
                   </div>
@@ -824,7 +866,7 @@ export const SettingsModule: React.FC = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
                               <span className="text-sm font-bold dark:text-white text-slate-900 truncate">
-                            {coName}
+                                {coName}
                               </span>
                               {isActive && (
                                 <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono shrink-0">
@@ -833,7 +875,7 @@ export const SettingsModule: React.FC = () => {
                               )}
                             </div>
                             <div className="text-[11px] dark:text-slate-400 text-slate-500 truncate mt-0.5 font-medium">
-                             {c.company?.tagline || ""}
+                              {c.company?.tagline || ""}
                             </div>
                             <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-[10px] dark:text-slate-500 text-slate-400 font-medium">
                               {c.company?.phone && (
@@ -842,13 +884,13 @@ export const SettingsModule: React.FC = () => {
                                   <span>{c.company.phone}</span>
                                 </span>
                               )}
-                               {c.company?.gstin && (
+                              {c.company?.gstin && (
                                 <span className="font-mono font-bold">
                                   GSTIN: {c.company.gstin}
                                 </span>
                               )}
                             </div>
-                            
+
                             {c.company?.address && (
                               <div className="flex items-center space-x-1 mt-1 text-[10px] dark:text-slate-500 text-slate-400">
                                 <MapPin className="w-3 h-3 shrink-0" />
@@ -2052,7 +2094,7 @@ export const SettingsModule: React.FC = () => {
                           Last Backup:
                         </span>{" "}
                         <span className="font-mono">
-                          {new Date(lastBackup.date).toLocaleString()}
+                          {fmtDate(lastBackup.date)}
                         </span>{" "}
                         <span className="dark:text-slate-500 text-slate-400">
                           ({lastBackup.size})
@@ -2216,7 +2258,7 @@ export const SettingsModule: React.FC = () => {
                               {bk.size}
                             </td>
                             <td className="py-3 px-3 text-xs dark:text-slate-400 text-slate-600">
-                              {new Date(bk.date).toLocaleString()}
+                              {fmtDate(bk.date)}
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center justify-end space-x-1 opacity-70 group-hover:opacity-100 transition-opacity">

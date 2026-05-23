@@ -86,6 +86,35 @@ function buildFallbackSeedResult(profile: SeedProfileKey): DbSeedExecutionResult
   const recommendation = FALLBACK_SEED_PLAN.profiles.find((item) => item.key === profile)
     ?? FALLBACK_SEED_PLAN.profiles[1];
   const now = new Date().toISOString();
+  const today = now.slice(0, 10);
+
+  // ── Browser Mock Seeding ────────────────────────────────────────────────
+  // This ensures the dashboard isn't empty when testing in localhost:5173
+  try {
+    const mockFruits = [
+      { id: 'f-001', name: 'Mango', varieties: ['Kesar', 'Alphonso'] },
+      { id: 'f-002', name: 'Apple', varieties: ['Shimla', 'Royal'] },
+    ];
+    const mockSuppliers = [
+      { id: 'sup-001', name: 'Ahmedabad Fruit Supply', city: 'Ahmedabad', previousBalance: 12500 },
+      { id: 'sup-002', name: 'Nashik Grapes Traders', city: 'Nashik', previousBalance: 45000 },
+    ];
+    const mockCustomers = [
+      { id: 'cus-001', name: 'Reliance Fresh', city: 'Mumbai', previousBalance: 0 },
+      { id: 'cus-002', name: 'Big Bazaar', city: 'Surat', previousBalance: 15000 },
+    ];
+    const mockInvoices = [
+      { id: 'inv-001', invoiceNo: 'INV-2026-1001', date: today, customerName: 'Reliance Fresh', todayAmount: 1250, paidAmount: 0, remainingBalance: 1250, items: [] },
+    ];
+
+    localStorage.setItem(STORAGE_KEYS.fruits, JSON.stringify(mockFruits));
+    localStorage.setItem(STORAGE_KEYS.suppliers, JSON.stringify(mockSuppliers));
+    localStorage.setItem(STORAGE_KEYS.customers, JSON.stringify(mockCustomers));
+    localStorage.setItem(STORAGE_KEYS.invoices, JSON.stringify(mockInvoices));
+    localStorage.setItem(STORAGE_KEYS.setupDone, 'true');
+  } catch (e) {
+    // ignore
+  }
 
   return {
     profile: recommendation.key,
@@ -106,8 +135,8 @@ function buildFallbackSeedResult(profile: SeedProfileKey): DbSeedExecutionResult
       .slice(0, 10),
     ended_on: now.slice(0, 10),
     seeded_at: now,
-    company_name: 'Nexus Fresh Commission Agents',
-    settings_keys: ['app_settings', 'companies', 'active_company_id', 'demo_seed_metadata'],
+    company_name: 'Talha Fruit Co.',
+    settings_keys: ['tfc_erp_settings', 'tfc_erp_companies', 'tfc_erp_active_company', 'tfc_erp_demo_seed_metadata'],
   };
 }
 

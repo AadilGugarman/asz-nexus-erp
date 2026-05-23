@@ -1,62 +1,23 @@
 /**
  * components/window/TitleBar.tsx
- * Custom application titlebar for the Tauri desktop window.
- *
- * Features:
- *  - Native drag region (double-click to maximise, drag to move)
- *  - App icon + title
- *  - Optional centre slot for breadcrumb / page title
- *  - Right slot: always-on-top pin, fullscreen toggle, window controls
- *  - Adapts to dark / light theme
- *  - Renders a minimal fallback in browser dev mode
- *
- * Usage (in AppShell.tsx):
- *   <TitleBar pageTitle={activeTab} />
- *
- * The component is 32 px tall and sits at the very top of the layout.
- * Set `data-tauri-drag-region` on the drag area so Tauri handles the drag
- * natively without JS overhead.
+ * Custom application titlebar — 48 px tall, always visible.
+ * Shows gradient logo + company name on the left, theme toggle on the right.
  */
 
 import React, { useCallback } from 'react';
-import { Pin, PinOff, Maximize2, Minimize2 } from 'lucide-react';
+import { Pin, PinOff, Maximize2, Minimize2, Sun, Moon, Truck, Keyboard } from 'lucide-react';
 import { WindowControls } from './WindowControls';
 import { useWindow } from '@/hooks';
 import { useApp } from '@/context/AppContext';
 import { APP_CONFIG } from '@/config';
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 interface TitleBarProps {
-  /** Optional page/section title shown in the centre of the bar. */
   pageTitle?: string;
-  /** Override the app name shown on the left. Defaults to "TFC ERP". */
-  appName?: string;
+  onOpenShortcuts?: () => void;
 }
 
-// ── Tab label map ─────────────────────────────────────────────────────────────
-
-const TAB_LABELS: Record<string, string> = {
-  dashboard:  'Dashboard',
-  arrival:    'Vehicle Arrival',
-  purchase:   'Purchase Billing',
-  sales:      'Sales Billing',
-  inventory:  'Inventory',
-  parties:    'Parties',
-  payments:   'Payments',
-  reports:    'Reports',
-  suppliers:  'Suppliers',
-  customers:  'Customers',
-  settings:   'Settings',
-};
-
-// ── Component ─────────────────────────────────────────────────────────────────
-
-export const TitleBar: React.FC<TitleBarProps> = ({
-  pageTitle,
-  appName = 'TFC ERP',
-}) => {
-  const { theme } = useApp();
+export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
+  const { theme, toggleTheme, settings } = useApp();
   const {
     startDrag,
     toggleMaximize,
@@ -68,139 +29,134 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   } = useWindow();
 
   const isDark = theme === 'dark';
+  const coName = settings.company?.name || 'TFC ERP';
 
-  // Double-click on drag region → toggle maximise.
   const handleDoubleClick = useCallback(() => {
     toggleMaximize();
   }, [toggleMaximize]);
 
-  // ── Styles ──────────────────────────────────────────────────────────────────
+  // ── Styles ────────────────────────────────────────────────────────────────
 
   const barBg = isDark
     ? isFocused
-      ? 'bg-slate-900 border-slate-800'
-      : 'bg-slate-900/80 border-slate-800/60'
+      ? 'bg-[#131e30] border-[rgba(30,48,72,0.9)]'
+      : 'bg-[#131e30]/90 border-[rgba(30,48,72,0.6)]'
     : isFocused
       ? 'bg-white border-slate-200'
       : 'bg-slate-50 border-slate-200/60';
 
-  const titleColor = isDark
-    ? isFocused ? 'text-slate-100' : 'text-slate-400'
-    : isFocused ? 'text-slate-800' : 'text-slate-400';
+  const nameColor  = isDark ? 'text-[#e8f0fe]' : 'text-[#0f172a]';
 
-  const subtitleColor = isDark ? 'text-slate-500' : 'text-slate-400';
-  const pageLabel = pageTitle ? (TAB_LABELS[pageTitle] ?? pageTitle) : '';
-
-  const iconBtnBase = [
-    'flex items-center justify-center',
-    'w-7 h-7 rounded',
-    'transition-colors duration-100',
-    'focus:outline-none',
-    'select-none',
-  ].join(' ');
-
+  // Small utility buttons (pin, fullscreen)
+  const iconBtnBase = 'flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 focus:outline-none select-none cursor-pointer';
   const iconBtnIdle = isDark
-    ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/60'
+    ? 'text-[#6a8aaa] hover:text-[#e8f0fe] hover:bg-[rgba(59,130,246,0.08)]'
     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100';
-
   const iconBtnActive = isDark
     ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20'
     : 'text-indigo-500 bg-indigo-50 hover:bg-indigo-100';
 
-  // ── Browser fallback ─────────────────────────────────────────────────────────
-  // In browser dev mode render a simple non-draggable bar so the layout
-  // still works without a Tauri runtime.
+  // Primary action buttons (keyboard, theme) — larger, pill style
+  const primaryBtnBase = 'flex items-center justify-center gap-1.5 h-8 px-3 rounded-xl transition-all duration-150 focus:outline-none select-none cursor-pointer font-semibold text-[11px] border';
+  const primaryBtnIdle = isDark
+    ? 'text-[#94b4d4] border-[rgba(30,48,72,0.9)] bg-[rgba(19,30,48,0.6)] hover:text-[#e8f0fe] hover:bg-[rgba(59,130,246,0.10)] hover:border-[rgba(59,130,246,0.25)]'
+    : 'text-slate-500 border-slate-200 bg-slate-50 hover:text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-sm';
+
+  // ── Logo + company name (same as sidebar header) ──────────────────────────
+  const LeftContent = () => (
+    <div className="flex items-center gap-3 min-w-0">
+      <div
+        className="shrink-0 p-2 rounded-xl shadow-[0_8px_20px_rgba(0,174,239,0.18)]"
+        style={{ background: 'linear-gradient(135deg,#00C896,#00AEEF)' }}
+      >
+        <Truck className="w-4 h-4 text-white stroke-[2.5]" />
+      </div>
+      <span className={`text-sm font-bold tracking-tight truncate ${nameColor}`}>
+        {coName}
+      </span>
+    </div>
+  );
+
+  // ── Browser fallback ──────────────────────────────────────────────────────
   if (!APP_CONFIG.isTauri) {
     return (
-      <div
-        className={`
-          fixed top-0 left-0 right-0 z-40 flex items-center h-8 px-3 border-b
-          ${barBg}
-        `}
-      />
+      <div className={`fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-12 px-4 border-b transition-colors duration-200 ${barBg}`}>
+        <LeftContent />
+        <div className="flex items-center gap-2">
+          {/* Shortcuts pill */}
+          <button
+            onClick={onOpenShortcuts}
+            className={`${primaryBtnBase} ${primaryBtnIdle}`}
+            title="Keyboard shortcuts (Alt+K)"
+          >
+            <Keyboard size={16} strokeWidth={2} />
+            <span>Shortcuts</span>
+          </button>
+          {/* Theme toggle pill */}
+          <button
+            onClick={toggleTheme}
+            className={`${primaryBtnBase} ${primaryBtnIdle}`}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark
+              ? <><Sun size={16} strokeWidth={2} /><span>Light</span></>
+              : <><Moon size={16} strokeWidth={2} /><span>Dark</span></>
+            }
+          </button>
+        </div>
+      </div>
     );
   }
 
-  // ── Full titlebar ─────────────────────────────────────────────────────────────
-
+  // ── Full Tauri titlebar ───────────────────────────────────────────────────
   return (
     <div
-      className={`
-        fixed top-0 left-0 right-0 z-40 flex items-center h-8 border-b select-none
-        ${barBg}
-        transition-colors duration-200
-      `}
+      className={`fixed top-0 left-0 right-0 z-40 flex items-center h-12 border-b select-none transition-colors duration-200 ${barBg}`}
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
-      {/* ── Drag region (left + centre) ──────────────────────────────────── */}
       <div
-        className="flex items-center flex-1 min-w-0 h-full px-3 gap-2"
+        className="flex items-center flex-1 min-w-0 h-full px-4"
         data-tauri-drag-region
         onMouseDown={startDrag}
         onDoubleClick={handleDoubleClick}
       >
-        {/* App icon */}
-        <div className="shrink-0 w-4 h-4 rounded-sm overflow-hidden">
-          <img
-            src="/icons/icon.png"
-            alt=""
-            className="w-full h-full object-contain"
-            draggable={false}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-        </div>
-
-        <div className="min-w-0 flex items-center gap-1.5">
-          <span className={`text-[11px] font-semibold truncate ${titleColor}`}>{appName}</span>
-          {pageLabel ? (
-            <>
-              <span className={`text-[11px] ${subtitleColor}`}>/</span>
-              <span className={`text-[11px] truncate ${subtitleColor}`}>{pageLabel}</span>
-            </>
-          ) : null}
-        </div>
+        <LeftContent />
       </div>
 
-      {/* ── Right controls (no drag region) ─────────────────────────────── */}
       <div
-        className="flex items-center gap-0.5 px-1 h-full shrink-0"
+        className="flex items-center gap-2 px-3 h-full shrink-0"
         onMouseDown={(e) => e.stopPropagation()}
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        {/* Always-on-top toggle */}
-        <button
-          className={`${iconBtnBase} ${isAlwaysOnTop ? iconBtnActive : iconBtnIdle}`}
-          onClick={toggleAlwaysOnTop}
-          title={isAlwaysOnTop ? 'Unpin window' : 'Pin window on top'}
-          aria-label={isAlwaysOnTop ? 'Unpin window' : 'Pin window on top'}
-          tabIndex={-1}
-        >
-          {isAlwaysOnTop
-            ? <Pin size={12} strokeWidth={2} />
-            : <PinOff size={12} strokeWidth={2} />
-          }
+        {/* Shortcuts pill */}
+        <button className={`${primaryBtnBase} ${primaryBtnIdle}`} onClick={onOpenShortcuts} title="Keyboard shortcuts (Alt+K)" tabIndex={-1}>
+          <Keyboard size={16} strokeWidth={2} />
+          <span>Shortcuts</span>
         </button>
 
-        {/* Fullscreen toggle */}
-        <button
-          className={`${iconBtnBase} ${isFullscreen ? iconBtnActive : iconBtnIdle}`}
-          onClick={toggleFullscreen}
-          title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          tabIndex={-1}
-        >
-          {isFullscreen
-            ? <Minimize2 size={12} strokeWidth={2} />
-            : <Maximize2 size={12} strokeWidth={2} />
+        {/* Theme toggle pill */}
+        <button className={`${primaryBtnBase} ${primaryBtnIdle}`} onClick={toggleTheme} title={isDark ? 'Light mode' : 'Dark mode'} tabIndex={-1}>
+          {isDark
+            ? <><Sun size={16} strokeWidth={2} /><span>Light</span></>
+            : <><Moon size={16} strokeWidth={2} /><span>Dark</span></>
           }
         </button>
 
         {/* Divider */}
-        <div className={`w-px h-4 mx-1 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
+        <div className={`w-px h-5 ${isDark ? 'bg-[rgba(30,48,72,0.9)]' : 'bg-slate-200'}`} />
 
-        {/* Min / Max / Close */}
+        {/* Utility buttons */}
+        <button className={`${iconBtnBase} ${isAlwaysOnTop ? iconBtnActive : iconBtnIdle}`} onClick={toggleAlwaysOnTop} title={isAlwaysOnTop ? 'Unpin' : 'Pin on top'} tabIndex={-1}>
+          {isAlwaysOnTop ? <Pin size={13} strokeWidth={2} /> : <PinOff size={13} strokeWidth={2} />}
+        </button>
+        <button className={`${iconBtnBase} ${isFullscreen ? iconBtnActive : iconBtnIdle}`} onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} tabIndex={-1}>
+          {isFullscreen ? <Minimize2 size={13} strokeWidth={2} /> : <Maximize2 size={13} strokeWidth={2} />}
+        </button>
+
+        <div className={`w-px h-5 ${isDark ? 'bg-[rgba(30,48,72,0.9)]' : 'bg-slate-200'}`} />
         <WindowControls />
       </div>
     </div>
   );
 };
+

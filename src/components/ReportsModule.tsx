@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { fmtDate } from '@/utils/format';
 import {
   FileBarChart2, Calendar, Printer, Filter, TrendingUp,
   ArrowUpRight, ArrowDownRight, Package, Users, UserCheck, DollarSign, Layers, Banknote, ArrowUpDown
@@ -437,7 +438,7 @@ export const ReportsModule: React.FC = () => {
                     {rangeTable.pageRows.map((d) => {
                       const net = d.net;
                       return (<tr key={d.date} className="dark:hover:bg-slate-800/40 hover:bg-slate-50">
-                        <td className="py-2.5 px-4 font-semibold dark:text-slate-200 text-slate-800">{d.date}</td>
+                        <td className="py-2.5 px-4 font-semibold dark:text-slate-200 text-slate-800">{fmtDate(d.date)}</td>
                         <td className="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400 font-semibold">{d.purchase > 0 ? `₹ ${d.purchase.toLocaleString('en-IN')}` : '—'}</td>
                         <td className="py-2.5 px-3 text-right text-emerald-600 dark:text-emerald-400 font-semibold">{d.sales > 0 ? `₹ ${d.sales.toLocaleString('en-IN')}` : '—'}</td>
                         <td className="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400">{d.paidOut > 0 ? `₹ ${d.paidOut.toLocaleString('en-IN')}` : '—'}</td>

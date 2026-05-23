@@ -18,32 +18,34 @@ import {
   useStartupStore,
 } from "@/store";
 import { StartupScreen } from "@/components/router/StartupScreen";
+import { decidePostStartupRoute } from "./routeDecision";
 
 export const ProtectedRoute: React.FC = () => {
   const startupPhase = useStartupStore((s) => s.phase);
-  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
-  const setupCompleted = useSettingsStore((s) => s.settings.setupCompleted);
-  const companyReady = useCompanyStore((s) => s.initialized);
+  const isSetupDone = useAuthStore((s) => s.isSetupDone);
+  const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
   const location = useLocation();
-  const routerReady =
-    startupPhase === "ready" && settingsLoaded && companyReady;
 
-  if (!routerReady) return <StartupScreen message="Preparing workspace..." />;
+  if (startupPhase !== "ready")
+    return <StartupScreen message="Preparing workspace..." />;
 
-  if (!isAuthenticated) {
-    return <Navigate to={ROUTES.login} state={{ from: location }} replace />;
+  const target = decidePostStartupRoute({
+    startupReady: true,
+    isSetupDone,
+    isSetupComplete,
+    isAuthenticated,
+    hasCompany,
+    isLocked,
+  });
+
+  // If the target is NOT dashboard, and we are trying to access dashboard, redirect
+  if (target && target !== ROUTES.dashboard && location.pathname !== target) {
+    return <Navigate to={target} state={{ from: location }} replace />;
   }
 
-  if (!setupCompleted || !hasCompany) {
-    return <Navigate to={ROUTES.setup} replace />;
-  }
-
-  if (isLocked) {
-    return <Navigate to={ROUTES.lock} replace />;
-  }
-
+  // If we are authenticated and everything is ready, show the module
   return <Outlet />;
 };

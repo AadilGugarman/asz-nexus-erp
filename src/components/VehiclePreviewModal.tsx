@@ -2,6 +2,7 @@ import React from 'react';
 import { VehicleArrival } from '../types';
 import { X, Printer, FileText } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { fmtDate } from '@/utils/format';
 
 interface VehiclePreviewModalProps {
   vehicle: VehicleArrival | null;
@@ -58,7 +59,7 @@ export const VehiclePreviewModal: React.FC<VehiclePreviewModalProps> = ({ vehicl
                   <div className="text-[9px] font-black tracking-[0.2em] uppercase text-slate-500">VEHICLE INWARD RECEIPT</div>
                   <div className="text-[22px] font-black font-mono text-slate-950 leading-tight mt-0.5">{vehicle.arrivalNo}</div>
                 </div>
-                <div className="text-[11px] font-mono text-slate-600 mt-2 font-semibold">{vehicle.date} &nbsp;({vehicle.day})</div>
+                <div className="text-[11px] font-mono text-slate-600 mt-2 font-semibold">{fmtDate(vehicle.date)} &nbsp;({vehicle.day})</div>
               </div>
             </div>
 

@@ -4,6 +4,7 @@ import { X, Printer, Download, Share2, FileText } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from './Toast';
 import { useAppearance } from '@/hooks';
+import { fmtDate } from '@/utils/format';
 
 interface StatementPreviewProps {
   isOpen: boolean;
@@ -82,7 +83,7 @@ export const StatementPreview: React.FC<StatementPreviewProps> = ({ isOpen, onCl
               <div className="text-right shrink-0 ml-6">
                 <div className="inline-block px-4 py-3 rounded-lg border-2" style={{ borderColor: color, backgroundColor: color + '08' }}>
                   <div className="text-[8px] font-black tracking-[0.2em] uppercase" style={{ color }}>{title}</div>
-                  <div className="text-[10px] font-mono text-slate-500 mt-1 font-semibold">{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                  <div className="text-[10px] font-mono text-slate-500 mt-1 font-semibold">{fmtDate(new Date().toISOString().split('T')[0])}</div>
                 </div>
               </div>
             </div>
