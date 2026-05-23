@@ -89,13 +89,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const theme = useAppearanceStore((s) => s.resolvedTheme) as ThemeMode;
   const toggleTheme = useAppearanceStore((s) => s.toggleTheme);
 
-  const { data: fruits, isLoading: fruitsLoading } = useFruits();
-  const { data: suppliers, isLoading: suppliersLoading } = useSuppliers();
-  const { data: customers, isLoading: customersLoading } = useCustomers();
-  const { data: vehicles, isLoading: vehiclesLoading } = useVehicleArrivals();
-  const { data: invoices, isLoading: invoicesLoading } = useInvoices();
-  const { data: purchaseInvoices, isLoading: purchaseInvoicesLoading } = usePurchaseInvoices();
-  const { data: payments, isLoading: paymentsLoading } = usePayments();
+  const { data: dbFruits, refetch: refetchFruits } = useFruits();
+  const { data: dbSuppliers, refetch: refetchSuppliers } = useSuppliers();
+  const { data: dbCustomers, refetch: refetchCustomers } = useCustomers();
+  const { data: dbVehicles, refetch: refetchVehicles } = useVehicleArrivals();
+  const { data: dbInvoices, refetch: refetchInvoices } = useInvoices();
+  const { data: dbPurchaseInvoices, refetch: refetchPurchaseInvoices } = usePurchaseInvoices();
+  const { data: dbPayments, refetch: refetchPayments } = usePayments();
+
+  // Local mirrors for optimistic UI updates — seeded from DB, updated on writes
+  const [fruits, setFruits] = useState<Fruit[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleArrival[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
+  const [payments, setPayments] = useState<PaymentReceipt[]>([]);
+
+  // Sync local state when DB data loads or refreshes
+  useEffect(() => { setFruits(dbFruits); }, [dbFruits]);
+  useEffect(() => { setSuppliers(dbSuppliers); }, [dbSuppliers]);
+  useEffect(() => { setCustomers(dbCustomers); }, [dbCustomers]);
+  useEffect(() => { setVehicles(dbVehicles); }, [dbVehicles]);
+  useEffect(() => { setInvoices(dbInvoices); }, [dbInvoices]);
+  useEffect(() => { setPurchaseInvoices(dbPurchaseInvoices); }, [dbPurchaseInvoices]);
+  useEffect(() => { setPayments(dbPayments); }, [dbPayments]);
 
   const safeDbWrite = async (label: string, action: () => Promise<unknown>) => {
     if (!dbService.isReady) return;

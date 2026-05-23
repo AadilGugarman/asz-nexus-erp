@@ -14,7 +14,7 @@ interface State {
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
-    error: null
+    error: null,
   };
 
   public static getDerivedStateFromError(error: Error): State {
@@ -39,13 +39,13 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mb-6">
             <AlertTriangle className="w-8 h-8" />
           </div>
-          
+
           <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
             Oops! Something went wrong
           </h2>
-          
+
           <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-8">
-            The application encountered an unexpected error while rendering this page. 
+            The application encountered an unexpected error while rendering this page.
             This might be due to a temporary glitch or corrupted data.
           </p>
 
@@ -58,7 +58,7 @@ export class ErrorBoundary extends Component<Props, State> {
           )}
 
           <button
-             onClick={this.handleReset}
+            onClick={this.handleReset}
             className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25"
           >
             <RefreshCcw className="w-4 h-4" />

@@ -22,7 +22,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { drizzle } from "drizzle-orm/sqlite-proxy";
-import * as schema from "./schema";
+import * as schema from "./schema/index";
 import { APP_CONFIG } from "@/config";
 
 export type DrizzleDb = ReturnType<typeof drizzle>;

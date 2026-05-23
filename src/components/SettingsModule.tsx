@@ -340,9 +340,9 @@ export const SettingsModule: React.FC = () => {
     setCfPincode(c.pincode || "");
     setCfPhone(c.company.phone);
     setCfEmail(c.company.email);
-    setCfCurrency(c.financial.currency);
-    setCfInvPrefix(c.invoice.salesPrefix);
-    setCfInvStart(c.invoice.salesNextNo);
+    setCfCurrency(c.financial?.currency ?? "INR");
+    setCfInvPrefix(c.invoice?.salesPrefix ?? "INV");
+    setCfInvStart(c.invoice?.salesNextNo ?? 1001);
     setCfBankName(c.company.bankName);
     setCfAccountNo(c.company.accountNo);
     setCfIfsc(c.company.ifsc);
@@ -903,8 +903,8 @@ export const SettingsModule: React.FC = () => {
                         </div>
                         <div className="px-4 py-2.5 border-t dark:border-slate-800 border-slate-200 dark:bg-slate-950/50 bg-slate-50 flex items-center justify-between">
                           <div className="text-[10px] dark:text-slate-500 text-slate-400 font-mono">
-                            {c.financial.currency} · {c.invoice.salesPrefix}-
-                            {c.invoice.salesNextNo}
+                            {c.financial?.currency ?? "INR"} · {c.invoice?.salesPrefix ?? "INV"}-
+                            {c.invoice?.salesNextNo ?? 1001}
                           </div>
                           <div className="flex items-center space-x-1">
                             {/* Edit */}

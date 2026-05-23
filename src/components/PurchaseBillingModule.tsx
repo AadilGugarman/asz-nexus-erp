@@ -400,15 +400,19 @@ export const PurchaseBillingModule: React.FC = () => {
             {/* Row 1: Bill No    Date    Supplier */}
             <div className="grid grid-cols-[auto_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
               {/* Bill No */}
-              <div className="px-4 py-3 flex flex-col justify-center gap-0.5 min-w-[130px]">
+              <div className="px-4 py-3 flex flex-col justify-center gap-0.5 min-w-[150px]">
                 <span
                   className={`text-[10px] font-bold uppercase tracking-wider ${label}`}
                 >
                   Bill No
                 </span>
-                <span className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400">
-                  {billNo}
-                </span>
+                <input
+                  type="text"
+                  value={billNo}
+                  onChange={(e) => setBillNo(e.target.value.toUpperCase())}
+                  className={`${inp} px-2 py-1 text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 w-full`}
+                  placeholder="PUR-2026-001"
+                />
               </div>
               {/* Date */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
@@ -417,17 +421,17 @@ export const PurchaseBillingModule: React.FC = () => {
                 >
                   Date
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="relative">
                   <input
                     ref={dateRef}
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className={`${inp} px-2 py-1 text-xs font-mono font-bold w-36`}
+                    className={`${inp} px-2 py-1 text-xs font-mono font-bold w-full pr-20`}
                   />
                   {date && (
-                    <span className={`text-[11px] ${muted} hidden lg:block`}>
-                      {fmtDateWithDay(date)}
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-200 dark:border-slate-700 pointer-events-none leading-tight">
+                      {new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long' })}
                     </span>
                   )}
                 </div>
@@ -569,7 +573,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 </span>
                 <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
                   {" "}
-                  ` {todayAmount.toLocaleString("en-IN")}
+                  ₹ {todayAmount.toLocaleString("en-IN")}
                 </span>
               </div>
               <div className="px-4 py-2.5 flex items-center justify-between bg-gradient-to-r from-emerald-600 to-teal-600">
@@ -578,7 +582,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 </span>
                 <span className="text-base font-black font-mono text-white">
                   {" "}
-                  ` {remainingBalance.toLocaleString("en-IN")}
+                  ₹ {remainingBalance.toLocaleString("en-IN")}
                 </span>
               </div>
             </div>

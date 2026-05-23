@@ -457,17 +457,17 @@ export const SalesBillingModule: React.FC = () => {
                 >
                   Date
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="relative">
                   <input
                     ref={dateRef}
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className={`${inp} px-2 py-1 text-xs font-mono font-bold w-36`}
+                    className={`${inp} px-2 py-1 text-xs font-mono font-bold w-full pr-20`}
                   />
                   {date && (
-                    <span className={`text-[11px] ${muted} hidden lg:block`}>
-                      {fmtDateWithDay(date)}
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-200 dark:border-slate-700 pointer-events-none leading-tight">
+                      {new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long' })}
                     </span>
                   )}
                 </div>

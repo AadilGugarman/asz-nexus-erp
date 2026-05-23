@@ -10,11 +10,15 @@ import { SuccessModal } from "./SuccessModal";
 import { CompanyListModal } from "./CompanyListModal";
 import { CompanyFormData, ValidationErrors } from "@/types/company";
 import { useSettingsStore } from "@/store";
+import { DEFAULT_SETTINGS } from "@/store/settings.store";
 import { useToast } from "@/hooks/useToast";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { ROUTES, makeSettingsRoute } from "@/config";
 import type { NavigateFunction } from "react-router-dom";
 import type { CompanyProfile } from "@/types";
+
+const DEFAULT_FINANCIAL = DEFAULT_SETTINGS.financial;
+const DEFAULT_INVOICE = DEFAULT_SETTINGS.invoice;
 
 function goToCompaniesSettings(
   navigate: NavigateFunction,
@@ -103,7 +107,7 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
     if (mode === "edit" && companyId && companies.length > 0) {
       const company = companies.find((c) => c.id === companyId);
       if (company) {
-        const [month, day] = company.financial.financialYearStart.split("-");
+        const [month, day] = (company.financial?.financialYearStart ?? "04-01").split("-");
         const currentYear = new Date().getFullYear();
         const fyStart = `${currentYear}-${month}-${day}`;
         const fyEnd = `${currentYear + 1}-${month}-${day}`;
@@ -125,11 +129,11 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
           financial: {
             fyStart,
             fyEnd,
-            currency: company.financial.currency,
+            currency: company.financial?.currency ?? "INR",
             currencySymbol: "₹",
             taxType: "gst",
-            invoicePrefix: company.invoice.salesPrefix,
-            invoiceStartingNumber: String(company.invoice.salesNextNo).padStart(
+            invoicePrefix: company.invoice?.salesPrefix ?? "INV",
+            invoiceStartingNumber: String(company.invoice?.salesNextNo ?? 1001).padStart(
               4,
               "0",
             ),
@@ -346,17 +350,17 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             gstin: formData.details.gstin,
           },
           financial: {
-            ...existingCompany.financial,
+            ...(existingCompany.financial ?? DEFAULT_FINANCIAL),
             financialYearStart: formData.financial.fyStart.slice(5),
           },
           invoice: {
-            ...existingCompany.invoice,
+            ...(existingCompany.invoice ?? DEFAULT_INVOICE),
             salesPrefix:
               formData.financial.invoicePrefix ||
-              existingCompany.invoice.salesPrefix,
+              existingCompany.invoice?.salesPrefix ?? "INV",
             salesNextNo:
               Number(formData.financial.invoiceStartingNumber) ||
-              existingCompany.invoice.salesNextNo,
+              existingCompany.invoice?.salesNextNo ?? 1001,
           },
           city: formData.details.city,
           state: formData.details.state,

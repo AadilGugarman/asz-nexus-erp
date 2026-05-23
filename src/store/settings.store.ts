@@ -141,6 +141,31 @@ function mergeSettings(partial: Partial<AppSettings>): AppSettings {
   };
 }
 
+/**
+ * Ensure every CompanyProfile loaded from storage has all required nested
+ * objects. Guards against old/partial data causing "Cannot read properties
+ * of undefined" crashes at runtime.
+ */
+export function normalizeCompanyProfile(raw: Partial<CompanyProfile>): CompanyProfile {
+  return {
+    id: raw.id ?? `co-${Date.now()}`,
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    pan: raw.pan,
+    city: raw.city,
+    state: raw.state,
+    pincode: raw.pincode,
+    logo: raw.logo,
+    company: { ...DEFAULT_SETTINGS.company, ...(raw.company ?? {}) },
+    financial: { ...DEFAULT_SETTINGS.financial, ...(raw.financial ?? {}) },
+    invoice: { ...DEFAULT_SETTINGS.invoice, ...(raw.invoice ?? {}) },
+  };
+}
+
+function normalizeCompanies(raw: unknown): CompanyProfile[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((c) => normalizeCompanyProfile(c as Partial<CompanyProfile>));
+}
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
@@ -162,7 +187,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       if (saved) {
         localData = JSON.parse(saved);
         const companiesSaved = localStorage.getItem(DB_KEY_COMPANIES);
-        if (companiesSaved) localCompanies = JSON.parse(companiesSaved);
+        if (companiesSaved) localCompanies = normalizeCompanies(JSON.parse(companiesSaved));
       }
     } catch (e) {
       console.warn("[SettingsStore] LocalStorage check failed:", e);
@@ -241,7 +266,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
             : DEFAULT_SETTINGS;
 
       const nextCompanies = Array.isArray(dbCompanies)
-        ? dbCompanies
+        ? normalizeCompanies(dbCompanies)
         : localCompanies;
       const nextActiveCompanyId =
         typeof dbActiveId === "string" && dbActiveId

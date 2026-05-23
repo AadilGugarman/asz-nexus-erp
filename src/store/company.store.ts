@@ -100,7 +100,12 @@ export const useCompanyStore = create<CompanyState>()((set, get) => ({
       if (hasDbCompany) {
         // Sync back to settings store if needed
         if (hasDbCompanyList) {
-          useSettingsStore.setState({ companies: persistedCompanies });
+          const { normalizeCompanyProfile } = await import("./settings.store");
+          useSettingsStore.setState({
+            companies: persistedCompanies.map((c: CompanyProfile) =>
+              normalizeCompanyProfile(c),
+            ),
+          });
         }
 
         const activeCompanyId = 

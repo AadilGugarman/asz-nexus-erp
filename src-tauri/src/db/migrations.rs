@@ -12,6 +12,8 @@
 //   1. Create src/db/migrations/NNNN_description.sql
 //   2. Add an entry to the MIGRATIONS slice below.
 //   That's it — the runner handles the rest on next app launch.
+//
+// IMPORTANT: Never reorder or remove entries — only append.
 
 use rusqlite::Connection;
 use crate::error::{AppError, AppResult};
@@ -31,18 +33,8 @@ pub struct Migration {
 static MIGRATIONS: &[Migration] = &[
     Migration {
         version: 1,
-        description: "initial schema",
+        description: "complete ERP schema",
         sql: include_str!("migrations/0001_initial.sql"),
-    },
-    Migration {
-        version: 2,
-        description: "add employee department",
-        sql: include_str!("migrations/0002_employee_department.sql"),
-    },
-    Migration {
-        version: 3,
-        description: "erp core schema",
-        sql: include_str!("migrations/0003_erp_schema.sql"),
     },
 ];
 
