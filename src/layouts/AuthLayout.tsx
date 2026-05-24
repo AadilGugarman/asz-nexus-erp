@@ -26,13 +26,13 @@ export const AuthLayout: React.FC = () => {
         {/* Brand header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/12 border border-amber-500/25 mb-4">
-            <span className="text-2xl font-bold text-amber-500">T</span>
+            <span className="text-2xl font-bold text-amber-500">A</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
-            TFC ERP
+            ASZ Nexus ERP
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Talha Fruit Co. Management
+            Smart Billing & Trading Management System
           </p>
         </div>
 

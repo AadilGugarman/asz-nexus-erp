@@ -182,8 +182,8 @@ export function runStorageMigration(): MigrationStats {
         const key = window.localStorage.key(i);
         if (key?.startsWith("apex_")) {
           stats.legacyKeysRemaining.push(key);
-          // Optionally remove unmapped legacy keys:
-          // safeRemoveItem(key);
+          // Remove unmapped legacy keys — they are no longer needed
+          safeRemoveItem(key);
         }
       }
     }
@@ -249,6 +249,51 @@ export function cleanupLegacyKeys(): number {
   }
 
   return removed;
+}
+
+/**
+ * Purge any business data that was previously written to localStorage.
+ * In production (Tauri), business data lives exclusively in SQLite.
+ * This is a one-time cleanup that runs on every startup — it's idempotent
+ * and fast (just removes keys that don't exist in production anyway).
+ */
+export function purgeBusinessDataFromLocalStorage(): void {
+  const businessDataKeys = [
+    "tfc_erp_fruits",
+    "tfc_erp_suppliers",
+    "tfc_erp_customers",
+    "tfc_erp_vehicles",
+    "tfc_erp_invoices",
+    "tfc_erp_purchase_invoices",
+    "tfc_erp_payments",
+    // Legacy apex_* equivalents
+    "apex_fruits",
+    "apex_suppliers",
+    "apex_customers",
+    "apex_vehicles",
+    "apex_invoices",
+    "apex_purchase_invoices",
+    "apex_payments",
+  ];
+
+  let removed = 0;
+  for (const key of businessDataKeys) {
+    try {
+      if (localStorage.getItem(key) !== null) {
+        localStorage.removeItem(key);
+        removed++;
+      }
+    } catch {
+      // silent fail
+    }
+  }
+
+  if (removed > 0 && import.meta.env.DEV) {
+    console.info(
+      `[Storage] Purged ${removed} business data keys from localStorage. ` +
+      "Business data is now exclusively in SQLite.",
+    );
+  }
 }
 
 /**

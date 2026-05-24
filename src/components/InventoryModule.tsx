@@ -1,8 +1,8 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { fmtDate } from '@/utils/format';
 import { useApp } from '../context/AppContext';
 import { Package, Search, Filter, ArrowUpRight, ArrowDownRight, Layers, AlertTriangle, RefreshCw, ArrowUpDown } from 'lucide-react';
-import { Combobox } from './ui/Combobox';
+import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
@@ -74,6 +74,17 @@ export const InventoryModule: React.FC = () => {
 
   const totalStockWeight = inventory.reduce((sum, it) => sum + it.totalWeight, 0);
   const totalStockCarets = inventory.reduce((sum, it) => sum + it.totalCarets, 0);
+
+  const fruitOptions: CommandOption[] = useMemo(() => {
+    return [
+      { id: 'ALL', label: 'All Fruits Inventory', emoji: '📦' },
+      ...fruits.map(f => ({
+        id: f.name,
+        label: f.name,
+        emoji: '🍃' // You could use getEmoji here too
+      }))
+    ];
+  }, [fruits]);
 
   return (
     <div className="space-y-6 font-sans">
@@ -168,14 +179,13 @@ export const InventoryModule: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3 w-full sm:w-auto">
           <Filter className="w-4 h-4 text-[#94a3b8] hidden sm:block" />
-          <Combobox
-            value={filterFruit === 'ALL' ? 'All Fruits Inventory' : filterFruit}
-            onChange={(val) => setFilterFruit(val === 'All Fruits Inventory' ? 'ALL' : val)}
-            options={['All Fruits Inventory', ...fruits.map(f => f.name)]}
+          <CommandSelect
+            value={filterFruit}
+            onChange={(val) => setFilterFruit(val)}
+            options={fruitOptions}
             placeholder="Filter Fruit..."
-            searchPlaceholder="Search fruit..."
             creatable={false}
-            className="py-2.5 sm:w-60"
+            className="sm:w-64"
           />
         </div>
       </div>

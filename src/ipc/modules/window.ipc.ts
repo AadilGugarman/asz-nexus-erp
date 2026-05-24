@@ -38,7 +38,7 @@ import type {
 // ── Browser-mode fallback state ───────────────────────────────────────────────
 
 const FALLBACK_STATE: WinState = {
-  label: 'main', title: 'TFC ERP',
+  label: 'main', title: 'ASZ Nexus ERP',
   is_visible: true, is_focused: true,
   is_maximized: false, is_minimized: false, is_fullscreen: false,
   width: 1280, height: 800, x: 0, y: 0,

@@ -30,7 +30,7 @@ pub fn run() {
             // ── Database ──────────────────────────────────────────────────────
             let app_data_dir = app.path().app_data_dir()
                 .expect("Failed to resolve app data directory");
-            let db_path = app_data_dir.join("tfc_erp.db");
+            let db_path = app_data_dir.join("asz_nexus_erp.db");
 
             let pool = init_pool(&db_path)
                 .expect("Failed to initialise SQLite pool");
@@ -56,7 +56,7 @@ pub fn run() {
             use tauri::tray::{TrayIconBuilder, TrayIconEvent};
             use tauri::menu::{MenuBuilder, MenuItemBuilder};
 
-            let show_item = MenuItemBuilder::with_id("show", "Show TFC ERP")
+            let show_item = MenuItemBuilder::with_id("show", "Show ASZ Nexus ERP")
                 .build(app)?;
             let hide_item = MenuItemBuilder::with_id("hide", "Hide")
                 .build(app)?;
@@ -67,8 +67,8 @@ pub fn run() {
                 .items(&[&show_item, &hide_item, &quit_item])
                 .build()?;
 
-            let _tray = TrayIconBuilder::with_id("tfc-tray")
-                .tooltip("TFC ERP — Fruit Commission Management")
+            let _tray = TrayIconBuilder::with_id("asz-nexus-tray")
+                .tooltip("ASZ Nexus ERP — Smart Billing & Trading Management System")
                 .icon(app.default_window_icon().cloned().unwrap())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
@@ -121,17 +121,18 @@ pub fn run() {
                 commands::auth::auth_change_password,
                 // ── Database ─────────────────────────────────────────────────
                 commands::db::db_get_stats,
-                     commands::db::db_get_seed_plan,
-                     commands::db::db_reseed_demo_data,
-                     commands::db::db_reset_demo_data,
-                   // ── Backup ───────────────────────────────────────────────────
-                   commands::backup::backup_create,
-                   commands::backup::backup_list,
-                   commands::backup::backup_validate,
-                   commands::backup::backup_delete,
-                   commands::backup::backup_restore,
-                   commands::backup::backup_prune,
-                   commands::backup::backup_get_dir,
+                commands::db::db_get_seed_plan,
+                commands::db::db_reseed_demo_data,
+                commands::db::db_reset_demo_data,
+                commands::db::db_reset_company_data,
+                // ── Backup ───────────────────────────────────────────────────
+                commands::backup::backup_create,
+                commands::backup::backup_list,
+                commands::backup::backup_validate,
+                commands::backup::backup_delete,
+                commands::backup::backup_restore,
+                commands::backup::backup_prune,
+                commands::backup::backup_get_dir,
                 // ── Employee ─────────────────────────────────────────────────
                 commands::employee::employee_list,
                 commands::employee::employee_get,

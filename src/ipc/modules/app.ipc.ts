@@ -23,7 +23,7 @@ export const appIpc = {
       undefined,
       // Browser fallback — matches AppInfo shape
       {
-        name: 'TFC ERP',
+        name: 'ASZ Nexus ERP',
         version: '0.0.0-dev',
         tauri_version: 'N/A',
         debug: true,

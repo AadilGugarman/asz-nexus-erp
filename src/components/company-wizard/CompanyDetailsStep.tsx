@@ -32,6 +32,10 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
   const stateRef = useRef<HTMLInputElement>(null);
   const pincodeRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
+  const phone2Ref = useRef<HTMLInputElement>(null);
+  const phone3Ref = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const websiteRef = useRef<HTMLInputElement>(null);
 
   const locations = locationsData as AutocompleteOption[];
 
@@ -154,7 +158,7 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
               type="text"
               value={data.companyName}
               onChange={(e) => handleCompanyNameChange(e.target.value)}
-              placeholder="e.g. Talha Fruit Co."
+              placeholder="e.g. ASZ Nexus ERP"
               onKeyDown={(e) =>
                 e.key === "Enter" && legalNameRef.current?.focus()
               }
@@ -181,7 +185,7 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
               type="text"
               value={data.legalName}
               onChange={(e) => onChange({ legalName: e.target.value })}
-              placeholder="e.g. Talha Fruit Co. Private Limited"
+              placeholder="e.g. ASZ Nexus ERP Private Limited"
               onKeyDown={(e) => e.key === "Enter" && gstinRef.current?.focus()}
               className={`w-full pl-8 pr-3 py-2 rounded-lg border text-xs font-medium bg-white focus:outline-hidden focus:ring-2 transition-all ${errors.legalName ? "border-red-300 focus:ring-red-100 focus:border-red-500" : "border-slate-200 focus:ring-amber-100 focus:border-amber-500"}`}
             />
@@ -373,7 +377,7 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
           </div>
           <div className="space-y-1">
             <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-              Phone <span className="text-red-500">*</span>
+              Phone 1 <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
@@ -385,6 +389,7 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
                 value={data.phone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 placeholder="9876543210"
+                onKeyDown={(e) => e.key === "Enter" && phone2Ref.current?.focus()}
                 className={`w-full pl-8 pr-3 py-2 rounded-lg border text-xs font-medium bg-white focus:outline-hidden focus:ring-2 transition-all ${errors.phone ? "border-red-300 focus:ring-red-100 focus:border-red-500" : "border-slate-200 focus:ring-amber-100 focus:border-amber-500"}`}
               />
             </div>
@@ -394,6 +399,81 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
                 <span>{errors.phone}</span>
               </p>
             )}
+          </div>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              Phone 2
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <Phone className="w-3.5 h-3.5" />
+              </div>
+              <input
+                ref={phone2Ref}
+                type="text"
+                value={data.phone2 || ""}
+                onChange={(e) => onChange({ phone2: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                placeholder="Optional"
+                onKeyDown={(e) => e.key === "Enter" && phone3Ref.current?.focus()}
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs font-medium bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-100 focus:border-amber-500 transition-all"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              Phone 3
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <Phone className="w-3.5 h-3.5" />
+              </div>
+              <input
+                ref={phone3Ref}
+                type="text"
+                value={data.phone3 || ""}
+                onChange={(e) => onChange({ phone3: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                placeholder="Optional"
+                onKeyDown={(e) => e.key === "Enter" && emailRef.current?.focus()}
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs font-medium bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-100 focus:border-amber-500 transition-all"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              Email Address
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <Globe className="w-3.5 h-3.5" />
+              </div>
+              <input
+                ref={emailRef}
+                type="email"
+                value={data.email || ""}
+                onChange={(e) => onChange({ email: e.target.value })}
+                placeholder="contact@company.com"
+                onKeyDown={(e) => e.key === "Enter" && websiteRef.current?.focus()}
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs font-medium bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-100 focus:border-amber-500 transition-all"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              Website
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <Globe className="w-3.5 h-3.5" />
+              </div>
+              <input
+                ref={websiteRef}
+                type="text"
+                value={data.website || ""}
+                onChange={(e) => onChange({ website: e.target.value })}
+                placeholder="www.company.com"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs font-medium bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-100 focus:border-amber-500 transition-all"
+              />
+            </div>
           </div>
         </div>
       </div>

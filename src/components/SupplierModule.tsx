@@ -8,11 +8,9 @@ import { StatementPreview } from './ui/StatementPreview';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
-import { useAppearance } from '@/hooks';
 
 export const SupplierModule: React.FC = () => {
   const { suppliers, getSupplierLedger, addPayment } = useApp();
-  const { density, setDensity } = useAppearance();
   const toast = useToast();
 
   const [selectedSupplierId, setSelectedSupplierId] = useState(suppliers[0]?.id || '');
@@ -54,7 +52,6 @@ export const SupplierModule: React.FC = () => {
   });
 
   const outstandingBalance = ledgerEntries.length > 0 ? ledgerEntries[0].runningBalance : (selectedSupplier?.previousBalance || 0);
-  const isCompact = density === 'compact';
 
   const handleAddPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,7 +213,7 @@ export const SupplierModule: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: SUPPLIER LEDGER STATEMENT */}
-        <div className={`lg:col-span-3 erp-panel rounded-2xl p-6 flex flex-col space-y-6 printable-patti font-sans ${isCompact ? 'table-compact' : ''}`}>
+        <div className="lg:col-span-3 erp-panel rounded-2xl p-6 flex flex-col space-y-6 printable-patti font-sans">
           {selectedSupplier ? (
             <>
               {/* Supplier Profile Info Header */}
@@ -242,13 +239,6 @@ export const SupplierModule: React.FC = () => {
 
               {/* Ledger Statement Table */}
               <div className="flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')}
-                  className="erp-btn-secondary px-3 py-2 text-xs"
-                >
-                  {density === 'compact' ? 'Compact' : density === 'comfortable' ? 'Comfortable' : 'Spacious'}
-                </button>
               </div>
               <DataTable
                 className="font-sans"
@@ -293,7 +283,7 @@ export const SupplierModule: React.FC = () => {
                   <tbody className="font-mono">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={8} className="p-0"><TableSkeleton rows={8} cols={8} compact={isCompact} /></td>
+                        <td colSpan={8} className="p-0"><TableSkeleton rows={8} cols={8} /></td>
                       </tr>
                     ) : ledgerTable.totalRecords === 0 ? (
                       <tr>

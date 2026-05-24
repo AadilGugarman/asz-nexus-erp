@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TFC - Talha Fruit Co. | Wholesale Fruit Trading ERP</title>
+    <title>ASZ Nexus ERP | Smart Billing & Trading Management System</title>
     <style>
       /* Prevent white flash before theme is applied */
       html,
@@ -74,11 +74,7 @@
           root.classList.toggle("dark", resolved === "dark");
           root.classList.toggle("light", resolved === "light");
           root.dataset.theme = resolved;
-          root.dataset.density =
-            parsed.density ||
-            (localStorage.getItem("tfc_erp_density") === "compact"
-              ? "compact"
-              : "comfortable");
+          root.dataset.density = "comfortable";
 
           var fontSize =
             parsed.fontSize ||
@@ -101,39 +97,10 @@
             fontMap[fontFamily] || fontMap.inter,
           );
 
-          var density = root.dataset.density;
-          var densityScale = {
-            compact: "0.92",
-            comfortable: "1",
-            spacious: "1.12",
-          };
-          var rowHeight = {
-            compact: "34px",
-            comfortable: "40px",
-            spacious: "46px",
-          };
-          var inputHeight = {
-            compact: "34px",
-            comfortable: "38px",
-            spacious: "44px",
-          };
-          var cardScale = { compact: "0.9", comfortable: "1", spacious: "1.1" };
-          root.style.setProperty(
-            "--density-scale",
-            densityScale[density] || "1",
-          );
-          root.style.setProperty(
-            "--table-row-height",
-            rowHeight[density] || "40px",
-          );
-          root.style.setProperty(
-            "--input-height",
-            inputHeight[density] || "38px",
-          );
-          root.style.setProperty(
-            "--card-padding-scale",
-            cardScale[density] || "1",
-          );
+          root.style.setProperty("--density-scale", "1");
+          root.style.setProperty("--table-row-height", "40px");
+          root.style.setProperty("--input-height", "38px");
+          root.style.setProperty("--card-padding-scale", "1");
 
           var accent =
             parsed.accentColor ||
@@ -141,15 +108,11 @@
             "#6366f1";
           root.style.setProperty("--accent-color", accent);
 
-          var animationsEnabled = parsed.animationsEnabled;
-          if (typeof animationsEnabled !== "boolean") {
-            animationsEnabled =
-              localStorage.getItem("tfc_erp_animations_enabled") !== "false";
-          }
-          var reduced =
-            !animationsEnabled ||
-            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-          root.dataset.reducedMotion = reduced ? "true" : "false";
+          root.dataset.reducedMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+          ).matches
+            ? "true"
+            : "false";
           root.dataset.highContrast = window.matchMedia(
             "(forced-colors: active), (prefers-contrast: more)",
           ).matches
@@ -164,24 +127,7 @@
   <body>
     <div id="initial-loader">
       <div class="loader-logo">
-        <svg
-          width="32"
-          height="32"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
-          <path d="M15 18H9" />
-          <path
-            d="M19 18h2a1 1 0 0 0 1-1v-3.28a1 1 0 0 0-.684-.948l-1.923-.641a1 1 0 0 1-.684-.948V10a1 1 0 0 0-1-1h-3"
-          />
-          <circle cx="7" cy="18" r="2" />
-          <circle cx="17" cy="18" r="2" />
-        </svg>
+        <span style="color: white; font-weight: 900; font-size: 32px; font-family: 'Inter', sans-serif;">A</span>
       </div>
       <div class="loader-spinner"></div>
     </div>

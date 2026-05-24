@@ -15,7 +15,7 @@ import {
   ArrowUpDown,
   Calculator,
 } from "lucide-react";
-import { Combobox } from "./ui/Combobox";
+import { CommandSelect, CommandOption } from "./ui/CommandSelect";
 import { useToast } from "./ui/Toast";
 import { useConfirmDialog } from "./ui/ConfirmDialog";
 import { ModuleEmptyState, TableSkeleton } from "./ui/DataStates";
@@ -54,6 +54,21 @@ const inp =
 const muted = "dark:text-slate-400 text-slate-500";
 const label = "dark:text-slate-400 text-slate-600";
 
+const FRUIT_EMOJIS: Record<string, string> = {
+  mango: '🥭', apple: '🍎', banana: '🍌', pomegranate: '🫐', grapes: '🍇',
+  citrus: '🍊', watermelon: '🍉', orange: '🍊', lemon: '🍋', pineapple: '🍍',
+  strawberry: '🍓', cherry: '🍒', peach: '🍑', pear: '🍐', kiwi: '🥝',
+  coconut: '🥥', papaya: '🥭', guava: '🥝', fig: '🫐', plum: '🫐',
+};
+
+const getEmoji = (name: string): string => {
+  const lower = name.toLowerCase();
+  for (const [key, emoji] of Object.entries(FRUIT_EMOJIS)) {
+    if (lower.includes(key)) return emoji;
+  }
+  return '🍃';
+};
+
 export const PurchaseBillingModule: React.FC = () => {
   const {
     suppliers,
@@ -65,7 +80,6 @@ export const PurchaseBillingModule: React.FC = () => {
     addFruitVariety,
   } = useApp();
   const { t } = useAppTranslation("billing");
-  const { density, setDensity } = useAppearance();
   const toast = useToast();
   const dialog = useConfirmDialog();
 
@@ -96,6 +110,24 @@ export const PurchaseBillingModule: React.FC = () => {
   ]);
 
   const dateRef = useRef<HTMLInputElement>(null);
+
+  const supplierOptions: CommandOption[] = useMemo(() => {
+    return suppliers.map(s => ({
+      id: s.id,
+      label: s.name,
+      subtitle: s.phone ? `${s.phone} • ${s.city}` : s.city,
+      emoji: '🏢'
+    }));
+  }, [suppliers]);
+
+  const fruitOptions: CommandOption[] = useMemo(() => {
+    return fruits.map(f => ({
+      id: f.id,
+      label: f.name,
+      subtitle: `${f.varieties.length} varieties`,
+      emoji: getEmoji(f.name)
+    }));
+  }, [fruits]);
 
   const selectedSupplier = useMemo(
     () => suppliers.find((s) => s.id === selectedSupplierId) || suppliers[0],
@@ -344,8 +376,6 @@ export const PurchaseBillingModule: React.FC = () => {
     hamaliInput,
   ]);
 
-  const isCompact = density === "compact";
-
   //        render
   return (
     <div className="space-y-5 font-sans">
@@ -458,21 +488,16 @@ export const PurchaseBillingModule: React.FC = () => {
               </div>
               {/* Supplier */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${label}`}
-                >
-                  Supplier / Orchard
-                </span>
-                <Combobox
-                  value={selectedSupplier?.name || ""}
+                <CommandSelect
+                  id="purchase-supplier"
+                  label="Supplier / Orchard"
+                  value={selectedSupplier?.id || ""}
                   onChange={(val) => {
-                    const m =
-                      suppliers.find((s) => s.name === val) || suppliers[0];
+                    const m = suppliers.find((s) => s.id === val || s.name === val);
                     if (m) setSelectedSupplierId(m.id);
                   }}
-                  options={suppliers.map((s) => s.name)}
+                  options={supplierOptions}
                   placeholder="Select supplier"
-                  searchPlaceholder="Search supplier"
                   creatable={false}
                 />
               </div>
@@ -623,30 +648,27 @@ export const PurchaseBillingModule: React.FC = () => {
                       >
                         {/* Fruit Category */}
                         <td className="p-1.5 px-3" data-pinv-cell={`${idx}-0`}>
-                          <Combobox
+                          <CommandSelect
                             value={it.fruitCategory}
-                            onChange={(val) =>
-                              handleItemChange(idx, "fruitCategory", val)
-                            }
-                            options={fruits.map((f) => f.name)}
+                            onChange={(val) => {
+                              const f = fruits.find(f => f.id === val || f.name === val);
+                              handleItemChange(idx, "fruitCategory", f?.name || val);
+                            }}
+                            options={fruitOptions}
                             placeholder="Select fruit"
-                            searchPlaceholder="Search or add fruit"
                             creatable={true}
-                            onCreate={(nf) => addFruit(nf)}
+                            onAdd={(nf) => addFruit(nf)}
                           />
                         </td>
                         {/* Variety */}
                         <td className="p-1.5" data-pinv-cell={`${idx}-1`}>
-                          <Combobox
+                          <CommandSelect
                             value={it.variety}
-                            onChange={(val) =>
-                              handleItemChange(idx, "variety", val)
-                            }
-                            options={varieties}
+                            onChange={(val) => handleItemChange(idx, "variety", val)}
+                            options={varieties.map(v => ({ id: v, label: v, emoji: '📦' }))}
                             placeholder="Select variety"
-                            searchPlaceholder="Search or add variety"
                             creatable={true}
-                            onCreate={(nv) => {
+                            onAdd={(nv) => {
                               if (fruitObj) addFruitVariety(fruitObj.id, nv);
                             }}
                           />
@@ -860,9 +882,7 @@ export const PurchaseBillingModule: React.FC = () => {
           BILLS LIST
                                                                                                                                                     */}
       {activeSubTab === "LIST" && (
-        <div
-          className={`${card} p-5 space-y-5 ${isCompact ? "table-compact" : ""}`}
-        >
+        <div className={`${card} p-5 space-y-5`}>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b dark:border-slate-800 border-slate-100 pb-4">
             <h2 className="text-sm font-bold dark:text-white text-slate-900 flex items-center gap-2">
               <span>Purchase Bills</span>
@@ -873,21 +893,6 @@ export const PurchaseBillingModule: React.FC = () => {
               </span>
             </h2>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() =>
-                  setDensity(
-                    density === "compact"
-                      ? "comfortable"
-                      : density === "comfortable"
-                        ? "spacious"
-                        : "compact",
-                  )
-                }
-                className="erp-btn-secondary px-3 py-2 text-xs capitalize"
-              >
-                {density}
-              </button>
               <div className="relative w-full sm:w-72">
                 <Search className={`w-4 h-4 ${muted} absolute left-3 top-3`} />
                 <input
@@ -961,7 +966,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 {isListLoading ? (
                   <tr>
                     <td colSpan={8} className="p-0">
-                      <TableSkeleton rows={6} cols={8} compact={isCompact} />
+                      <TableSkeleton rows={6} cols={8} />
                     </td>
                   </tr>
                 ) : table.totalRecords === 0 ? (

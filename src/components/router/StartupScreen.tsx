@@ -23,7 +23,7 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ message }) => {
         <div className="mb-8 relative">
           <div className="h-20 w-20 rounded-3xl bg-white border border-slate-200 shadow-xl flex items-center justify-center transform rotate-12 transition-transform hover:rotate-0 duration-500">
             <div className="h-10 w-10 bg-amber-500 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <span className="text-white font-bold text-xl">T</span>
+              <span className="text-white font-bold text-xl">A</span>
             </div>
           </div>
           <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-white border border-slate-100 shadow-md flex items-center justify-center">
@@ -33,8 +33,8 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ message }) => {
 
         {/* Text */}
         <div className="text-center space-y-2 mb-12">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Talha Fruit Co.</h1>
-          <p className="text-slate-500 font-medium">ERP System</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">ASZ Nexus ERP</h1>
+          <p className="text-slate-500 font-medium">Smart Billing & Trading Management System</p>
         </div>
 
         {/* Progress/Message */}

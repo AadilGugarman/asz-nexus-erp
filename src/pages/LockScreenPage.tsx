@@ -46,7 +46,7 @@ export const LockScreenPage: React.FC = () => {
 
         <div className="p-10">
           <div className="mb-8">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 font-semibold">TFC ERP Security</p>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 font-semibold">ASZ Nexus ERP Security</p>
             <h1 className="text-3xl font-semibold text-slate-100 mt-2">Application Locked</h1>
             <p className="text-slate-400 text-sm mt-2">{subtitle}</p>
           </div>

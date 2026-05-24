@@ -6,5 +6,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    tfc_erp_lib::run();
+    asz_nexus_erp_lib::run();
 }

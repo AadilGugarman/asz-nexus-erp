@@ -36,6 +36,16 @@ static MIGRATIONS: &[Migration] = &[
         description: "complete ERP schema",
         sql: include_str!("migrations/0001_initial.sql"),
     },
+    Migration {
+        version: 2,
+        description: "caret transactions table",
+        sql: include_str!("migrations/0002_caret_transactions.sql"),
+    },
+    Migration {
+        version: 3,
+        description: "production performance indexes",
+        sql: include_str!("migrations/0003_production_indexes.sql"),
+    },
 ];
 
 /// Run all pending migrations against an open connection.

@@ -52,7 +52,7 @@ export async function getDb(): Promise<DrizzleDb | null> {
     }>;
   };
 
-  const sqliteDb = await Database.load("sqlite:tfc_erp.db");
+  const sqliteDb = await Database.load("sqlite:asz_nexus_erp.db");
 
   _db = drizzle(
     async (sql, params, method) => {

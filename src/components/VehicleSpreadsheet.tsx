@@ -2,7 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { PurchaseRow, Supplier, Fruit } from '../types';
 import { Plus, Copy, Trash2, ClipboardPaste } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Combobox } from './ui/Combobox';
+import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
 
@@ -29,6 +29,15 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
     const fruitObj = fruits.find(f => f.name.toLowerCase() === selectedFruit.toLowerCase());
     return fruitObj ? fruitObj.varieties : ['Standard', 'Premium', 'Grade A', 'Grade B'];
   }, [selectedFruit, fruits]);
+
+  const supplierOptions: CommandOption[] = useMemo(() => {
+    return suppliers.map(s => ({
+      id: s.id,
+      label: s.name,
+      subtitle: s.phone ? `${s.phone} • ${s.city}` : s.city,
+      emoji: '🏢'
+    }));
+  }, [suppliers]);
 
   const handleCellChange = (index: number, field: keyof PurchaseRow, value: any) => {
     const updated = [...rows];
@@ -251,29 +260,27 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
               <tr key={row.id} className="hover:bg-[var(--table-row-hover)] font-sans group focus-within:bg-[var(--table-row-hover)] transition-colors">
                 {/* Supplier Dropdown */}
                 <td className="p-1 px-3" data-cell={`${rIndex}-0`}>
-                  <Combobox
-                    value={suppliers.find(s => s.id === row.supplierId)?.name || row.supplierName}
+                  <CommandSelect
+                    value={suppliers.find(s => s.id === row.supplierId)?.id || row.supplierId}
                     onChange={(val) => {
-                      const matched = suppliers.find(s => s.name === val) || suppliers[0];
+                      const matched = suppliers.find(s => s.id === val || s.name === val);
                       if (matched) handleCellChange(rIndex, 'supplierId', matched.id);
                     }}
-                    options={suppliers.map(s => s.name)}
+                    options={supplierOptions}
                     placeholder="Select Supplier..."
-                    searchPlaceholder="Search supplier..."
                     creatable={false}
                   />
                 </td>
 
                 {/* Variety Dropdown */}
                 <td className="p-1" data-cell={`${rIndex}-1`}>
-                  <Combobox
+                  <CommandSelect
                     value={row.variety}
                     onChange={(val) => handleCellChange(rIndex, 'variety', val)}
-                    options={availableVarieties}
+                    options={availableVarieties.map(v => ({ id: v, label: v, emoji: '📦' }))}
                     placeholder="Select Variety..."
-                    searchPlaceholder="Search or add variety..."
                     creatable={true}
-                    onCreate={(newVar) => {
+                    onAdd={(newVar) => {
                       const fruitObj = fruits.find(f => f.name.toLowerCase() === selectedFruit.toLowerCase());
                       if (fruitObj) addFruitVariety(fruitObj.id, newVar);
                     }}

@@ -9,6 +9,10 @@ export interface CompanyDetails {
   pincode: string;
   country: string;
   phone: string;
+  phone2?: string;
+  phone3?: string;
+  email?: string;
+  website?: string;
   logoUrl: string;
 }
 

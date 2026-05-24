@@ -179,7 +179,7 @@ export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
                 onChange={(e) =>
                   onChange({ invoicePrefix: e.target.value.toUpperCase() })
                 }
-                placeholder="e.g. TFCINV"
+                placeholder="e.g. ASZINV"
                 className={`w-full pl-8 pr-3 py-2 rounded-lg border text-xs font-mono font-bold bg-white focus:outline-hidden focus:ring-2 transition-all ${errors.invoicePrefix ? "border-red-300 focus:ring-red-100 focus:border-red-500" : "border-slate-200 focus:ring-amber-100 focus:border-amber-500"}`}
               />
             </div>

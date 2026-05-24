@@ -21,6 +21,8 @@ export const ROUTES = {
   customers: "/customers",
   settings: "/settings",
 
+  carets: "/carets",
+
   // ── Auth (public) ─────────────────────────────────────────────────────────
   login: "/login",
   setup: "/setup",
@@ -48,6 +50,7 @@ export const APP_ROUTES = [
   ROUTES.reports,
   ROUTES.suppliers,
   ROUTES.customers,
+  ROUTES.carets,
   ROUTES.settings,
 ] as const;
 

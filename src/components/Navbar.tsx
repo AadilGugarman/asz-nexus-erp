@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   LogOut,
+  Box,
 } from "lucide-react";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
@@ -133,8 +134,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { t } = useAppTranslation("navbar");
   const companySettings = useSettingsStore((s) => s.settings.company);
-  const coName    = companySettings?.name    || 'Talha Fruit Co.';
-  const coTagline = companySettings?.tagline || 'ERP System';
+  const coName    = companySettings?.name    || 'ASZ Nexus ERP';
+  const coTagline = companySettings?.tagline || 'Smart Billing & Trading Management System';
   const logoUrl   = companySettings?.logo    || '';
   const initials  = getCompanyInitials(coName);
   const logout    = useAuthStore((s) => s.logout);
@@ -166,6 +167,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         { id: "parties",   label: t("items.parties"),   icon: Contact },
         { id: "suppliers", label: t("items.suppliers"), icon: Users },
         { id: "customers", label: t("items.customers"), icon: UserCheck },
+        { id: "carets",    label: "Caret Tracking",     icon: Box },
         { id: "reports",   label: t("items.reports"),   icon: FileBarChart2 },
       ],
     },

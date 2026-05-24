@@ -43,7 +43,7 @@ export const useWindowStore = create<WindowStoreState>()((set) => ({
   isFullscreen:  false,
   isAlwaysOnTop: false,
   isFocused:     true,
-  title:         'TFC ERP',
+  title:         'ASZ Nexus ERP',
 
   setMaximized:   (v) => set({ isMaximized: v }),
   setMinimized:   (v) => set({ isMinimized: v }),

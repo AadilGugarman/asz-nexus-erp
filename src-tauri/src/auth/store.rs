@@ -5,7 +5,7 @@
 //   - Credentials (password hash, refresh token jti, JWT secret) are stored
 //     in a JSON file inside the app's data directory.
 //   - The file is readable only by the OS user who owns the app data dir.
-//   - On Windows this is %APPDATA%\tfc-erp\, protected by NTFS ACLs.
+//   - On Windows this is %APPDATA%\asz-nexus-erp\, protected by NTFS ACLs.
 //   - The JWT signing secret is a random 64-byte key generated once on first
 //     run and stored alongside the credentials. It never leaves the machine.
 //

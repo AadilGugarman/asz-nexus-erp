@@ -134,9 +134,6 @@
     "list": {
       "title": "Direct Purchase Invoices Archive",
       "billsSynced": "Bills Synced",
-      "comfortable": "Comfortable",
-      "compact": "Compact",
-      "spacious": "Spacious",
       "searchPlaceholder": "Search bill #, supplier name, fruit...",
       "billDate": "Bill # / Date",
       "supplierOrchard": "Supplier / Orchard",

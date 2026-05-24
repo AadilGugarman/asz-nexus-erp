@@ -183,20 +183,52 @@ export interface PaymentReceipt {
   notes?: string;
 }
 
+// ── Caret Transactions ────────────────────────────────────────────────────────
+
+export type CaretTransactionType = 'GIVEN' | 'RETURN';
+
+export interface CaretTransaction {
+  id: string;
+  date: string;
+  customerId: string;
+  customerName: string;
+  type: CaretTransactionType;
+  fruitName: string;
+  caretQty: number;
+  note?: string;
+  billId?: string;
+  billNo?: string;
+  companyId?: string;
+  createdAt: string;
+}
+
+/** Per-customer summary computed from all transactions */
+export interface CaretCustomerSummary {
+  customerId: string;
+  customerName: string;
+  totalGiven: number;
+  totalReturned: number;
+  pendingBalance: number;
+}
+
 export type ThemeMode = "dark" | "light";
 
 export interface CompanySettings {
   name: string;
   tagline: string;
+  logo: string;
   address: string;
   phone: string;
+  phone2?: string;
+  phone3?: string;
   email: string;
-  gstin: string;
+  website: string;
+  gstin?: string;
+  pan?: string;
   bankName: string;
   accountNo: string;
   ifsc: string;
   upiId: string;
-  logo: string; // base64 data URL for company logo
 }
 
 export interface FinancialSettings {
@@ -221,12 +253,9 @@ export interface InvoiceSettings {
   // Extended fields
   templateStyle:
     | "modern"
-    | "classic"
-    | "minimal"
-    | "professional"
+    | "watermark"
     | "thermal"
-    | "pos"
-    | "receipt";
+    | "initials";
   brandColor: string;
   enableQR: boolean;
   autoInvoiceNo: boolean;
@@ -236,11 +265,12 @@ export interface InvoiceSettings {
   paymentDueDays: number;
   showCompanyDetails: boolean;
   showPaymentDetails: boolean;
-  watermarkType: "none" | "text" | "image" | "logo";
+  watermarkType: "none" | "text" | "image" | "logo" | "initials";
   watermarkText: string;
   watermarkImage: string; // base64
   watermarkOpacity: number; // 0..1
   watermarkSize: number; // percentage-like scalar, 40..220 recommended
+  watermarkRotation: number; // 0..360
   watermarkPosition:
     | "center"
     | "top-left"

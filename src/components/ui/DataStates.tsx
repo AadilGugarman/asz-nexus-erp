@@ -4,11 +4,10 @@ import { Inbox } from 'lucide-react';
 interface TableSkeletonProps {
   rows?: number;
   cols?: number;
-  compact?: boolean;
 }
 
-export const TableSkeleton: React.FC<TableSkeletonProps> = ({ rows = 6, cols = 6, compact = false }) => {
-  const rowHeight = compact ? 'h-7' : 'h-9';
+export const TableSkeleton: React.FC<TableSkeletonProps> = ({ rows = 6, cols = 6 }) => {
+  const rowHeight = 'h-9';
 
   return (
     <div className="p-4" aria-busy="true" aria-live="polite">

@@ -9,13 +9,11 @@ import { StatementPreview } from './ui/StatementPreview';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
-import { useAppearance } from '@/hooks';
 
 type ReportTab = 'DAILY' | 'DATERANGE' | 'PARTY' | 'FRUIT' | 'OUTSTANDING' | 'PNL';
 
 export const ReportsModule: React.FC = () => {
   const { vehicles, invoices, purchaseInvoices, payments, suppliers, customers, settings } = useApp();
-  const { density, setDensity } = useAppearance();
   const [showReportPreview, setShowReportPreview] = useState(false);
   const reportContentRef = useRef<HTMLDivElement>(null);
 
@@ -24,7 +22,6 @@ export const ReportsModule: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('2026-05-01');
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(false);
-  const isCompact = density === 'compact';
 
   const reportTabs: { id: ReportTab; label: string; icon: React.ReactNode }[] = [
     { id: 'DAILY', label: 'Daily Summary', icon: <Calendar className="w-4 h-4" /> },
@@ -283,7 +280,7 @@ export const ReportsModule: React.FC = () => {
   );
 
   return (
-    <div className={`space-y-6 font-sans ${isCompact ? 'table-compact' : ''}`}>
+    <div className="space-y-6 font-sans">
 
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
@@ -295,9 +292,6 @@ export const ReportsModule: React.FC = () => {
           <p className="erp-subtitle mt-1">Daily summaries, date-range analysis, party ledgers, fruit performance, outstanding and P&L</p>
         </div>
         <div className="flex items-center gap-2 no-print">
-          <button onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')} className="erp-btn-secondary px-3 py-2 text-xs cursor-pointer">
-            {density === 'compact' ? 'Compact' : density === 'comfortable' ? 'Comfortable' : 'Spacious'}
-          </button>
           <button onClick={() => setShowReportPreview(true)} className="erp-btn-secondary flex items-center space-x-1.5 px-4 py-2 text-xs cursor-pointer">
             <Printer className="w-4 h-4" /><span>Print Report</span>
           </button>
@@ -352,7 +346,7 @@ export const ReportsModule: React.FC = () => {
 
           {/* Transactions table for the day */}
           {isLoading ? (
-            <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={4} compact={isCompact} /></div>
+            <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={4} /></div>
           ) : (daily.veh.length > 0 || daily.sinv.length > 0 || daily.pinv.length > 0 || daily.pay.length > 0) ? (
             <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
               <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">All Transactions — {selectedDate}</div>
@@ -412,7 +406,7 @@ export const ReportsModule: React.FC = () => {
 
           {/* Day-wise breakdown table */}
           {isLoading ? (
-            <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={6} compact={isCompact} /></div>
+            <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={6} /></div>
           ) : rangeData.days.length > 0 ? (
             <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
               <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">Day-wise Breakdown</div>
@@ -650,7 +644,7 @@ export const ReportsModule: React.FC = () => {
         <div className="space-y-5 animate-slide-up">
           <div className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-lg">
             <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-sm font-bold dark:text-white text-slate-900 uppercase tracking-wider">
-             <Banknote className="w-5 h-5 text-amber-500" /><span>Trading Profit & Loss Statement — {settings.company?.name || 'TFC ERP'}</span>
+             <Banknote className="w-5 h-5 text-amber-500" /><span>Trading Profit & Loss Statement — {settings.company?.name || 'ASZ Nexus ERP'}</span>
             </div>
             <div className="p-6">
               <table className="erp-table w-full text-sm">

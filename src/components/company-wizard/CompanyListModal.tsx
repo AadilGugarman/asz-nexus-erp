@@ -106,7 +106,7 @@ export const CompanyListModal: React.FC<CompanyListModalProps> = ({
 
         {/* Footer */}
         <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 shrink-0">
-          <span>Powered by TFC Billing Software</span>
+          <span>Powered by ASZ Nexus ERP</span>
           <button
             onClick={onClose}
             className="text-blue-600 hover:text-blue-700 font-bold cursor-pointer"

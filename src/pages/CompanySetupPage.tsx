@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCompanyStore, useSettingsStore, useAuthStore } from "@/store";
 import { ROUTES } from "@/config";
+import { STORAGE_KEYS } from "@/config";
 import { ipc } from "@/ipc";
 import { useToast } from "@/hooks/useToast";
 
@@ -52,24 +53,34 @@ export const CompanySetupPage: React.FC = () => {
       // 1. Call the backend seeding engine
       await ipc.db.reseedDemoData("medium");
 
-      // 2. FAILSAFE: Update local stores and storage BEFORE reloading
-      // This ensures that even if DB read is slow, the app knows setup is done.
-      localStorage.setItem("tfc_erp_setup_done", "true");
-      localStorage.setItem("tfc_erp_active_company", "co-demo-main");
-      localStorage.setItem("tfc_erp_active_fy", "2026-27");
+      // 2. FAILSAFE: Update local stores and storage BEFORE reloading.
+      // Use the actual company name from the settings store if available,
+      // otherwise fall back to a generic name — never hardcode "ASZ Nexus ERP".
+      const existingSettings = useSettingsStore.getState().settings;
+      const existingCompanies = useSettingsStore.getState().companies;
+      const companyName = existingSettings.company?.name?.trim() || "Demo Company";
+      const companyId = useSettingsStore.getState().activeCompanyId || "co-demo-main";
 
-      // Update Settings Store
+      localStorage.setItem(STORAGE_KEYS.setupDone, "true");
+      localStorage.setItem(STORAGE_KEYS.activeCompany, companyId);
+      localStorage.setItem(STORAGE_KEYS.activeFY, "2026-27");
+
       const settings = {
+        ...existingSettings,
         setupCompleted: true,
-        company: { name: "Talha Fruit Co." },
+        company: { ...existingSettings.company, name: companyName },
       };
-      localStorage.setItem("tfc_erp_settings", JSON.stringify(settings));
+      localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
 
-      // Update Company Store
-      localStorage.setItem(
-        "tfc_erp_companies",
-        JSON.stringify([{ id: "co-demo-main", company: settings.company }]),
-      );
+      // Preserve existing companies list — don't overwrite with a fake one
+      if (existingCompanies.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.companies, JSON.stringify(existingCompanies));
+      } else {
+        localStorage.setItem(
+          STORAGE_KEYS.companies,
+          JSON.stringify([{ id: companyId, company: { name: companyName } }]),
+        );
+      }
 
       toast.success("Demo data seeded successfully!");
 

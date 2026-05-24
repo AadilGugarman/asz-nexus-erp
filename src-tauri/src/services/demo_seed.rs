@@ -368,9 +368,29 @@ pub fn reset_demo_data(conn: &mut Connection) -> AppResult<SeedResetResponse> {
     tx.execute("DELETE FROM invoices", []).map_err(db_err)?;
     tx.execute("DELETE FROM purchase_invoices", []).map_err(db_err)?;
     tx.execute("DELETE FROM vehicle_arrivals", []).map_err(db_err)?;
+    tx.execute("DELETE FROM caret_transactions", []).map_err(db_err)?;
     tx.execute("DELETE FROM customers", []).map_err(db_err)?;
     tx.execute("DELETE FROM suppliers", []).map_err(db_err)?;
     tx.execute("DELETE FROM fruits", []).map_err(db_err)?;
+    tx.commit().map_err(db_err)?;
+
+    Ok(SeedResetResponse {
+        deleted_counts,
+        reset_at: timestamp_now(),
+    })
+}
+
+/// Company-scoped reset — deletes only rows belonging to the given company_id.
+/// This is the production-safe reset used by the "Reset Database" button.
+/// Unlike reset_demo_data, it never touches other companies' data.
+pub fn reset_company_data(conn: &mut Connection, company_id: &str) -> AppResult<SeedResetResponse> {
+    let tx = conn
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .map_err(db_err)?;
+    let deleted_counts = count_existing(&tx)?;
+    clear_erp_tables(&tx, company_id)?;
+    // Also clear caret_transactions for this company
+    tx.execute("DELETE FROM caret_transactions WHERE company_id = ?1", [company_id]).map_err(db_err)?;
     tx.commit().map_err(db_err)?;
 
     Ok(SeedResetResponse {

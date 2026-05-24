@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentReceipt } from '../types';
 import { fmtDate } from '@/utils/format';
-import { Combobox } from './ui/Combobox';
+import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import {
@@ -13,7 +13,7 @@ import {
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
-import { useAppearance } from '@/hooks';
+import { SegmentedControl } from './ui/SegmentedControl';
 
 const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   CASH: { label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" />, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
@@ -22,9 +22,11 @@ const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode
   UPI: { label: 'UPI / GPay', icon: <Smartphone className="w-3.5 h-3.5" />, color: 'text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/30' },
 };
 
+const getPaymentModeMeta = (mode: string) =>
+  PAYMENT_MODE_LABELS[mode] ?? { label: mode || 'Unknown', icon: <Wallet className="w-3.5 h-3.5" />, color: 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/30' };
+
 export const PaymentsModule: React.FC = () => {
   const { payments, suppliers, customers, addPayment, deletePayment, settings } = useApp();
-  const { density, setDensity } = useAppearance();
   const cs = settings.company;
   const toast = useToast();
   const dialog = useConfirmDialog();
@@ -53,24 +55,22 @@ export const PaymentsModule: React.FC = () => {
   const notesRef = useRef<HTMLInputElement>(null);
 
   // ── Party options based on direction ─
-  const partyOptions = useMemo(() => {
-    if (direction === 'PAID_TO_SUPPLIER') return suppliers.map(s => s.name);
-    return customers.map(c => c.name);
+  const partyOptions: CommandOption[] = useMemo(() => {
+    if (direction === 'PAID_TO_SUPPLIER') {
+      return suppliers.map(s => ({
+        id: s.id,
+        label: s.name,
+        subtitle: s.phone ? `${s.phone} • ${s.city}` : s.city,
+        emoji: '🏢'
+      }));
+    }
+    return customers.map(c => ({
+      id: c.id,
+      label: c.name,
+      subtitle: c.phone ? `${c.phone} • ${c.city}` : c.city,
+      emoji: '👤'
+    }));
   }, [direction, suppliers, customers]);
-
-  // ── Stats ───────────────────────────
-  const totalPaidToSuppliers = useMemo(() =>
-    payments.filter(p => p.partyType === 'SUPPLIER').reduce((s, p) => s + p.amount, 0), [payments]);
-  const totalReceivedFromCustomers = useMemo(() =>
-    payments.filter(p => p.partyType === 'CUSTOMER').reduce((s, p) => s + p.amount, 0), [payments]);
-  const totalCash = useMemo(() =>
-    payments.filter(p => p.paymentMode === 'CASH').reduce((s, p) => s + p.amount, 0), [payments]);
-  const totalBank = useMemo(() =>
-    payments.filter(p => p.paymentMode === 'BANK_TRANSFER').reduce((s, p) => s + p.amount, 0), [payments]);
-  const totalUPI = useMemo(() =>
-    payments.filter(p => p.paymentMode === 'UPI').reduce((s, p) => s + p.amount, 0), [payments]);
-  const totalCheque = useMemo(() =>
-    payments.filter(p => p.paymentMode === 'CHEQUE').reduce((s, p) => s + p.amount, 0), [payments]);
 
   // ── Filtered Payments ───────────────
   const filteredPayments = useMemo(() => {
@@ -126,8 +126,6 @@ export const PaymentsModule: React.FC = () => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeTab, direction, selectedPartyName, amount, paymentMode, referenceNo, notes, payDate]);
-
-  const isCompact = density === 'compact';
 
   // ── Form Submit ─────────────────────
   const handleSavePayment = () => {
@@ -224,43 +222,6 @@ export const PaymentsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* ── KPI CARDS ──────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        {/* Paid to Suppliers */}
-        <div className="erp-panel p-4 rounded-xl col-span-1">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#94a3b8]">Paid to Suppliers</span>
-            <div className="p-1.5 bg-rose-500/10 text-rose-500 rounded-lg"><ArrowUpRight className="w-4 h-4" /></div>
-          </div>
-          <div className="text-lg font-semibold font-mono text-[var(--text-primary)]">₹ {totalPaidToSuppliers.toLocaleString('en-IN')}</div>
-        </div>
-        {/* Received from Customers */}
-        <div className="erp-panel p-4 rounded-xl col-span-1">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Received from Buyers</span>
-            <div className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg"><ArrowDownRight className="w-4 h-4" /></div>
-          </div>
-          <div className="text-lg font-semibold font-mono text-[var(--text-primary)]">₹ {totalReceivedFromCustomers.toLocaleString('en-IN')}</div>
-        </div>
-        {/* By Mode Breakdown */}
-        <div className="erp-panel p-4 rounded-xl">
-          <div className="flex items-center space-x-1.5 mb-2"><Banknote className="w-3.5 h-3.5 text-emerald-500" /><span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Cash</span></div>
-          <div className="text-base font-bold font-mono dark:text-white text-slate-900">₹ {totalCash.toLocaleString('en-IN')}</div>
-        </div>
-        <div className="erp-panel p-4 rounded-xl">
-          <div className="flex items-center space-x-1.5 mb-2"><Building2 className="w-3.5 h-3.5 text-blue-500" /><span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Bank</span></div>
-          <div className="text-base font-bold font-mono dark:text-white text-slate-900">₹ {totalBank.toLocaleString('en-IN')}</div>
-        </div>
-        <div className="erp-panel p-4 rounded-xl">
-          <div className="flex items-center space-x-1.5 mb-2"><Smartphone className="w-3.5 h-3.5 text-orange-500" /><span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">UPI</span></div>
-          <div className="text-base font-bold font-mono dark:text-white text-slate-900">₹ {totalUPI.toLocaleString('en-IN')}</div>
-        </div>
-        <div className="erp-panel p-4 rounded-xl">
-          <div className="flex items-center space-x-1.5 mb-2"><CreditCard className="w-3.5 h-3.5 text-violet-500" /><span className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">Cheque</span></div>
-          <div className="text-base font-bold font-mono dark:text-white text-slate-900">₹ {totalCheque.toLocaleString('en-IN')}</div>
-        </div>
-      </div>
-
       {/* ══════════════════════════════════════════════
           TAB 1: NEW PAYMENT FORM
          ══════════════════════════════════════════════ */}
@@ -328,22 +289,19 @@ export const PaymentsModule: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {/* Party */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
-                  {direction === 'PAID_TO_SUPPLIER' ? 'Supplier / Party *' : 'Customer / Buyer *'}
-                </label>
-                <Combobox
+                <CommandSelect
+                  id={`payment-party-${direction}`}
+                  label={direction === 'PAID_TO_SUPPLIER' ? 'Supplier / Party *' : 'Customer / Buyer *'}
                   value={selectedPartyName}
                   onChange={(val) => {
-                    setSelectedPartyName(val);
+                    const opt = partyOptions.find(o => o.id === val || o.label === val);
+                    setSelectedPartyName(opt?.label || val);
                     // Move to next field on selection
                     setTimeout(() => amountRef.current?.focus(), 0);
                   }}
                   options={partyOptions}
                   placeholder={direction === 'PAID_TO_SUPPLIER' ? 'Select supplier...' : 'Select customer...'}
-                  searchPlaceholder="Search..."
                   creatable={false}
-                  showEmoji={false}
-                  className="py-2.5"
                 />
               </div>
 
@@ -470,7 +428,7 @@ export const PaymentsModule: React.FC = () => {
           TAB 2: PAYMENT REGISTER LIST
          ══════════════════════════════════════════════ */}
       {activeTab === 'LIST' && (
-        <div className={`erp-table-wrap rounded-2xl animate-slide-up ${isCompact ? 'table-compact' : ''}`}>
+        <div className="erp-table-wrap rounded-2xl animate-slide-up">
           <div className="px-6 py-4 bg-[var(--surface-bg)] border-b border-[var(--card-border)] flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
               <h2 className="text-sm font-semibold text-[var(--text-primary)]">Payment Register</h2>
@@ -478,13 +436,6 @@ export const PaymentsModule: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-              <button
-                type="button"
-                onClick={() => setDensity(density === 'compact' ? 'comfortable' : density === 'comfortable' ? 'spacious' : 'compact')}
-                className="erp-btn-secondary px-3 py-2 text-xs"
-              >
-                {density === 'compact' ? 'Compact' : density === 'comfortable' ? 'Comfortable' : 'Spacious'}
-              </button>
               {/* Search */}
               <div className="relative flex-1 md:w-64">
                 <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-2.5" />
@@ -566,7 +517,7 @@ export const PaymentsModule: React.FC = () => {
                 {isListLoading ? (
                   <tr>
                     <td colSpan={8} className="p-0">
-                      <TableSkeleton rows={7} cols={8} compact={isCompact} />
+                      <TableSkeleton rows={7} cols={8} />
                     </td>
                   </tr>
                 ) : paymentsTable.totalRecords === 0 ? (
@@ -581,7 +532,7 @@ export const PaymentsModule: React.FC = () => {
                 ) : (
                   paymentsTable.pageRows.map(p => {
                     const isSupplier = p.partyType === 'SUPPLIER';
-                    const modeMeta = PAYMENT_MODE_LABELS[p.paymentMode];
+                    const modeMeta = getPaymentModeMeta(p.paymentMode);
 
                     return (
                       <tr key={p.id} className="transition-colors group font-sans">
@@ -733,7 +684,7 @@ export const PaymentsModule: React.FC = () => {
                   </div>
                   <div className="p-3 bg-white">
                     <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Payment Mode</div>
-                    <div className="font-bold text-slate-900 mt-0.5">{PAYMENT_MODE_LABELS[previewPayment.paymentMode].label}</div>
+                    <div className="font-bold text-slate-900 mt-0.5">{getPaymentModeMeta(previewPayment.paymentMode).label}</div>
                   </div>
                   <div className="p-3 bg-white border-r border-slate-300 border-t">
                     <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Reference / UTR No.</div>
@@ -769,7 +720,7 @@ export const PaymentsModule: React.FC = () => {
                 </div>
 
                 <div className="mt-6 pt-2 border-t border-slate-200 text-center text-[9px] text-slate-400 font-mono">
-                  Computer generated payment record &nbsp;•&nbsp; TFC ERP System
+                  Computer generated payment record &nbsp;•&nbsp; ASZ Nexus ERP System
                 </div>
               </div>
             </div>

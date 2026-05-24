@@ -26,6 +26,7 @@ export interface DbFruitInsert {
   id?: string;
   name: string;
   varieties?: string;
+  companyId?: string | null; // maps to company_id column
 }
 
 export interface FruitFilter extends PaginationParams {

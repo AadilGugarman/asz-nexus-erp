@@ -11,3 +11,4 @@ export * from './inventory';
 export * from './billing';
 export * from './payments';
 export * from './settings';
+export * from './carets';

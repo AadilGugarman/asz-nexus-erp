@@ -17,7 +17,7 @@ import { StrictMode } from "react";
 import App from "./App";
 import { startup } from "./services/startup";
 import { perf } from "./lib/perf";
-import { runStorageMigration } from "./lib/storage.migration";
+import { runStorageMigration, purgeBusinessDataFromLocalStorage } from "./lib/storage.migration";
 import { initAppearanceSystem } from "./store/appearance.store";
 import { useStartupStore } from "./store/startup.store";
 import {
@@ -31,6 +31,13 @@ perf.mark("script-start");
 // Migrate storage from apex_* to tfc_erp_* namespace before any other initialization
 const migrationStats = runStorageMigration();
 console.info("[Init] Storage migration:", migrationStats);
+
+// In Tauri/production: purge any business data that was previously written to
+// localStorage. Business data lives exclusively in SQLite — localStorage is
+// only used for UI preferences and the startup config cache.
+if (typeof window !== "undefined" && "__TAURI__" in window) {
+  purgeBusinessDataFromLocalStorage();
+}
 
 // Apply persisted/system appearance settings before first render.
 initAppearanceSystem();

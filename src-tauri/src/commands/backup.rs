@@ -73,11 +73,11 @@ fn backups_dir(app: &tauri::AppHandle) -> AppResult<PathBuf> {
     Ok(dir)
 }
 
-/// Returns the main database path: {app_data_dir}/tfc_erp.db
+/// Returns the main database path: {app_data_dir}/asz_nexus_erp.db
 fn main_db_path(app: &tauri::AppHandle) -> AppResult<PathBuf> {
     app.path()
         .app_data_dir()
-        .map(|d| d.join("tfc_erp.db"))
+        .map(|d| d.join("asz_nexus_erp.db"))
         .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))
 }
 

@@ -99,7 +99,7 @@ export const SetupPage: React.FC = () => {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <h2 className="text-lg font-semibold text-slate-100 mb-1">
-          Welcome to TFC ERP
+          Welcome to ASZ Nexus ERP
         </h2>
         <p className="text-slate-500 text-sm">
           Create a password to secure your data. You'll use this every time you

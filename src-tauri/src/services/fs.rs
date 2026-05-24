@@ -5,7 +5,7 @@
 // of safe base directories. No command can escape these roots.
 //
 // Allowed roots (resolved at runtime via tauri::AppHandle):
-//   - App data dir   ($APPDATA/in.talhafruit.erp/)
+//   - App data dir   ($APPDATA/in.asznexus.erp/)
 //   - Desktop        ($DESKTOP/)
 //   - Documents      ($DOCUMENT/)
 //   - Downloads      ($DOWNLOAD/)

@@ -106,9 +106,6 @@ export const useStartupStore = create<StartupState>()((set, get) => ({
       console.warn("[Startup] Auth initialization failed:", e);
     }
 
-    // Ensure we wait for a moment for stores to settle
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     // 4. Lock Store (depends on auth)
     set({ message: "Applying security policies..." });
     try {

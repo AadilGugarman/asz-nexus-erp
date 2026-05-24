@@ -13,3 +13,4 @@ export * from "./vehicle-arrival.repository";
 export * from "./invoice.repository";
 export * from "./payment.repository";
 export * from "./settings.repository";
+export * from "./caret.repository";

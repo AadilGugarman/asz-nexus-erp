@@ -36,6 +36,7 @@ export const CMD = {
     getSeedPlan: "db_get_seed_plan",
     reseedDemoData: "db_reseed_demo_data",
     resetDemoData: "db_reset_demo_data",
+    resetCompanyData: "db_reset_company_data",
   },
 
   employee: {

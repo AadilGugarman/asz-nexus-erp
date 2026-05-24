@@ -9,7 +9,7 @@
 export { STORAGE_KEYS, LEGACY_KEYS } from "@/lib/storage.constants";
 
 export const APP_CONFIG = {
-  name: "TFC ERP",
+  name: "ASZ Nexus ERP",
   version: "1.0.0",
 
   /** Base URL for external REST API calls (if any).

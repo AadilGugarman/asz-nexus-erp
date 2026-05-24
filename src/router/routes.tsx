@@ -203,6 +203,7 @@ export const AppRoutes: React.FC = () => {
             <Route path={ROUTES.reports} element={<LazyAppShell />} />
             <Route path={ROUTES.suppliers} element={<LazyAppShell />} />
             <Route path={ROUTES.customers} element={<LazyAppShell />} />
+            <Route path={ROUTES.carets} element={<LazyAppShell />} />
             <Route path={ROUTES.settings} element={<LazyAppShell />} />
           </Route>
         </Route>

@@ -1,12 +1,11 @@
 import { Invoice, InvoiceSettings } from '../types';
 
-export type ResolvedInvoiceTemplate = 'modern' | 'classic' | 'minimal' | 'professional' | 'thermal';
+export type ResolvedInvoiceTemplate = 'modern' | 'watermark' | 'thermal' | 'initials';
 
 export const normalizeInvoiceTemplate = (
   style: InvoiceSettings['templateStyle'] | undefined,
 ): ResolvedInvoiceTemplate => {
-  if (style === 'pos' || style === 'receipt') return 'thermal';
-  if (style === 'classic' || style === 'minimal' || style === 'professional' || style === 'thermal') return style;
+  if (style === 'thermal' || style === 'initials' || style === 'watermark') return style;
   return 'modern';
 };
 

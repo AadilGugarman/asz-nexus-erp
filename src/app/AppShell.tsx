@@ -83,6 +83,11 @@ const SettingsModule = lazy(() =>
     default: m.SettingsModule,
   })),
 );
+const CaretModule = lazy(() =>
+  import("@/components/CaretModule").then((m) => ({
+    default: m.CaretModule,
+  })),
+);
 const ShortcutsModal = lazy(() =>
   import("@/components/ShortcutsModal").then((m) => ({
     default: m.ShortcutsModal,
@@ -119,6 +124,7 @@ const PATH_TO_TAB: Record<string, string> = {
   [ROUTES.reports]: "reports",
   [ROUTES.suppliers]: "suppliers",
   [ROUTES.customers]: "customers",
+  [ROUTES.carets]: "carets",
   [ROUTES.settings]: "settings",
 };
 
@@ -152,6 +158,7 @@ const TabContent = memo<TabContentProps>(({ activeTab, setActiveTab }) => (
     {activeTab === "reports" && <ReportsModule />}
     {activeTab === "suppliers" && <SupplierModule />}
     {activeTab === "customers" && <CustomerModule />}
+    {activeTab === "carets" && <CaretModule />}
     {activeTab === "settings" && <SettingsModule />}
   </Suspense>
 ));

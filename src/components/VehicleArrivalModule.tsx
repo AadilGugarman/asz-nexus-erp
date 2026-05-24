@@ -5,7 +5,7 @@ import { fmtDate } from '@/utils/format';
 import { VehicleSpreadsheet } from './VehicleSpreadsheet';
 import { VehiclePreviewModal } from './VehiclePreviewModal';
 import { Truck, Save, Plus, FileSpreadsheet, Search, Filter, Eye, Edit3, Trash2, AlertTriangle, Calendar, Calculator } from 'lucide-react';
-import { Combobox } from './ui/Combobox';
+import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 
@@ -125,6 +125,15 @@ export const VehicleArrivalModule: React.FC = () => {
   const totalCalculatedWeight = rows.reduce((sum, r) => sum + (parseFloat(String(r.weight)) || 0), 0);
   const totalCarets = rows.reduce((sum, r) => sum + (parseFloat(String(r.caret)) || 0), 0);
   const totalAmount = rows.reduce((sum, r) => sum + (parseFloat(String(r.amount)) || 0), 0);
+
+  const fruitOptions: CommandOption[] = useMemo(() => {
+    return fruits.map(f => ({
+      id: f.id,
+      label: f.name,
+      subtitle: `${f.varieties.length} varieties`,
+      emoji: '🍃'
+    }));
+  }, [fruits]);
 
   // Net payable calculation (Total - Advance + Hamali + Freight if payable by supplier/agent)
   const netPayable = totalAmount + (Number(freightCharge) || 0) + (Number(hamaliCharge) || 0) - (Number(advancePaid) || 0);
@@ -269,16 +278,18 @@ export const VehicleArrivalModule: React.FC = () => {
 
               {/* Fruit Type */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Fruit Category</label>
-                <Combobox
+                <CommandSelect
+                  id="arrival-fruit"
+                  label="Fruit Category"
                   value={fruitType}
-                  onChange={(val) => setFruitType(val)}
-                  options={fruits.map(f => f.name)}
+                  onChange={(val) => {
+                    const opt = fruitOptions.find(o => o.id === val || o.label === val);
+                    setFruitType(opt?.label || val);
+                  }}
+                  options={fruitOptions}
                   placeholder="Select Fruit..."
-                  searchPlaceholder="Search or add fruit..."
                   creatable={true}
-                  onCreate={(newFruit) => addFruit(newFruit)}
-                  className="py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                  onAdd={(newFruit) => addFruit(newFruit)}
                 />
               </div>
 
@@ -463,16 +474,17 @@ export const VehicleArrivalModule: React.FC = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <Filter className="w-4 h-4 text-[var(--text-muted)] hidden sm:block" />
-                <select
+                <CommandSelect
                   value={filterFruit}
-                  onChange={(e) => setFilterFruit(e.target.value)}
-                  className="erp-input rounded-xl px-4 py-2.5 text-xs font-medium cursor-pointer"
-                >
-                  <option value="ALL">All Fruit Types</option>
-                  {fruits.map(f => (
-                    <option key={f.id} value={f.name}>{f.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFilterFruit(val)}
+                  options={[
+                    { id: 'ALL', label: 'All Fruit Types', emoji: '📦' },
+                    ...fruitOptions
+                  ]}
+                  placeholder="Filter Fruit..."
+                  creatable={false}
+                  className="sm:w-56"
+                />
               </div>
             </div>
           </div>

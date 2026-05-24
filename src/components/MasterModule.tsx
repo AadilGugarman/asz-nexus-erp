@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Settings, Plus, Users, UserCheck, Apple, Tag } from 'lucide-react';
-import { Combobox } from './ui/Combobox';
+import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useToast } from './ui/Toast';
 
 // Shared input class — light: white bg, dark: slate-800 bg, always readable
@@ -27,6 +27,15 @@ export const MasterModule: React.FC = () => {
   // Add Variety State
   const [selectedFruitId, setSelectedFruitId] = useState(fruits[0]?.id || '');
   const [varietyName, setVarietyName] = useState('');
+
+  const fruitOptions: CommandOption[] = React.useMemo(() => {
+    return fruits.map(f => ({
+      id: f.id,
+      label: f.name,
+      subtitle: `${f.varieties.length} varieties`,
+      emoji: '🍃'
+    }));
+  }, [fruits]);
 
   const handleAddSupplierSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,18 +170,17 @@ export const MasterModule: React.FC = () => {
 
           <form onSubmit={handleAddVarietySubmit} className="space-y-3 text-xs sm:text-sm font-sans">
             <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 font-sans">Select Fruit Category</label>
-              <Combobox
-                value={fruits.find(f => f.id === selectedFruitId)?.name || ''}
+              <CommandSelect
+                id="master-fruit"
+                label="Select Fruit Category"
+                value={selectedFruitId}
                 onChange={(val) => {
-                  const matched = fruits.find(f => f.name === val) || fruits[0];
+                  const matched = fruits.find(f => f.id === val || f.name === val) || fruits[0];
                   if (matched) setSelectedFruitId(matched.id);
                 }}
-                options={fruits.map(f => f.name)}
+                options={fruitOptions}
                 placeholder="Select Fruit..."
-                searchPlaceholder="Search fruit..."
                 creatable={false}
-                className="py-2.5 text-xs font-bold text-teal-600 dark:text-teal-400"
               />
             </div>
 

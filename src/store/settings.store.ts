@@ -71,6 +71,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     watermarkImage: "",
     watermarkOpacity: 0.08,
     watermarkSize: 110,
+    watermarkRotation: 0,
     watermarkPosition: "center",
     watermarkRepeat: false,
     signatureImage: "",
@@ -164,6 +165,27 @@ export function normalizeCompanyProfile(raw: Partial<CompanyProfile>): CompanyPr
 function normalizeCompanies(raw: unknown): CompanyProfile[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((c) => normalizeCompanyProfile(c as Partial<CompanyProfile>));
+}
+
+// ── Startup cache helpers ─────────────────────────────────────────────────────
+// These write ONLY the four config keys (settings, companies, activeCompany,
+// activeFY) to localStorage. Business data (invoices, customers, etc.) is
+// NEVER written here — it lives exclusively in SQLite.
+
+function _writeStartupCache(
+  s: AppSettings,
+  companies: CompanyProfile[],
+  activeId: string | null,
+  activeFY: string,
+): void {
+  try {
+    localStorage.setItem(DB_KEY_SETTINGS, JSON.stringify(s));
+    localStorage.setItem(DB_KEY_COMPANIES, JSON.stringify(companies));
+    if (activeId) localStorage.setItem(DB_KEY_ACTIVE_COMPANY, activeId);
+    if (activeFY) localStorage.setItem(DB_KEY_ACTIVE_FY, activeFY);
+  } catch (e) {
+    console.warn("[SettingsStore] Startup cache write failed:", e);
+  }
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -523,17 +545,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   // ── _persistToDb ─────────────────────────────────────────────────────────────
   _persistToDb: async (s, companies, activeId, activeFY) => {
-    // 1. Dual-persistence: Always update localStorage as a fallback/cache
-    try {
-      localStorage.setItem(DB_KEY_SETTINGS, JSON.stringify(s));
-      localStorage.setItem(DB_KEY_COMPANIES, JSON.stringify(companies));
-      if (activeId) localStorage.setItem(DB_KEY_ACTIVE_COMPANY, activeId);
-      if (activeFY) localStorage.setItem(DB_KEY_ACTIVE_FY, activeFY);
-    } catch (e) {
-      console.warn("[SettingsStore] LocalStorage persistence failed:", e);
-    }
-
-    // 2. Authoritative SQLite persistence (only in Tauri)
+    // In Tauri: SQLite is the authoritative store. localStorage is written
+    // only as a lightweight startup cache (avoids blank flash before DB loads).
+    // It is read ONCE on startup in loadFromDb() and never relied on after that.
     if (APP_CONFIG.isTauri) {
       const { dbService } = await import("@/db/services");
       if (!dbService.isReady) await dbService.init();
@@ -549,7 +563,17 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
           console.info("[SettingsStore] SQLite persistence complete");
       } catch (error) {
         console.error("[SettingsStore] SQLite persistence failed:", error);
+        // On SQLite failure, fall back to localStorage so the user doesn't
+        // lose their company/settings on next cold start.
+        _writeStartupCache(s, companies, activeId, activeFY);
       }
+
+      // Keep the startup cache in sync so a cold start after a crash still works.
+      _writeStartupCache(s, companies, activeId, activeFY);
+      return;
     }
+
+    // Browser dev mode: localStorage is the only store available.
+    _writeStartupCache(s, companies, activeId, activeFY);
   },
 }));

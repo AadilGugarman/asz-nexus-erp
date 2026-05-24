@@ -20,6 +20,7 @@ import {
   ThemeMode,
   AppSettings,
   CompanyProfile,
+  CaretTransaction,
 } from "../types";
 import { STORAGE_KEYS } from "@/config";
 import { useAppearanceStore } from "@/store/appearance.store";
@@ -32,6 +33,7 @@ import {
   usePurchaseInvoices,
   usePayments,
   useVehicleArrivals,
+  useCaretTransactions,
 } from "@/hooks/useDbHydration";
 import { dbService } from "@/db/services";
 
@@ -79,6 +81,11 @@ interface AppContextType {
   updateCompany: (profile: CompanyProfile) => void;
   deleteCompany: (id: string) => void;
   switchCompany: (id: string) => void;
+  // ── Caret Transactions ──────────────────────────────────────────────────────
+  caretTransactions: CaretTransaction[];
+  addCaretTransaction: (tx: Omit<CaretTransaction, 'id' | 'createdAt'>) => void;
+  updateCaretTransaction: (tx: CaretTransaction) => void;
+  deleteCaretTransaction: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -89,13 +96,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const theme = useAppearanceStore((s) => s.resolvedTheme) as ThemeMode;
   const toggleTheme = useAppearanceStore((s) => s.toggleTheme);
 
-  const { data: dbFruits, refetch: refetchFruits } = useFruits();
-  const { data: dbSuppliers, refetch: refetchSuppliers } = useSuppliers();
-  const { data: dbCustomers, refetch: refetchCustomers } = useCustomers();
-  const { data: dbVehicles, refetch: refetchVehicles } = useVehicleArrivals();
-  const { data: dbInvoices, refetch: refetchInvoices } = useInvoices();
-  const { data: dbPurchaseInvoices, refetch: refetchPurchaseInvoices } = usePurchaseInvoices();
-  const { data: dbPayments, refetch: refetchPayments } = usePayments();
+  const { data: dbFruits } = useFruits();
+  const { data: dbSuppliers } = useSuppliers();
+  const { data: dbCustomers } = useCustomers();
+  const { data: dbVehicles } = useVehicleArrivals();
+  const { data: dbInvoices } = useInvoices();
+  const { data: dbPurchaseInvoices } = usePurchaseInvoices();
+  const { data: dbPayments } = usePayments();
+  const { data: dbCaretTransactions } = useCaretTransactions();
 
   // Local mirrors for optimistic UI updates — seeded from DB, updated on writes
   const [fruits, setFruits] = useState<Fruit[]>([]);
@@ -105,6 +113,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
   const [payments, setPayments] = useState<PaymentReceipt[]>([]);
+  const [caretTxList, setCaretTxList] = useState<CaretTransaction[]>([]);
 
   // Sync local state when DB data loads or refreshes
   useEffect(() => { setFruits(dbFruits); }, [dbFruits]);
@@ -114,13 +123,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => { setInvoices(dbInvoices); }, [dbInvoices]);
   useEffect(() => { setPurchaseInvoices(dbPurchaseInvoices); }, [dbPurchaseInvoices]);
   useEffect(() => { setPayments(dbPayments); }, [dbPayments]);
+  useEffect(() => { setCaretTxList(dbCaretTransactions); }, [dbCaretTransactions]);
 
-  const safeDbWrite = async (label: string, action: () => Promise<unknown>) => {
+  const safeDbWrite = async (
+    label: string,
+    action: () => Promise<unknown>,
+    onRollback?: () => void,
+  ) => {
     if (!dbService.isReady) return;
     try {
       await action();
     } catch (err) {
       console.error(`[AppContext] DB write failed (${label}):`, err);
+      // Roll back optimistic UI state if a rollback function was provided
+      if (onRollback) {
+        console.warn(`[AppContext] Rolling back optimistic state for (${label})`);
+        onRollback();
+      }
     }
   };
 
@@ -464,10 +483,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const deleteVehicleArrival = (id: string) => {
+    const previous = vehicles.find((v) => v.id === id);
     setVehicles((prev) => prev.filter((v) => v.id !== id));
-    void safeDbWrite("vehicleArrival.delete", async () => {
-      await dbService.vehicleArrivals.delete(id);
-    });
+    void safeDbWrite(
+      "vehicleArrival.delete",
+      async () => { await dbService.vehicleArrivals.delete(id); },
+      () => { if (previous) setVehicles((prev) => [previous, ...prev]); },
+    );
   };
 
   const saveInvoice = (newInvoice: Invoice) => {
@@ -509,10 +531,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const deleteInvoice = (id: string) => {
+    const previous = invoices.find((i) => i.id === id);
     setInvoices((prev) => prev.filter((i) => i.id !== id));
-    void safeDbWrite("invoice.delete", async () => {
-      await dbService.invoices.delete(id);
-    });
+    void safeDbWrite(
+      "invoice.delete",
+      async () => { await dbService.invoices.delete(id); },
+      () => { if (previous) setInvoices((prev) => [previous, ...prev]); },
+    );
   };
 
   const savePurchaseInvoice = (newInvoice: PurchaseInvoice) => {
@@ -554,35 +579,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const deletePurchaseInvoice = (id: string) => {
+    const previous = purchaseInvoices.find((i) => i.id === id);
     setPurchaseInvoices((prev) => prev.filter((i) => i.id !== id));
-    void safeDbWrite("purchaseInvoice.delete", async () => {
-      await dbService.purchaseInvoices.delete(id);
-    });
+    void safeDbWrite(
+      "purchaseInvoice.delete",
+      async () => { await dbService.purchaseInvoices.delete(id); },
+      () => { if (previous) setPurchaseInvoices((prev) => [previous, ...prev]); },
+    );
   };
 
   const addPayment = (payment: PaymentReceipt) => {
     setPayments((prev) => [payment, ...prev]);
-    void safeDbWrite("payment.insert", async () => {
-      await dbService.payments.insert({
-        id: payment.id,
-        date: payment.date,
-        partyType: payment.partyType,
-        partyId: payment.partyId,
-        partyName: payment.partyName,
-        amount: payment.amount,
-        paymentMode: payment.paymentMode,
-        referenceNo: payment.referenceNo,
-        notes: payment.notes,
-        companyId: cid,
-      });
-    });
+    void safeDbWrite(
+      "payment.insert",
+      async () => {
+        await dbService.payments.insert({
+          id: payment.id,
+          date: payment.date,
+          partyType: payment.partyType,
+          partyId: payment.partyId,
+          partyName: payment.partyName,
+          amount: payment.amount,
+          paymentMode: payment.paymentMode,
+          referenceNo: payment.referenceNo,
+          notes: payment.notes,
+          companyId: cid,
+        });
+      },
+      () => setPayments((prev) => prev.filter((p) => p.id !== payment.id)),
+    );
   };
 
   const deletePayment = (id: string) => {
+    const previous = payments.find((p) => p.id === id);
     setPayments((prev) => prev.filter((p) => p.id !== id));
-    void safeDbWrite("payment.delete", async () => {
-      await dbService.payments.delete(id);
-    });
+    void safeDbWrite(
+      "payment.delete",
+      async () => { await dbService.payments.delete(id); },
+      () => { if (previous) setPayments((prev) => [previous, ...prev]); },
+    );
   };
 
   const addSupplier = (supplier: Omit<Supplier, "id">) => {
@@ -590,39 +625,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     const newSupplier: Supplier = { id: newId, ...supplier };
     setSuppliers((prev) => [...prev, newSupplier]);
 
-    void safeDbWrite("supplier.insert", async () => {
-      await dbService.suppliers.insert({
-        id: newSupplier.id,
-        name: newSupplier.name,
-        code: newSupplier.code || "",
-        phone: newSupplier.phone || "",
-        city: newSupplier.city || "",
-        previousBalance: newSupplier.previousBalance || 0,
-        companyId: cid,
-      });
-    });
+    void safeDbWrite(
+      "supplier.insert",
+      async () => {
+        await dbService.suppliers.insert({
+          id: newSupplier.id,
+          name: newSupplier.name,
+          code: newSupplier.code || "",
+          phone: newSupplier.phone || "",
+          city: newSupplier.city || "",
+          previousBalance: newSupplier.previousBalance || 0,
+          companyId: cid,
+        });
+      },
+      () => setSuppliers((prev) => prev.filter((s) => s.id !== newId)),
+    );
   };
 
   const updateSupplier = (supplier: Supplier) => {
+    const previous = suppliers.find((s) => s.id === supplier.id);
     setSuppliers((prev) =>
       prev.map((s) => (s.id === supplier.id ? supplier : s)),
     );
-    void safeDbWrite("supplier.update", async () => {
-      await dbService.suppliers.update(supplier.id, {
-        name: supplier.name,
-        code: supplier.code || "",
-        phone: supplier.phone || "",
-        city: supplier.city || "",
-        previousBalance: supplier.previousBalance || 0,
-      });
-    });
+    void safeDbWrite(
+      "supplier.update",
+      async () => {
+        await dbService.suppliers.update(supplier.id, {
+          name: supplier.name,
+          code: supplier.code || "",
+          phone: supplier.phone || "",
+          city: supplier.city || "",
+          previousBalance: supplier.previousBalance || 0,
+        });
+      },
+      () => {
+        if (previous)
+          setSuppliers((prev) => prev.map((s) => (s.id === supplier.id ? previous : s)));
+      },
+    );
   };
 
   const deleteSupplier = (id: string) => {
+    const previous = suppliers.find((s) => s.id === id);
     setSuppliers((prev) => prev.filter((s) => s.id !== id));
-    void safeDbWrite("supplier.delete", async () => {
-      await dbService.suppliers.delete(id);
-    });
+    void safeDbWrite(
+      "supplier.delete",
+      async () => {
+        await dbService.suppliers.delete(id);
+      },
+      () => {
+        if (previous) setSuppliers((prev) => [...prev, previous]);
+      },
+    );
   };
 
   const addCustomer = (customer: Omit<Customer, "id">) => {
@@ -630,37 +684,127 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     const newCustomer: Customer = { id: newId, ...customer };
     setCustomers((prev) => [...prev, newCustomer]);
 
-    void safeDbWrite("customer.insert", async () => {
-      await dbService.customers.insert({
-        id: newCustomer.id,
-        name: newCustomer.name,
-        phone: newCustomer.phone || "",
-        city: newCustomer.city || "",
-        previousBalance: newCustomer.previousBalance || 0,
-        companyId: cid,
-      });
-    });
+    void safeDbWrite(
+      "customer.insert",
+      async () => {
+        await dbService.customers.insert({
+          id: newCustomer.id,
+          name: newCustomer.name,
+          phone: newCustomer.phone || "",
+          city: newCustomer.city || "",
+          previousBalance: newCustomer.previousBalance || 0,
+          companyId: cid,
+        });
+      },
+      () => setCustomers((prev) => prev.filter((c) => c.id !== newId)),
+    );
   };
 
   const updateCustomer = (customer: Customer) => {
+    const previous = customers.find((c) => c.id === customer.id);
     setCustomers((prev) =>
       prev.map((c) => (c.id === customer.id ? customer : c)),
     );
-    void safeDbWrite("customer.update", async () => {
-      await dbService.customers.update(customer.id, {
-        name: customer.name,
-        phone: customer.phone || "",
-        city: customer.city || "",
-        previousBalance: customer.previousBalance || 0,
-      });
-    });
+    void safeDbWrite(
+      "customer.update",
+      async () => {
+        await dbService.customers.update(customer.id, {
+          name: customer.name,
+          phone: customer.phone || "",
+          city: customer.city || "",
+          previousBalance: customer.previousBalance || 0,
+        });
+      },
+      () => {
+        if (previous)
+          setCustomers((prev) => prev.map((c) => (c.id === customer.id ? previous : c)));
+      },
+    );
   };
 
   const deleteCustomer = (id: string) => {
+    const previous = customers.find((c) => c.id === id);
     setCustomers((prev) => prev.filter((c) => c.id !== id));
-    void safeDbWrite("customer.delete", async () => {
-      await dbService.customers.delete(id);
-    });
+    void safeDbWrite(
+      "customer.delete",
+      async () => {
+        await dbService.customers.delete(id);
+      },
+      () => {
+        if (previous) setCustomers((prev) => [...prev, previous]);
+      },
+    );
+  };
+
+  // ── Caret Transactions ────────────────────────────────────────────────────
+  const addCaretTransaction = (tx: Omit<CaretTransaction, 'id' | 'createdAt'>) => {
+    const newTx: CaretTransaction = {
+      ...tx,
+      id: `crt-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      createdAt: new Date().toISOString(),
+    };
+    setCaretTxList((prev) => [newTx, ...prev]);
+
+    void safeDbWrite(
+      "caretTransaction.insert",
+      async () => {
+        await dbService.caretTransactions.insert({
+          id: newTx.id,
+          date: newTx.date,
+          customerId: newTx.customerId,
+          customerName: newTx.customerName,
+          type: newTx.type,
+          fruitName: newTx.fruitName || '',
+          caretQty: newTx.caretQty,
+          note: newTx.note,
+          billId: newTx.billId,
+          billNo: newTx.billNo,
+          companyId: cid,
+          createdAt: newTx.createdAt,
+        });
+      },
+      () => setCaretTxList((prev) => prev.filter((t) => t.id !== newTx.id)),
+    );
+  };
+
+  const updateCaretTransaction = (tx: CaretTransaction) => {
+    const previous = caretTxList.find((t) => t.id === tx.id);
+    setCaretTxList((prev) =>
+      prev.map((t) => (t.id === tx.id ? tx : t)),
+    );
+
+    void safeDbWrite(
+      "caretTransaction.update",
+      async () => {
+        await dbService.caretTransactions.update(tx.id, {
+          date: tx.date,
+          customerId: tx.customerId,
+          customerName: tx.customerName,
+          type: tx.type,
+          fruitName: tx.fruitName,
+          caretQty: tx.caretQty,
+          note: tx.note,
+          billId: tx.billId,
+          billNo: tx.billNo,
+        });
+      },
+      () => {
+        if (previous)
+          setCaretTxList((prev) =>
+            prev.map((t) => (t.id === tx.id ? previous : t)),
+          );
+      },
+    );
+  };
+
+  const deleteCaretTransaction = (id: string) => {
+    const previous = caretTxList.find((t) => t.id === id);
+    setCaretTxList((prev) => prev.filter((t) => t.id !== id));
+    void safeDbWrite(
+      "caretTransaction.delete",
+      async () => { await dbService.caretTransactions.delete(id); },
+      () => { if (previous) setCaretTxList((prev) => [previous, ...prev]); },
+    );
   };
 
   const addFruitVariety = (fruitId: string, varietyName: string) => {
@@ -688,57 +832,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       name: trimmed,
       varieties: ["Standard", "Premium"],
     };
-    setFruits((prev) => {
-      if (prev.some((f) => f.name.toLowerCase() === trimmed.toLowerCase()))
-        return prev;
-      return [...prev, newFruit];
-    });
+    // Guard: don't add duplicate (check before optimistic update)
+    if (fruits.some((f) => f.name.toLowerCase() === trimmed.toLowerCase())) return;
 
-    void safeDbWrite("fruit.insert", async () => {
-      await dbService.fruits.insert({
-        id: newFruit.id,
-        name: newFruit.name,
-        varieties: JSON.stringify(newFruit.varieties),
-        companyId: cid,
-      });
-    });
+    setFruits((prev) => [...prev, newFruit]);
+    void safeDbWrite(
+      "fruit.insert",
+      async () => {
+        await dbService.fruits.insert({
+          id: newFruit.id,
+          name: newFruit.name,
+          varieties: JSON.stringify(newFruit.varieties),
+          companyId: cid,
+        });
+      },
+      () => setFruits((prev) => prev.filter((f) => f.id !== newFruit.id)),
+    );
   };
 
   // ── App Settings ────────────────────────────
   const resetAllData = () => {
-    // Delete only records belonging to the active company.
+    // Uses the Rust company-scoped reset — single IMMEDIATE SQLite transaction,
+    // atomic, only touches rows where company_id = cid.
     void safeDbWrite("resetAllData", async () => {
-      const companyFilter = cid;
-      const [fruitRows, supplierRows, customerRows, vehicleRows, invoiceRows, purchaseRows, paymentRows] =
-        await Promise.all([
-          dbService.fruits.findAll(undefined, companyFilter),
-          dbService.suppliers.findAll(undefined, companyFilter),
-          dbService.customers.findAll(undefined, companyFilter),
-          dbService.vehicleArrivals.findAll(undefined, companyFilter),
-          dbService.invoices.findAll(undefined, companyFilter),
-          dbService.purchaseInvoices.findAll(undefined, companyFilter),
-          dbService.payments.findAll(undefined, companyFilter),
-        ]);
+      const { ipc } = await import("@/ipc");
+      await ipc.db.resetCompanyData(cid);
+
+      // Also clear the settings keys from SQLite for this company
       await Promise.all([
-        ...fruitRows.map((r) => dbService.fruits.delete(r.id)),
-        ...supplierRows.map((r) => dbService.suppliers.delete(r.id)),
-        ...customerRows.map((r) => dbService.customers.delete(r.id)),
-        ...vehicleRows.map((r) => dbService.vehicleArrivals.delete(r.id)),
-        ...invoiceRows.map((r) => dbService.invoices.delete(r.id)),
-        ...purchaseRows.map((r) => dbService.purchaseInvoices.delete(r.id)),
-        ...paymentRows.map((r) => dbService.payments.delete(r.id)),
+        dbService.settings.delete(STORAGE_KEYS.settings),
+        dbService.settings.delete(STORAGE_KEYS.companies),
+        dbService.settings.delete(STORAGE_KEYS.activeCompany),
+        dbService.settings.delete(STORAGE_KEYS.activeFY),
       ]);
     });
 
-    const keys = [
+    // Clear the startup cache from localStorage (config keys only — no business data)
+    const configKeys = [
       STORAGE_KEYS.settings,
       STORAGE_KEYS.companies,
       STORAGE_KEYS.activeCompany,
-      STORAGE_KEYS.appearance,
       STORAGE_KEYS.activeFY,
     ];
-    keys.forEach((k) => localStorage.removeItem(k));
+    configKeys.forEach((k) => localStorage.removeItem(k));
 
+    // Reset in-memory state immediately (optimistic)
     setFruits([]);
     setSuppliers([]);
     setCustomers([]);
@@ -746,6 +884,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setInvoices([]);
     setPurchaseInvoices([]);
     setPayments([]);
+    setCaretTxList([]);
   };
 
   const getExportData = (): string => {
@@ -770,6 +909,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const importData = (json: string): boolean => {
     try {
       const data = JSON.parse(json);
+
+      // Update in-memory state immediately
       if (data.fruits) setFruits(data.fruits);
       if (data.suppliers) setSuppliers(data.suppliers);
       if (data.customers) setCustomers(data.customers);
@@ -780,6 +921,137 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       if (data.settings) {
         updateSettings(data.settings);
       }
+
+      // Persist imported data to SQLite (fire-and-forget, same pattern as all writes)
+      void safeDbWrite("importData", async () => {
+        const importCid = cid;
+
+        if (data.fruits?.length) {
+          await Promise.all(
+            (data.fruits as Fruit[]).map((f) =>
+              dbService.fruits.insert({
+                id: f.id,
+                name: f.name,
+                varieties: JSON.stringify(f.varieties || []),
+                companyId: importCid,
+              }).catch(() => dbService.fruits.update(f.id, {
+                name: f.name,
+                varieties: JSON.stringify(f.varieties || []),
+              }))
+            )
+          );
+        }
+
+        if (data.suppliers?.length) {
+          await Promise.all(
+            (data.suppliers as Supplier[]).map((s) =>
+              dbService.suppliers.insert({
+                id: s.id,
+                name: s.name,
+                code: s.code || "",
+                phone: s.phone || "",
+                city: s.city || "",
+                previousBalance: s.previousBalance || 0,
+                companyId: importCid,
+              }).catch(() => dbService.suppliers.update(s.id, {
+                name: s.name,
+                code: s.code || "",
+                phone: s.phone || "",
+                city: s.city || "",
+                previousBalance: s.previousBalance || 0,
+              }))
+            )
+          );
+        }
+
+        if (data.customers?.length) {
+          await Promise.all(
+            (data.customers as Customer[]).map((c) =>
+              dbService.customers.insert({
+                id: c.id,
+                name: c.name,
+                phone: c.phone || "",
+                city: c.city || "",
+                previousBalance: c.previousBalance || 0,
+                companyId: importCid,
+              }).catch(() => dbService.customers.update(c.id, {
+                name: c.name,
+                phone: c.phone || "",
+                city: c.city || "",
+                previousBalance: c.previousBalance || 0,
+              }))
+            )
+          );
+        }
+
+        if (data.invoices?.length) {
+          await Promise.all(
+            (data.invoices as Invoice[]).map((inv) =>
+              dbService.invoices.insert({
+                id: inv.id,
+                invoiceNo: inv.invoiceNo,
+                date: inv.date,
+                customerId: inv.customerId,
+                customerName: inv.customerName,
+                items: JSON.stringify(inv.items || []),
+                previousBalance: inv.previousBalance || 0,
+                todayAmount: inv.todayAmount || 0,
+                hamali: inv.hamali,
+                discount: inv.discount,
+                paidAmount: inv.paidAmount || 0,
+                remainingBalance: inv.remainingBalance || 0,
+                notes: inv.notes,
+                createdAt: inv.createdAt || new Date().toISOString(),
+                companyId: importCid,
+              }).catch(() => { /* skip duplicates */ })
+            )
+          );
+        }
+
+        if (data.purchaseInvoices?.length) {
+          await Promise.all(
+            (data.purchaseInvoices as PurchaseInvoice[]).map((inv) =>
+              dbService.purchaseInvoices.insert({
+                id: inv.id,
+                billNo: inv.billNo,
+                date: inv.date,
+                supplierId: inv.supplierId,
+                supplierName: inv.supplierName,
+                items: JSON.stringify(inv.items || []),
+                previousBalance: inv.previousBalance || 0,
+                todayAmount: inv.todayAmount || 0,
+                freight: inv.freight,
+                hamali: inv.hamali,
+                paidAmount: inv.paidAmount || 0,
+                remainingBalance: inv.remainingBalance || 0,
+                notes: inv.notes,
+                createdAt: inv.createdAt || new Date().toISOString(),
+                companyId: importCid,
+              }).catch(() => { /* skip duplicates */ })
+            )
+          );
+        }
+
+        if (data.payments?.length) {
+          await Promise.all(
+            (data.payments as PaymentReceipt[]).map((p) =>
+              dbService.payments.insert({
+                id: p.id,
+                date: p.date,
+                partyType: p.partyType,
+                partyId: p.partyId,
+                partyName: p.partyName,
+                amount: p.amount,
+                paymentMode: p.paymentMode,
+                referenceNo: p.referenceNo,
+                notes: p.notes,
+                companyId: importCid,
+              }).catch(() => { /* skip duplicates */ })
+            )
+          );
+        }
+      });
+
       return true;
     } catch {
       return false;
@@ -846,6 +1118,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         updateCompany,
         deleteCompany,
         switchCompany,
+        caretTransactions: caretTxList,
+        addCaretTransaction,
+        updateCaretTransaction,
+        deleteCaretTransaction,
       }}
     >
       {children}

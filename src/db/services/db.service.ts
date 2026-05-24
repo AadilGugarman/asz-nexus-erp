@@ -25,6 +25,7 @@ import {
 } from "../repositories/invoice.repository";
 import { PaymentRepository } from "../repositories/payment.repository";
 import { SettingsRepository } from "../repositories/settings.repository";
+import { CaretRepository } from "../repositories/caret.repository";
 
 class DbService {
   private _fruits?: FruitRepository;
@@ -35,6 +36,7 @@ class DbService {
   private _purchaseInvoices?: PurchaseInvoiceRepository;
   private _payments?: PaymentRepository;
   private _settings?: SettingsRepository;
+  private _caretTransactions?: CaretRepository;
 
   /** Ensure all repositories are initialised. Call once at app startup. */
   async init(): Promise<boolean> {
@@ -49,6 +51,7 @@ class DbService {
     this._purchaseInvoices = new PurchaseInvoiceRepository(db);
     this._payments = new PaymentRepository(db);
     this._settings = new SettingsRepository(db);
+    this._caretTransactions = new CaretRepository(db);
 
     return true;
   }
@@ -76,6 +79,10 @@ class DbService {
   }
   get settings(): SettingsRepository {
     return this._require(this._settings, "settings");
+  }
+
+  get caretTransactions(): CaretRepository {
+    return this._require(this._caretTransactions, "caretTransactions");
   }
 
   get isReady(): boolean {

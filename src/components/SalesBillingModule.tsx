@@ -14,7 +14,7 @@ import {
   Copy,
   ArrowUpDown,
 } from "lucide-react";
-import { Combobox } from "./ui/Combobox";
+import { CommandSelect, CommandOption } from "./ui/CommandSelect";
 import { useToast } from "./ui/Toast";
 import { useConfirmDialog } from "./ui/ConfirmDialog";
 import { getNextUniqueInvoiceNumber } from "../utils/invoice-number";
@@ -53,6 +53,21 @@ const inp =
 const muted = "dark:text-slate-400 text-slate-500";
 const lbl = "dark:text-slate-400 text-slate-600";
 
+const FRUIT_EMOJIS: Record<string, string> = {
+  mango: '🥭', apple: '🍎', banana: '🍌', pomegranate: '🫐', grapes: '🍇',
+  citrus: '🍊', watermelon: '🍉', orange: '🍊', lemon: '🍋', pineapple: '🍍',
+  strawberry: '🍓', cherry: '🍒', peach: '🍑', pear: '🍐', kiwi: '🥝',
+  coconut: '🥥', papaya: '🥭', guava: '🥝', fig: '🫐', plum: '🫐',
+};
+
+const getEmoji = (name: string): string => {
+  const lower = name.toLowerCase();
+  for (const [key, emoji] of Object.entries(FRUIT_EMOJIS)) {
+    if (lower.includes(key)) return emoji;
+  }
+  return '🍃';
+};
+
 export const SalesBillingModule: React.FC = () => {
   const {
     customers,
@@ -64,6 +79,7 @@ export const SalesBillingModule: React.FC = () => {
     addFruitVariety,
     settings,
     updateSettings,
+    addCaretTransaction,
   } = useApp();
   const { t } = useAppTranslation("billing");
   const toast = useToast();
@@ -84,11 +100,30 @@ export const SalesBillingModule: React.FC = () => {
   const [vehicleNo, setVehicleNo] = useState("");
   const [declaredWeight, setDeclaredWeight] = useState<number>(0);
   const [freightInput, setFreightInput] = useState<number>(0);
+  const [caretInput, setCaretInput] = useState<number>(0); // caret given to customer
   const [items, setItems] = useState<InvoiceItem[]>(() => [
     makeBlankItem(fruits),
   ]);
 
   const dateRef = useRef<HTMLInputElement>(null);
+
+  const customerOptions: CommandOption[] = useMemo(() => {
+    return customers.map(c => ({
+      id: c.id,
+      label: c.name,
+      subtitle: c.phone ? `${c.phone} • ${c.city}` : c.city,
+      emoji: '👤'
+    }));
+  }, [customers]);
+
+  const fruitOptions: CommandOption[] = useMemo(() => {
+    return fruits.map(f => ({
+      id: f.id,
+      label: f.name,
+      subtitle: `${f.varieties.length} varieties`,
+      emoji: getEmoji(f.name)
+    }));
+  }, [fruits]);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) || customers[0],
@@ -248,6 +283,7 @@ export const SalesBillingModule: React.FC = () => {
     setVehicleNo("");
     setDeclaredWeight(0);
     setFreightInput(0);
+    setCaretInput(0);
     setNotes("");
   };
 
@@ -304,6 +340,26 @@ export const SalesBillingModule: React.FC = () => {
     };
     saveInvoice(inv);
     updateSettings({ invoice: { ...settings.invoice, salesNextNo: nextSeed } });
+
+    // Auto-create GIVEN caret transaction if carets were given
+    const totalCaretsGiven = caretInput > 0
+      ? caretInput
+      : items.reduce((s, it) => s + (Number(it.caret) || 0), 0);
+    if (totalCaretsGiven > 0 && selectedCustomer) {
+      const fruitNames = [...new Set(items.map(it => it.fruitCategory || it.fruit).filter(Boolean))].join(', ');
+      addCaretTransaction({
+        date,
+        customerId: selectedCustomer.id,
+        customerName: selectedCustomer.name,
+        type: 'GIVEN',
+        fruitName: fruitNames || 'Mixed',
+        caretQty: totalCaretsGiven,
+        note: `Auto from Invoice ${resolvedNo}`,
+        billId: inv.id,
+        billNo: resolvedNo,
+      });
+    }
+
     toast.success(
       "Invoice Saved",
       `${resolvedNo} - Rs.${todayAmount.toLocaleString("en-IN")} for ${selectedCustomer.name}`,
@@ -429,7 +485,7 @@ export const SalesBillingModule: React.FC = () => {
           {/*        COMPACT FORM HEADER        */}
           <div className={`${card} overflow-hidden`}>
             {/* Row 1: Invoice No    Date    Customer    Vehicle No    Freight */}
-            <div className="grid grid-cols-[auto_1fr_1.5fr_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
+            <div className="grid grid-cols-[auto_1fr_1.5fr_1fr_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5 min-w-[150px]">
                 <span
                   className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
@@ -475,21 +531,16 @@ export const SalesBillingModule: React.FC = () => {
                 </div>
               </div>
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
-                >
-                  Customer / Buyer
-                </span>
-                <Combobox
-                  value={selectedCustomer?.name || ""}
+                <CommandSelect
+                  id="sales-customer"
+                  label="Customer / Buyer"
+                  value={selectedCustomerId}
                   onChange={(val) => {
-                    const m =
-                      customers.find((c) => c.name === val) || customers[0];
+                    const m = customers.find((c) => c.id === val || c.name === val);
                     if (m) setSelectedCustomerId(m.id);
                   }}
-                  options={customers.map((c) => c.name)}
+                  options={customerOptions}
                   placeholder="Select customer"
-                  searchPlaceholder="Search customer"
                   creatable={false}
                 />
               </div>
@@ -532,6 +583,19 @@ export const SalesBillingModule: React.FC = () => {
                     className={`${inp} pl-5 pr-2 py-1 text-xs font-mono font-bold dark:text-indigo-400 text-indigo-600 w-full`}
                   />
                 </div>
+              </div>
+              {/* Caret Given */}
+              <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}>
+                  Caret Given 📦
+                </span>
+                <input
+                  type="number"
+                  value={caretInput === 0 ? "" : caretInput}
+                  placeholder="Auto from items"
+                  onChange={(e) => setCaretInput(parseInt(e.target.value) || 0)}
+                  className={`${inp} px-2 py-1 text-xs font-mono font-bold dark:text-amber-400 text-amber-600 w-full`}
+                />
               </div>
             </div>
           </div>
@@ -596,30 +660,27 @@ export const SalesBillingModule: React.FC = () => {
                       >
                         {/* Fruit Category */}
                         <td className="p-1.5 px-3" data-inv-cell={`${idx}-0`}>
-                          <Combobox
+                          <CommandSelect
                             value={it.fruitCategory}
-                            onChange={(val) =>
-                              handleItemChange(idx, "fruitCategory", val)
-                            }
-                            options={fruits.map((f) => f.name)}
+                            onChange={(val) => {
+                              const f = fruits.find(f => f.id === val || f.name === val);
+                              handleItemChange(idx, "fruitCategory", f?.name || val);
+                            }}
+                            options={fruitOptions}
                             placeholder="Select fruit"
-                            searchPlaceholder="Search or add fruit"
                             creatable={true}
-                            onCreate={(nf) => addFruit(nf)}
+                            onAdd={(nf) => addFruit(nf)}
                           />
                         </td>
                         {/* Variety */}
                         <td className="p-1.5" data-inv-cell={`${idx}-1`}>
-                          <Combobox
+                          <CommandSelect
                             value={it.lotVariety}
-                            onChange={(val) =>
-                              handleItemChange(idx, "lotVariety", val)
-                            }
-                            options={varieties}
+                            onChange={(val) => handleItemChange(idx, "lotVariety", val)}
+                            options={varieties.map(v => ({ id: v, label: v, emoji: '📦' }))}
                             placeholder="Select variety"
-                            searchPlaceholder="Search or add variety"
                             creatable={true}
-                            onCreate={(nv) => {
+                            onAdd={(nv) => {
                               if (fruitObj) addFruitVariety(fruitObj.id, nv);
                             }}
                           />

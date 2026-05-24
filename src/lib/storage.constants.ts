@@ -21,7 +21,6 @@ export const STORAGE_KEYS = {
   language: `${NS}language` as const,
   fontSize: `${NS}font_size` as const,
   fontFamily: `${NS}font_family` as const,
-  density: `${NS}density` as const,
   accentColor: `${NS}accent_color` as const,
   lowStockAlerts: `${NS}low_stock_alerts` as const,
   animationsEnabled: `${NS}animations_enabled` as const,
@@ -42,7 +41,11 @@ export const STORAGE_KEYS = {
   refreshToken: `${NS}refresh_token` as const,
   refreshTokenExpiry: `${NS}refresh_token_expiry` as const,
 
-  // Business Data (temporary — flagged for SQLite migration)
+  // Business Data — BROWSER DEV FALLBACK ONLY.
+  // In Tauri (production) these keys are NEVER written.
+  // They exist solely so the browser dev mode (localhost:5173) can render
+  // something without a real SQLite connection.
+  // Do NOT read or write these keys in any production code path.
   fruits: `${NS}fruits` as const,
   suppliers: `${NS}suppliers` as const,
   customers: `${NS}customers` as const,
@@ -61,7 +64,6 @@ export const LEGACY_KEYS = {
   theme: "apex_theme",
   appearance: "apex_appearance",
   fontSize: "apex_fontsize",
-  density: "apex_compact",
   accentColor: "apex_accent",
   language: "apex_lang",
   lowStockAlerts: "apex_lowstock",

@@ -62,3 +62,16 @@ pub async fn db_reset_demo_data(
     let result = demo_seed::reset_demo_data(&mut conn)?;
     Ok(IpcResponse::ok(result))
 }
+
+/// Clears ERP tables scoped to a single company — production-safe reset.
+/// Only deletes rows where company_id matches. Other companies are untouched.
+#[tauri::command]
+pub async fn db_reset_company_data(
+    payload: DemoSeedRequest,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<IpcResponse<demo_seed::SeedResetResponse>> {
+    let mut conn = get_conn(&state.db)?;
+    let company_id = payload.company_id.as_deref().unwrap_or("default");
+    let result = demo_seed::reset_company_data(&mut conn, company_id)?;
+    Ok(IpcResponse::ok(result))
+}

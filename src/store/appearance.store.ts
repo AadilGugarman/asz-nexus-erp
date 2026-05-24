@@ -13,17 +13,13 @@ type ResolvedTheme = "light" | "dark";
 export type ThemePreference = ResolvedTheme | "system";
 export type FontFamilyOption = "inter" | "roboto" | "segoe";
 export type FontSizeOption = "small" | "medium" | "large";
-export type DensityOption = "compact" | "comfortable" | "spacious";
 
 interface AppearancePersistedState {
   themePreference: ThemePreference;
   fontFamily: FontFamilyOption;
   fontSize: FontSizeOption;
-  density: DensityOption;
   accentColor: string;
   language: AppLanguage;
-  lowStockAlerts: boolean;
-  animationsEnabled: boolean;
 }
 
 interface AppearanceState extends AppearancePersistedState {
@@ -33,11 +29,8 @@ interface AppearanceState extends AppearancePersistedState {
   setThemePreference: (value: ThemePreference) => void;
   setFontFamily: (value: FontFamilyOption) => void;
   setFontSize: (value: FontSizeOption) => void;
-  setDensity: (value: DensityOption) => void;
   setAccentColor: (value: string) => void;
   setLanguage: (value: AppLanguage) => void;
-  setLowStockAlerts: (value: boolean) => void;
-  setAnimationsEnabled: (value: boolean) => void;
   toggleTheme: () => void;
   setSystemTheme: (value: ResolvedTheme) => void;
   resetAppearance: () => void;
@@ -47,11 +40,8 @@ const DEFAULT_APPEARANCE: AppearancePersistedState = {
   themePreference: "system",
   fontFamily: "inter",
   fontSize: "large",
-  density: "comfortable",
-   accentColor: "#fbbf24", // Mango / Amber 400
+  accentColor: "#fbbf24", // Mango / Amber 400
   language: DEFAULT_LANGUAGE,
-  lowStockAlerts: true,
-  animationsEnabled: true,
 };
 
 const FONT_MAP: Record<FontFamilyOption, string> = {
@@ -64,30 +54,6 @@ const FONT_SIZE_MAP: Record<FontSizeOption, string> = {
   small: "13px",
   medium: "14px",
   large: "16px",
-};
-
-const DENSITY_SCALE_MAP: Record<DensityOption, string> = {
-  compact: "0.92",
-  comfortable: "1",
-  spacious: "1.12",
-};
-
-const TABLE_ROW_HEIGHT_MAP: Record<DensityOption, string> = {
-  compact: "34px",
-  comfortable: "40px",
-  spacious: "46px",
-};
-
-const INPUT_HEIGHT_MAP: Record<DensityOption, string> = {
-  compact: "34px",
-  comfortable: "38px",
-  spacious: "44px",
-};
-
-const CARD_PADDING_MAP: Record<DensityOption, string> = {
-  compact: "0.9",
-  comfortable: "1",
-  spacious: "1.1",
 };
 
 const isBrowser = typeof window !== "undefined";
@@ -198,7 +164,6 @@ function getInitialAppearanceState(): AppearancePersistedState {
 
   const legacyTheme = window.localStorage.getItem(LEGACY_KEYS.theme);
   const legacyFontSize = window.localStorage.getItem(LEGACY_KEYS.fontSize);
-  const legacyCompact = window.localStorage.getItem(LEGACY_KEYS.density);
   const legacyAccent = window.localStorage.getItem(LEGACY_KEYS.accentColor);
   const legacyLang = window.localStorage.getItem(LEGACY_KEYS.language);
 
@@ -214,7 +179,6 @@ function getInitialAppearanceState(): AppearancePersistedState {
       legacyFontSize === "large"
         ? legacyFontSize
         : DEFAULT_APPEARANCE.fontSize,
-    density: legacyCompact === "true" ? "compact" : DEFAULT_APPEARANCE.density,
     accentColor: legacyAccent || DEFAULT_APPEARANCE.accentColor,
     language: normalizeLanguage(legacyLang) || DEFAULT_APPEARANCE.language,
     lowStockAlerts: getLegacyBoolean(LEGACY_KEYS.lowStockAlerts, true),
@@ -228,7 +192,6 @@ function applyAppearanceToDom(
     | "resolvedTheme"
     | "fontFamily"
     | "fontSize"
-    | "density"
     | "accentColor"
     | "animationsEnabled"
   >,
@@ -266,20 +229,12 @@ function applyAppearanceToDom(
 
   root.classList.toggle("dark", state.resolvedTheme === "dark");
   root.dataset.theme = state.resolvedTheme;
-  root.dataset.density = state.density;
+  root.dataset.density = "comfortable";
 
   root.style.setProperty("--app-font-family", FONT_MAP[state.fontFamily]);
   root.style.setProperty("--font-size-base", FONT_SIZE_MAP[state.fontSize]);
-  root.style.setProperty("--density-scale", DENSITY_SCALE_MAP[state.density]);
-  root.style.setProperty(
-    "--table-row-height",
-    TABLE_ROW_HEIGHT_MAP[state.density],
-  );
-  root.style.setProperty("--input-height", INPUT_HEIGHT_MAP[state.density]);
-  root.style.setProperty(
-    "--card-padding-scale",
-    CARD_PADDING_MAP[state.density],
-  );
+  root.style.setProperty("--table-row-height", "40px");
+  root.style.setProperty("--input-height", "38px");
   // Accent color variables are intentionally NOT written to the DOM.
   // The accent color setting is persisted in state for future use but has
   // no visual effect — all UI colours are fixed and independent of accent.
@@ -328,13 +283,6 @@ export const useAppearanceStore = create<AppearanceState>()(
           return next;
         }),
 
-      setDensity: (density) =>
-        set((state) => {
-          const next = { density };
-          applyAppearanceToDom({ ...state, ...next });
-          return next;
-        }),
-
       setAccentColor: (accentColor) =>
         set((state) => {
           const next = { accentColor };
@@ -343,15 +291,6 @@ export const useAppearanceStore = create<AppearanceState>()(
         }),
 
       setLanguage: (language) => set({ language: normalizeLanguage(language) }),
-
-      setLowStockAlerts: (lowStockAlerts) => set({ lowStockAlerts }),
-
-      setAnimationsEnabled: (animationsEnabled) =>
-        set((state) => {
-          const next = { animationsEnabled };
-          applyAppearanceToDom({ ...state, ...next });
-          return next;
-        }),
 
       toggleTheme: () => {
         const state = get();
@@ -391,11 +330,8 @@ export const useAppearanceStore = create<AppearanceState>()(
         themePreference: state.themePreference,
         fontFamily: state.fontFamily,
         fontSize: state.fontSize,
-        density: state.density,
         accentColor: state.accentColor,
         language: state.language,
-        lowStockAlerts: state.lowStockAlerts,
-        animationsEnabled: state.animationsEnabled,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
@@ -429,11 +365,9 @@ export function initAppearanceSystem() {
   };
 
   const applyAccessibilityFlags = () => {
-    document.documentElement.dataset.reducedMotion =
-      !useAppearanceStore.getState().animationsEnabled ||
-      reduceMotionMedia.matches
-        ? "true"
-        : "false";
+    document.documentElement.dataset.reducedMotion = reduceMotionMedia.matches
+      ? "true"
+      : "false";
     document.documentElement.dataset.highContrast = contrastMedia.matches
       ? "true"
       : "false";
@@ -447,10 +381,4 @@ export function initAppearanceSystem() {
   contrastMedia.addEventListener("change", handleContrast);
 
   applyAccessibilityFlags();
-
-  useAppearanceStore.subscribe((next, prev) => {
-    if (next.animationsEnabled !== prev.animationsEnabled) {
-      applyAccessibilityFlags();
-    }
-  });
 }

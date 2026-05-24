@@ -217,7 +217,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    const coName = settings.company?.name || 'tfc-erp';
+    const coName = settings.company?.name || 'asz-nexus-erp';
     a.download = `${coName.replace(/\s+/g, '-').toLowerCase()}-backup-${today}.json`;
     a.click();
     URL.revokeObjectURL(url);
@@ -301,7 +301,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
                   className="text-3xl md:text-[2.4rem] font-black tracking-tight leading-tight mt-1"
                   style={{ color: D.heroHeading }}
                 >
-                  {settings.company?.name || 'TFC ERP'}
+                  {settings.company?.name || 'ASZ Nexus ERP'}
                 </h1>
               </div>
 

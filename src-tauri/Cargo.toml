@@ -1,12 +1,12 @@
 [package]
 name = "asz-nexus-erp"
 version = "1.0.0"
-description = "TFC ERP — Fruit Billing Management"
+description = "ASZ Nexus ERP — Smart Billing & Trading Management System"
 authors = ["Aadil Gugarman"]
 edition = "2024"
 
 [lib]
-name = "tfc_erp_lib"
+name = "asz_nexus_erp_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]

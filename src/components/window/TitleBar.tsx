@@ -32,7 +32,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
   } = useWindow();
 
   const isDark = resolvedTheme === 'dark';
-  const coName = companyName || 'TFC ERP';
+  const coName = companyName || 'ASZ Nexus ERP';
 
   const handleDoubleClick = useCallback(() => {
     toggleMaximize();

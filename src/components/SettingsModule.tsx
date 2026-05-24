@@ -113,8 +113,6 @@ export const SettingsModule: React.FC = () => {
     setFontFamily,
     fontSize,
     setFontSize,
-    density,
-    setDensity,
     accentColor,
     setAccentColor,
     language,
@@ -136,6 +134,7 @@ export const SettingsModule: React.FC = () => {
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const sigInputRef = useRef<HTMLInputElement>(null);
   const companyLogoInputRef = useRef<HTMLInputElement>(null);
+  const watermarkInputRef = useRef<HTMLInputElement>(null);
   const [logoUploadProgress, setLogoUploadProgress] = useState(false);
 
   const handleResetAppearance = () => {
@@ -282,7 +281,10 @@ export const SettingsModule: React.FC = () => {
   const [cfState, setCfState] = useState("Gujarat");
   const [cfPincode, setCfPincode] = useState("");
   const [cfPhone, setCfPhone] = useState("");
+  const [cfPhone2, setCfPhone2] = useState("");
+  const [cfPhone3, setCfPhone3] = useState("");
   const [cfEmail, setCfEmail] = useState("");
+  const [cfWebsite, setCfWebsite] = useState("");
   const [cfCurrency, setCfCurrency] = useState("INR");
   const [cfInvPrefix, setCfInvPrefix] = useState("INV");
   const [cfInvStart, setCfInvStart] = useState(1001);
@@ -308,7 +310,10 @@ export const SettingsModule: React.FC = () => {
     setCfState("Gujarat");
     setCfPincode("");
     setCfPhone("");
+    setCfPhone2("");
+    setCfPhone3("");
     setCfEmail("");
+    setCfWebsite("");
     setCfCurrency("INR");
     setCfInvPrefix("INV");
     setCfInvStart(1001);
@@ -331,14 +336,17 @@ export const SettingsModule: React.FC = () => {
     setEditingCompanyId(c.id);
     setCfName(c.company.name);
     setCfTagline(c.company.tagline);
-    setCfGstin(c.company.gstin);
-    setCfPan(c.pan || "");
+    setCfGstin(c.company.gstin || "");
+    setCfPan(c.company.pan || "");
     setCfAddress(c.company.address);
     setCfCity(c.city || "");
     setCfState(c.state || "Gujarat");
     setCfPincode(c.pincode || "");
     setCfPhone(c.company.phone);
+    setCfPhone2(c.company.phone2 || "");
+    setCfPhone3(c.company.phone3 || "");
     setCfEmail(c.company.email);
+    setCfWebsite(c.company.website || "");
     setCfCurrency(c.financial?.currency ?? "INR");
     setCfInvPrefix(c.invoice?.salesPrefix ?? "INV");
     setCfInvStart(c.invoice?.salesNextNo ?? 1001);
@@ -398,8 +406,12 @@ export const SettingsModule: React.FC = () => {
           .filter(Boolean)
           .join(", "),
         phone: cfPhone,
+        phone2: cfPhone2,
+        phone3: cfPhone3,
         email: cfEmail,
+        website: cfWebsite,
         gstin: cfGstin.toUpperCase(),
+        pan: cfPan.toUpperCase(),
         bankName: cfBankName,
         accountNo: cfAccountNo,
         ifsc: cfIfsc,
@@ -449,10 +461,6 @@ export const SettingsModule: React.FC = () => {
         ? companies.find((c) => c.id === editingCompanyId)?.createdAt ||
           new Date().toISOString()
         : new Date().toISOString(),
-      pan: cfPan.toUpperCase(),
-      city: cfCity,
-      state: cfState,
-      pincode: cfPincode,
     };
     setTimeout(() => {
       if (isEditMode) {
@@ -638,7 +646,7 @@ export const SettingsModule: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tfc-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `asz-nexus-backup-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(
@@ -661,7 +669,7 @@ export const SettingsModule: React.FC = () => {
       else
         toast.error(
           "Import Failed",
-          "Invalid JSON file. Please use a valid TFC backup.",
+          "Invalid JSON file. Please use a valid ASZ Nexus backup.",
         );
     };
     reader.readAsText(file);
@@ -740,8 +748,8 @@ export const SettingsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* ── HEADER ─────────────────────────────────── */}
+      <div className="space-y-6 font-sans">
+        {/* ── HEADER ─────────────────────────────────── */}
       <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-md">
         <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
           <Settings className="w-6 h-6 text-cyan-500" />
@@ -1000,9 +1008,9 @@ export const SettingsModule: React.FC = () => {
                         {(
                           [
                             "modern",
-                            "classic",
-                            "minimal",
-                            "professional",
+                            "watermark",
+                            "thermal",
+                            "initials",
                           ] as const
                         ).map((s) => (
                           <button
@@ -1012,7 +1020,7 @@ export const SettingsModule: React.FC = () => {
                             }
                             className={`py-2.5 rounded-xl text-xs font-bold border-2 cursor-pointer transition-all capitalize ${inv.templateStyle === s ? "border-indigo-500 dark:bg-indigo-500/10 bg-indigo-50 text-indigo-700 dark:text-indigo-400 shadow-md" : "dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-500"}`}
                           >
-                            {s}
+                            {s === "watermark" ? "Background" : s}
                           </button>
                         ))}
                       </div>
@@ -1036,15 +1044,130 @@ export const SettingsModule: React.FC = () => {
                         <div className="flex-1 dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 rounded-xl p-2.5 text-xs font-mono font-bold dark:text-white text-slate-900 uppercase">
                           {inv.brandColor || "#6366f1"}
                         </div>
-                        <div
-                          className="w-20 h-10 rounded-xl shadow-sm"
-                          style={{
-                            backgroundColor: inv.brandColor || "#6366f1",
-                          }}
-                        />
                       </div>
                     </div>
                   </div>
+
+                  {/* Watermark / Initials Controls */}
+                  {(inv.templateStyle === "watermark" || inv.templateStyle === "initials") && (
+                    <div className="pt-4 border-t dark:border-slate-800 border-slate-100 space-y-4 animate-slide-down">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Palette className="w-3.5 h-3.5 text-indigo-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {inv.templateStyle === "watermark" ? "Background Image" : "Initials Watermark"} Settings
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {inv.templateStyle === "watermark" ? (
+                          <div className="sm:col-span-3">
+                            <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-2">
+                              Upload Background Image
+                            </label>
+                            {inv.watermarkImage ? (
+                              <div className="flex items-center gap-3">
+                                <div className="relative shrink-0">
+                                  <img
+                                    src={inv.watermarkImage}
+                                    alt="Watermark"
+                                    className="h-16 w-16 object-cover border dark:border-slate-700 border-slate-300 rounded-xl p-1 dark:bg-slate-950 bg-slate-50"
+                                  />
+                                  <button
+                                    onClick={() => setInv(p => ({ ...p, watermarkImage: "" }))}
+                                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center cursor-pointer text-xs shadow"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                <button
+                                  onClick={() => watermarkInputRef.current?.click()}
+                                  className="text-[11px] font-bold text-indigo-600 hover:underline cursor-pointer"
+                                >
+                                  Replace Image
+                                </button>
+                              </div>
+                            ) : (
+                              <div
+                                onClick={() => watermarkInputRef.current?.click()}
+                                className="h-20 border-2 border-dashed dark:border-slate-700 border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/50 transition-colors gap-1.5"
+                              >
+                                <Image className="w-5 h-5 text-slate-400" />
+                                <span className="text-xs text-slate-400 font-medium">Click to upload background</span>
+                              </div>
+                            )}
+                            <input
+                              ref={watermarkInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = () => setInv(p => ({ ...p, watermarkImage: reader.result as string }));
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <Inp
+                              label="Watermark Text"
+                              value={inv.watermarkText}
+                              onChange={(v) => setInv(p => ({ ...p, watermarkText: v }))}
+                              placeholder="e.g. ASZ"
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
+                            Opacity ({Math.round((inv.watermarkOpacity || 0.05) * 100)}%)
+                          </label>
+                          <input
+                            type="range"
+                            min="0.01"
+                            max="0.3"
+                            step="0.01"
+                            value={inv.watermarkOpacity || 0.05}
+                            onChange={(e) => setInv(p => ({ ...p, watermarkOpacity: parseFloat(e.target.value) }))}
+                            className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
+                            Rotation ({inv.watermarkRotation || -25}°)
+                          </label>
+                          <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="5"
+                            value={inv.watermarkRotation || -25}
+                            onChange={(e) => setInv(p => ({ ...p, watermarkRotation: parseInt(e.target.value) }))}
+                            className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
+                            Scale ({inv.watermarkSize || 110}%)
+                          </label>
+                          <input
+                            type="range"
+                            min="20"
+                            max="300"
+                            step="5"
+                            value={inv.watermarkSize || 110}
+                            onChange={(e) => setInv(p => ({ ...p, watermarkSize: parseInt(e.target.value) }))}
+                            className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2630,87 +2753,6 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* 5. Display Options */}
-              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                  <Eye className="w-4 h-4 text-cyan-500" />
-                  <span className="text-sm font-bold dark:text-white text-slate-900">
-                    Display Options
-                  </span>
-                </div>
-                <div className="p-6">
-                  <div className="pb-3 border-b dark:border-slate-800 border-slate-200">
-                    <div className="text-sm font-bold dark:text-white text-slate-900">
-                      Density
-                    </div>
-                    <div className="text-[11px] dark:text-slate-400 text-slate-500">
-                      Controls table row heights, sidebar spacing, card
-                      paddings, inputs, and modal spacing.
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 mt-3">
-                      {[
-                        {
-                          id: "compact",
-                          label: "Compact",
-                          desc: "Maximum data density",
-                        },
-                        {
-                          id: "comfortable",
-                          label: "Comfortable",
-                          desc: "Balanced default spacing",
-                        },
-                        {
-                          id: "spacious",
-                          label: "Spacious",
-                          desc: "Lower visual fatigue",
-                        },
-                      ].map((mode) => (
-                        <button
-                          key={mode.id}
-                          onClick={() =>
-                            setDensity(
-                              mode.id as "compact" | "comfortable" | "spacious",
-                            )
-                          }
-                          className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all cursor-pointer ${density === mode.id ? "border-cyan-500 dark:bg-cyan-500/10 bg-cyan-50 shadow-md" : "dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300"}`}
-                        >
-                          <span className="text-xs font-bold dark:text-white text-slate-900">
-                            {mode.label}
-                          </span>
-                          <span className="text-[10px] dark:text-slate-400 text-slate-500 mt-1 text-center">
-                            {mode.desc}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <Toggle
-                    label="Low Stock Alerts"
-                    desc="Show warning badges on inventory items below threshold"
-                    checked={lowStockAlerts}
-                    onChange={setLowStockAlerts}
-                  />
-                </div>
-              </div>
-
-              {/* 6. Animations & Effects */}
-              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-cyan-500" />
-                  <span className="text-sm font-bold dark:text-white text-slate-900">
-                    Animations & Effects
-                  </span>
-                </div>
-                <div className="p-6">
-                  <Toggle
-                    label="Enable Animations"
-                    desc="Smooth transitions, slide-in effects, and micro-interactions throughout the app"
-                    checked={animationsEnabled}
-                    onChange={setAnimationsEnabled}
-                  />
-                </div>
-              </div>
-
               {/* 7. Reset Appearance */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border-2 dark:border-amber-500/30 border-amber-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-amber-950/20 bg-amber-50 border-b dark:border-amber-500/20 border-amber-200 flex items-center space-x-2">
@@ -2725,8 +2767,7 @@ export const SettingsModule: React.FC = () => {
                       Restore Default Settings
                     </div>
                     <div className="text-[11px] dark:text-slate-400 text-slate-500 mt-0.5 max-w-md">
-                      Reset theme to system, accent to indigo, typography and
-                      density to defaults, and restore all display options.
+                      Reset theme to system, accent to indigo, and typography to defaults.
                     </div>
                   </div>
                   <button
@@ -3065,7 +3106,7 @@ export const SettingsModule: React.FC = () => {
                         type="text"
                         value={cfName}
                         onChange={(e) => setCfName(e.target.value)}
-                        placeholder="e.g. Talha Fruit Co."
+                        placeholder="e.g. ASZ Nexus ERP"
                         className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-indigo-500 transition-all"
                       />
                     </div>
@@ -3240,7 +3281,7 @@ export const SettingsModule: React.FC = () => {
                       label="UPI ID"
                       value={cfUpiId}
                       onChange={setCfUpiId}
-                      placeholder="tfc@sbi"
+                      placeholder="asz@sbi"
                       mono
                     />
                   </div>

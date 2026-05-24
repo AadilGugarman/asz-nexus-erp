@@ -20,6 +20,7 @@ import type {
   PurchaseInvoice,
   PaymentReceipt,
   VehicleArrival,
+  CaretTransaction,
 } from "@/types";
 
 // ── Type-agnostic loader helper ────────────────────────────────────────────────
@@ -56,7 +57,15 @@ function createDbLoader<TDb, TClient>(
           return;
         }
         try {
-          const saved = localStorage.getItem(storageKey);
+          // Scope the key by company so Company A never sees Company B's data.
+          // Falls back to the unscoped key for backwards compatibility with
+          // existing browser-mode seed data that predates company scoping.
+          const scopedKey = activeCompanyId
+            ? `${storageKey}__${activeCompanyId}`
+            : storageKey;
+          const saved =
+            localStorage.getItem(scopedKey) ??
+            localStorage.getItem(storageKey);
           if (saved) {
             const parsed = JSON.parse(saved);
             setData(Array.isArray(parsed) ? parsed : []);
@@ -134,6 +143,7 @@ export const useSuppliers = createDbLoader(
   (companyId) => dbService.suppliers.findAll(undefined, companyId ?? undefined),
   dbToSupplier,
   "suppliers",
+  // Browser dev fallback only — never written in Tauri/production
   STORAGE_KEYS.suppliers,
 );
 
@@ -153,6 +163,7 @@ export const useCustomers = createDbLoader(
   (companyId) => dbService.customers.findAll(undefined, companyId ?? undefined),
   dbToCustomer,
   "customers",
+  // Browser dev fallback only — never written in Tauri/production
   STORAGE_KEYS.customers,
 );
 
@@ -171,6 +182,7 @@ export const useFruits = createDbLoader(
   (companyId) => dbService.fruits.findAll(undefined, companyId ?? undefined),
   dbToFruit,
   "fruits",
+  // Browser dev fallback only — never written in Tauri/production
   STORAGE_KEYS.fruits,
 );
 
@@ -204,6 +216,7 @@ export const useInvoices = createDbLoader(
   (companyId) => dbService.invoices.findAll(undefined, companyId ?? undefined),
   dbToInvoice,
   "invoices",
+  // Browser dev fallback only — never written in Tauri/production
   STORAGE_KEYS.invoices,
 );
 
@@ -237,6 +250,7 @@ export const usePurchaseInvoices = createDbLoader(
   (companyId) => dbService.purchaseInvoices.findAll(undefined, companyId ?? undefined),
   dbToPurchaseInvoice,
   "purchaseInvoices",
+  // Browser dev fallback only — never written in Tauri/production
   STORAGE_KEYS.purchaseInvoices,
 );
 
@@ -260,6 +274,7 @@ export const usePayments = createDbLoader(
   (companyId) => dbService.payments.findAll(undefined, companyId ?? undefined),
   dbToPayment,
   "payments",
+  // Browser dev fallback only — never written in Tauri/production
   STORAGE_KEYS.payments,
 );
 
@@ -298,5 +313,31 @@ export const useVehicleArrivals = createDbLoader(
   (companyId) => dbService.vehicleArrivals.findAll(undefined, companyId ?? undefined),
   dbToVehicleArrival,
   "vehicleArrivals",
+  // Browser dev fallback only — never written in Tauri/production
   STORAGE_KEYS.vehicles,
+);
+
+// ── Caret Transactions ────────────────────────────────────────────────────────
+
+function dbToCaretTransaction(db: any): CaretTransaction {
+  return {
+    id: db.id,
+    date: db.date,
+    customerId: db.customerId,
+    customerName: db.customerName,
+    type: db.type as 'GIVEN' | 'RETURN',
+    fruitName: db.fruitName || '',
+    caretQty: db.caretQty || 0,
+    note: db.note,
+    billId: db.billId,
+    billNo: db.billNo,
+    companyId: db.companyId,
+    createdAt: db.createdAt,
+  };
+}
+
+export const useCaretTransactions = createDbLoader(
+  (companyId) => dbService.caretTransactions.findAll(undefined, companyId ?? undefined),
+  dbToCaretTransaction,
+  "caretTransactions",
 );
