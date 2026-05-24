@@ -28,7 +28,6 @@ import { useConfirmDialog } from "./ui/ConfirmDialog";
 import {
   Settings,
   Building2,
-  DollarSign,
   FileText,
   Database,
   Palette,
@@ -62,6 +61,7 @@ import {
   PenTool,
   Search,
   ArrowUpDown,
+  Hash,
 } from "lucide-react";
 import { CompanyProfile, Invoice } from "../types";
 import type { AppLanguage } from "@/types/language";
@@ -72,7 +72,6 @@ import { DataTable, Pagination } from "./ui/table";
 
 type Section =
   | "COMPANIES"
-  | "FINANCIAL"
   | "INVOICE"
   | "MASTERS"
   | "BACKUP"
@@ -409,8 +408,8 @@ export const SettingsModule: React.FC = () => {
       },
       financial: {
         financialYearStart: "04-01",
-        currency: cfCurrency,
-        commissionRate: 8,
+        currency: "INR",
+        commissionRate: 0,
         defaultHamali: 0,
         defaultFreight: 0,
       },
@@ -473,15 +472,11 @@ export const SettingsModule: React.FC = () => {
   };
 
   // ── local editable copies for controlled inputs ──
-  const [fin, setFin] = useState(settings.financial);
   const [inv, setInv] = useState(settings.invoice);
   const [sec, setSec] = useState(settings.security);
 
   // sync local state when settings change externally
 
-  React.useEffect(() => {
-    setFin(settings.financial);
-  }, [settings.financial]);
   React.useEffect(() => {
     setInv(settings.invoice);
   }, [settings.invoice]);
@@ -500,12 +495,6 @@ export const SettingsModule: React.FC = () => {
       label: "Companies",
       icon: <Briefcase className="w-4 h-4" />,
       desc: "Create, manage & switch companies",
-    },
-    {
-      id: "FINANCIAL",
-      label: "Financial",
-      icon: <DollarSign className="w-4 h-4" />,
-      desc: "Currency, commission, defaults",
     },
     {
       id: "INVOICE",
@@ -604,13 +593,6 @@ export const SettingsModule: React.FC = () => {
     </div>
   );
 
-  const saveFinancial = () => {
-    updateSettings({ financial: fin });
-    toast.success(
-      "Financial Saved",
-      "Financial settings updated across the system.",
-    );
-  };
   const saveInvoice = () => {
     updateSettings({ invoice: inv });
     toast.success(
@@ -766,8 +748,7 @@ export const SettingsModule: React.FC = () => {
           <span>SETTINGS & CONFIGURATION</span>
         </h1>
         <p className="text-xs dark:text-slate-400 text-slate-500 mt-0.5">
-          Company profile, financial defaults, invoice numbering, data backup,
-          appearance & security
+          Company profile, invoice numbering, data backup, appearance & security
         </p>
       </div>
 
@@ -903,7 +884,8 @@ export const SettingsModule: React.FC = () => {
                         </div>
                         <div className="px-4 py-2.5 border-t dark:border-slate-800 border-slate-200 dark:bg-slate-950/50 bg-slate-50 flex items-center justify-between">
                           <div className="text-[10px] dark:text-slate-500 text-slate-400 font-mono">
-                            {c.financial?.currency ?? "INR"} · {c.invoice?.salesPrefix ?? "INV"}-
+                            {c.financial?.currency ?? "INR"} ·{" "}
+                            {c.invoice?.salesPrefix ?? "INV"}-
                             {c.invoice?.salesNextNo ?? 1001}
                           </div>
                           <div className="flex items-center space-x-1">
@@ -981,115 +963,6 @@ export const SettingsModule: React.FC = () => {
                       Multi-company support
                     </div>
                   </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══ FINANCIAL ═══ */}
-          {activeSection === "FINANCIAL" && (
-            <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-slide-up">
-              <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="w-4 h-4 text-cyan-500" />
-                  <span className="text-sm font-bold dark:text-white text-slate-900">
-                    Financial Settings
-                  </span>
-                </div>
-                <button
-                  onClick={saveFinancial}
-                  className="flex items-center space-x-1.5 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow cursor-pointer transition-colors"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>Save Changes</span>
-                </button>
-              </div>
-              <div className="p-6 space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">
-                      Financial Year Start (MM-DD)
-                    </label>
-                    <input
-                      type="text"
-                      value={fin.financialYearStart}
-                      onChange={(e) =>
-                        setFin((p) => ({
-                          ...p,
-                          financialYearStart: e.target.value,
-                        }))
-                      }
-                      placeholder="04-01"
-                      className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs outline-none focus:border-cyan-500 font-mono font-bold"
-                    />
-                    <span className="text-[10px] dark:text-slate-500 text-slate-400 mt-0.5 block">
-                      April 1 = 04-01 (Indian FY)
-                    </span>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">
-                      Currency
-                    </label>
-                    <select
-                      value={fin.currency}
-                      onChange={(e) =>
-                        setFin((p) => ({ ...p, currency: e.target.value }))
-                      }
-                      className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs font-bold outline-none cursor-pointer focus:border-cyan-500"
-                    >
-                      <option value="INR">₹ INR — Indian Rupee</option>
-                      <option value="USD">$ USD — US Dollar</option>
-                      <option value="AED">د.إ AED — UAE Dirham</option>
-                    </select>
-                  </div>
-                  <Inp
-                    label="APMC Commission Rate (%)"
-                    type="number"
-                    value={fin.commissionRate}
-                    onChange={(v) =>
-                      setFin((p) => ({
-                        ...p,
-                        commissionRate: parseFloat(v) || 0,
-                      }))
-                    }
-                    placeholder="8"
-                    mono
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Inp
-                    label="Default Hamali / Loading Charge (₹)"
-                    type="number"
-                    value={fin.defaultHamali}
-                    onChange={(v) =>
-                      setFin((p) => ({
-                        ...p,
-                        defaultHamali: parseFloat(v) || 0,
-                      }))
-                    }
-                    placeholder="0"
-                    mono
-                  />
-                  <Inp
-                    label="Default Freight / Transport (₹)"
-                    type="number"
-                    value={fin.defaultFreight}
-                    onChange={(v) =>
-                      setFin((p) => ({
-                        ...p,
-                        defaultFreight: parseFloat(v) || 0,
-                      }))
-                    }
-                    placeholder="0"
-                    mono
-                  />
-                </div>
-                <div className="p-4 dark:bg-slate-950 bg-slate-50 rounded-xl border dark:border-slate-800 border-slate-200 flex items-start space-x-3">
-                  <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                  <div className="text-xs dark:text-slate-400 text-slate-600 leading-relaxed">
-                    Default values auto-fill into new invoices & vehicle
-                    entries. You can always override them per transaction.
-                  </div>
                 </div>
               </div>
             </div>
@@ -1215,12 +1088,12 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* 3. Numbering & Financial Defaults */}
+              {/* 3. Invoice Numbering */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                  <DollarSign className="w-4 h-4 text-cyan-500" />
+                  <Hash className="w-4 h-4 text-cyan-500" />
                   <span className="text-sm font-bold dark:text-white text-slate-900">
-                    Numbering & Financial Defaults
+                    Invoice Numbering
                   </span>
                 </div>
                 <div className="p-6 space-y-5">
@@ -1280,34 +1153,6 @@ export const SettingsModule: React.FC = () => {
                           arrivalNextNo: parseInt(v) || 0,
                         }))
                       }
-                      mono
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t dark:border-slate-800 border-slate-200">
-                    <Inp
-                      label="Default Tax Rate (%)"
-                      type="number"
-                      value={inv.defaultTaxRate ?? 0}
-                      onChange={(v) =>
-                        setInv((p) => ({
-                          ...p,
-                          defaultTaxRate: parseFloat(v) || 0,
-                        }))
-                      }
-                      placeholder="0"
-                      mono
-                    />
-                    <Inp
-                      label="Payment Due Days"
-                      type="number"
-                      value={inv.paymentDueDays ?? 15}
-                      onChange={(v) =>
-                        setInv((p) => ({
-                          ...p,
-                          paymentDueDays: parseInt(v) || 0,
-                        }))
-                      }
-                      placeholder="15"
                       mono
                     />
                   </div>

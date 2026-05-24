@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { fmtDate } from '@/utils/format';
 import { useApp } from '../context/AppContext';
 import { useToast } from './ui/Toast';
@@ -36,7 +36,7 @@ export const PartiesModule: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<FilterTab>('ALL');
-  const [viewMode, setViewMode] = useState<ViewMode>('GRID');
+  const [viewMode, setViewMode] = useState<ViewMode>('LIST');
   const [showModal, setShowModal] = useState(false);
   const [editingParty, setEditingParty] = useState<UnifiedParty | null>(null);
   const [formSection, setFormSection] = useState<FormSection>('BASIC');

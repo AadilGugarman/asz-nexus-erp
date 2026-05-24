@@ -11,11 +11,10 @@
         background-color: #0f172a; /* Default to dark theme slate-900 */
         margin: 0;
         padding: 0;
-       
       }
       html.light,
       html.light body {
-        background-color: #f8fafc; /* Default to light theme slate-50 */
+        background-color: #f0f4f8; /* Light theme page-bg */
       }
 
       #initial-loader {
@@ -73,6 +72,7 @@
 
           var root = document.documentElement;
           root.classList.toggle("dark", resolved === "dark");
+          root.classList.toggle("light", resolved === "light");
           root.dataset.theme = resolved;
           root.dataset.density =
             parsed.density ||

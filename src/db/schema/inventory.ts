@@ -17,15 +17,16 @@ export const vehicleArrivals = sqliteTable('vehicle_arrivals', {
   totalVehicleWeight:     real('total_vehicle_weight').notNull().default(0),
   driverName:             text('driver_name'),
   notes:                  text('notes'),
-  rows:                   text('rows').notNull().default('[]'),          // JSON: PurchaseRow[]
+  rows:                   text('rows').notNull().default('[]'),
   totalCarets:            real('total_carets').notNull().default(0),
   totalCalculatedWeight:  real('total_calculated_weight').notNull().default(0),
   totalAmount:            real('total_amount').notNull().default(0),
   freightCharge:          real('freight_charge'),
   hamaliCharge:           real('hamali_charge'),
   advancePaid:            real('advance_paid'),
-  status:                 text('status').notNull().default('DRAFT'),     // 'DRAFT' | 'SAVED'
+  status:                 text('status').notNull().default('DRAFT'),
   createdAt:              text('created_at').notNull(),
+  companyId:              text('company_id'),
 });
 
 // ── Inferred types ────────────────────────────────────────────────────────────

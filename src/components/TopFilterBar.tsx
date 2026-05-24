@@ -182,7 +182,7 @@ export const TopFilterBar: React.FC = () => {
                 })}
               </div>
               <div className="px-3 py-2 dark:border-[#1e3048] border-t border-[#dde3ec] text-[10px] dark:text-[#6a8aaa] text-[#5e7490] font-medium">
-                FY starts {settings.financial.financialYearStart} · Settings → Financial
+                FY starts {settings.financial.financialYearStart} · Setup during onboarding
               </div>
             </div>,
             document.body

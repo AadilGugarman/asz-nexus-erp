@@ -9,13 +9,14 @@ import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
 export const payments = sqliteTable('payments', {
   id:          text('id').primaryKey(),
   date:        text('date').notNull(),
-  partyType:   text('party_type').notNull(),    // 'SUPPLIER' | 'CUSTOMER'
+  partyType:   text('party_type').notNull(),
   partyId:     text('party_id').notNull(),
   partyName:   text('party_name').notNull(),
   amount:      real('amount').notNull(),
-  paymentMode: text('payment_mode').notNull(),  // 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI'
+  paymentMode: text('payment_mode').notNull(),
   referenceNo: text('reference_no'),
   notes:       text('notes'),
+  companyId:   text('company_id'),
 });
 
 // ── Inferred types ────────────────────────────────────────────────────────────

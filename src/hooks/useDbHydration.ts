@@ -1,19 +1,16 @@
 /**
  * hooks/useDbHydration.ts
- * Hooks for loading business data from SQLite into React state.
+ * Loads business data from SQLite into React state, scoped to the active company.
  *
- * These hooks handle:
- *   - Initial load from DB on startup
- *   - Async hydration with loading/error states
- *   - Fallback to localStorage in browser (non-Tauri) mode
- *
- * Usage:
- *   const { data: suppliers, isLoading, error, refetch } = useSuppliers();
+ * Every loader passes activeCompanyId to findAll() so Company A never sees
+ * Company B's records. Data re-fetches automatically when the active company
+ * changes (e.g. user switches company).
  */
 
 import { useEffect, useState, useCallback } from "react";
 import { dbService } from "@/db/services";
 import { useStartupStore } from "@/store/startup.store";
+import { useSettingsStore } from "@/store/settings.store";
 import { APP_CONFIG, STORAGE_KEYS } from "@/config";
 import type {
   Supplier,
@@ -35,7 +32,7 @@ export interface UseDbState<T> {
 }
 
 function createDbLoader<TDb, TClient>(
-  loader: () => Promise<TDb[]>,
+  loader: (companyId: string | null) => Promise<TDb[]>,
   transformer: (db: TDb) => TClient,
   name: string,
   storageKey?: string,
@@ -47,6 +44,7 @@ function createDbLoader<TDb, TClient>(
 
     const startupPhase = useStartupStore((s) => s.phase);
     const isDbReady = useStartupStore((s) => s.isDbReady);
+    const activeCompanyId = useSettingsStore((s) => s.activeCompanyId);
     const isTauri = APP_CONFIG.isTauri;
 
     const load = useCallback(async () => {
@@ -75,18 +73,20 @@ function createDbLoader<TDb, TClient>(
       }
 
       // ── Tauri / SQLite ─────────────────────────────────────────────────────
-      if (!isDbReady || !dbService.isReady) {
-        return;
-      }
+      if (!isDbReady || !dbService.isReady) return;
 
       setIsLoading(true);
       setError(null);
 
       try {
-        const dbRecords = await loader();
+        // Pass activeCompanyId so the repository filters by company_id column
+        const dbRecords = await loader(activeCompanyId);
 
         if (import.meta.env.DEV) {
-          console.info(`[useDbHydration] ${name}: loaded ${dbRecords.length} records.`);
+          console.info(
+            `[useDbHydration] ${name}: loaded ${dbRecords.length} records` +
+            (activeCompanyId ? ` for company ${activeCompanyId}` : " (no company filter)"),
+          );
         }
 
         setData(dbRecords.map(transformer));
@@ -97,25 +97,19 @@ function createDbLoader<TDb, TClient>(
       } finally {
         setIsLoading(false);
       }
-    }, [isDbReady, isTauri]);
+    }, [isDbReady, isTauri, activeCompanyId]);
 
     useEffect(() => {
       if (!isTauri) {
         void load();
         return;
       }
-
-      // Wait until startup has progressed past idle
-      if (startupPhase === "idle" && !isDbReady) {
-        return;
-      }
-
+      if (startupPhase === "idle" && !isDbReady) return;
       if (!isDbReady) {
         setData([]);
         setIsLoading(false);
         return;
       }
-
       void load();
     }, [startupPhase, isDbReady, isTauri, load]);
 
@@ -137,7 +131,7 @@ function dbToSupplier(db: any): Supplier {
 }
 
 export const useSuppliers = createDbLoader(
-  () => dbService.suppliers.findAll(),
+  (companyId) => dbService.suppliers.findAll(undefined, companyId ?? undefined),
   dbToSupplier,
   "suppliers",
   STORAGE_KEYS.suppliers,
@@ -156,7 +150,7 @@ function dbToCustomer(db: any): Customer {
 }
 
 export const useCustomers = createDbLoader(
-  () => dbService.customers.findAll(),
+  (companyId) => dbService.customers.findAll(undefined, companyId ?? undefined),
   dbToCustomer,
   "customers",
   STORAGE_KEYS.customers,
@@ -169,18 +163,12 @@ function dbToFruit(db: any): Fruit {
   try {
     const parsed = JSON.parse(db.varieties);
     varieties = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    // ignore malformed JSON
-  }
-  return {
-    id: db.id,
-    name: db.name,
-    varieties,
-  };
+  } catch { /* ignore */ }
+  return { id: db.id, name: db.name, varieties };
 }
 
 export const useFruits = createDbLoader(
-  () => dbService.fruits.findAll(),
+  (companyId) => dbService.fruits.findAll(undefined, companyId ?? undefined),
   dbToFruit,
   "fruits",
   STORAGE_KEYS.fruits,
@@ -193,9 +181,7 @@ function dbToInvoice(db: any): Invoice {
   try {
     const parsed = JSON.parse(db.items);
     items = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   return {
     id: db.id,
     invoiceNo: db.invoiceNo,
@@ -215,7 +201,7 @@ function dbToInvoice(db: any): Invoice {
 }
 
 export const useInvoices = createDbLoader(
-  () => dbService.invoices.findAll(),
+  (companyId) => dbService.invoices.findAll(undefined, companyId ?? undefined),
   dbToInvoice,
   "invoices",
   STORAGE_KEYS.invoices,
@@ -228,9 +214,7 @@ function dbToPurchaseInvoice(db: any): PurchaseInvoice {
   try {
     const parsed = JSON.parse(db.items);
     items = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   return {
     id: db.id,
     billNo: db.billNo,
@@ -250,7 +234,7 @@ function dbToPurchaseInvoice(db: any): PurchaseInvoice {
 }
 
 export const usePurchaseInvoices = createDbLoader(
-  () => dbService.purchaseInvoices.findAll(),
+  (companyId) => dbService.purchaseInvoices.findAll(undefined, companyId ?? undefined),
   dbToPurchaseInvoice,
   "purchaseInvoices",
   STORAGE_KEYS.purchaseInvoices,
@@ -273,7 +257,7 @@ function dbToPayment(db: any): PaymentReceipt {
 }
 
 export const usePayments = createDbLoader(
-  () => dbService.payments.findAll(),
+  (companyId) => dbService.payments.findAll(undefined, companyId ?? undefined),
   dbToPayment,
   "payments",
   STORAGE_KEYS.payments,
@@ -286,9 +270,7 @@ function dbToVehicleArrival(db: any): VehicleArrival {
   try {
     const parsed = JSON.parse(db.rows);
     rows = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   return {
     id: db.id,
     arrivalNo: db.arrivalNo,
@@ -313,7 +295,7 @@ function dbToVehicleArrival(db: any): VehicleArrival {
 }
 
 export const useVehicleArrivals = createDbLoader(
-  () => dbService.vehicleArrivals.findAll(),
+  (companyId) => dbService.vehicleArrivals.findAll(undefined, companyId ?? undefined),
   dbToVehicleArrival,
   "vehicleArrivals",
   STORAGE_KEYS.vehicles,

@@ -100,15 +100,11 @@ interface ExecutiveDashboardProps {
 }
 
 export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiveTab }) => {
-  const { vehicles, invoices, purchaseInvoices, suppliers, customers, payments, settings, getExportData } = useApp() || {};
+  const { vehicles, invoices, purchaseInvoices, suppliers, customers, payments, settings, getExportData } = useApp();
   const { t } = useAppTranslation('dashboard');
   const toast = useToast();
   const resolvedTheme = useAppearanceStore(s => s.resolvedTheme);
   const D = useMemo(() => buildTokens(resolvedTheme === 'dark'), [resolvedTheme]);
-
-  if (!useApp()) {
-    return <div className="p-8 text-center text-slate-500">Loading dashboard...</div>;
-  }
 
   const savedVehicles = (vehicles || []).filter(v => v?.status === 'SAVED');
 

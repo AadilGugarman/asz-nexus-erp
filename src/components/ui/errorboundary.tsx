@@ -35,35 +35,65 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 animate-in fade-in duration-500">
-          <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mb-6">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-            Oops! Something went wrong
-          </h2>
-
-          <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-8">
-            The application encountered an unexpected error while rendering this page.
-            This might be due to a temporary glitch or corrupted data.
-          </p>
-
-          {this.state.error && (
-            <div className="mb-8 p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-left overflow-auto max-w-lg mx-auto border dark:border-slate-700">
-              <code className="text-xs text-rose-600 dark:text-rose-400 font-mono break-all">
-                {this.state.error.message}
-              </code>
-            </div>
-          )}
-
-          <button
-            onClick={this.handleReset}
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25"
+        // Full-screen overlay that respects the current theme via CSS variables
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ backgroundColor: 'var(--page-bg, #f8fafc)', color: 'var(--text-primary, #0f172a)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl p-8 text-center shadow-xl border"
+            style={{
+              backgroundColor: 'var(--card-bg, #ffffff)',
+              borderColor: 'var(--card-border, rgba(15,23,42,0.08))',
+            }}
           >
-            <RefreshCcw className="w-4 h-4" />
-            <span>Reload Application</span>
-          </button>
+            {/* Icon */}
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/10">
+              <AlertTriangle className="h-8 w-8 text-rose-500" />
+            </div>
+
+            {/* Heading */}
+            <h2
+              className="mb-2 text-xl font-bold"
+              style={{ color: 'var(--text-primary, #0f172a)' }}
+            >
+              Oops! Something went wrong
+            </h2>
+
+            {/* Body */}
+            <p
+              className="mb-6 text-sm leading-relaxed"
+              style={{ color: 'var(--text-secondary, #64748b)' }}
+            >
+              The application encountered an unexpected error while rendering
+              this page. This might be due to a temporary glitch or corrupted
+              data.
+            </p>
+
+            {/* Error message */}
+            {this.state.error && (
+              <div
+                className="mb-6 rounded-xl p-4 text-left overflow-auto border"
+                style={{
+                  backgroundColor: 'var(--surface-bg, #f1f5f9)',
+                  borderColor: 'var(--card-border, rgba(15,23,42,0.08))',
+                }}
+              >
+                <code className="text-xs font-mono text-rose-600 dark:text-rose-400 break-all">
+                  {this.state.error.message}
+                </code>
+              </div>
+            )}
+
+            {/* Reload button */}
+            <button
+              onClick={this.handleReset}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              <span>Reload Application</span>
+            </button>
+          </div>
         </div>
       );
     }

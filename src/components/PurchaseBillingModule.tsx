@@ -13,6 +13,7 @@ import {
   Calendar,
   Copy,
   ArrowUpDown,
+  Calculator,
 } from "lucide-react";
 import { Combobox } from "./ui/Combobox";
 import { useToast } from "./ui/Toast";
@@ -377,9 +378,9 @@ export const PurchaseBillingModule: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
                 activeSubTab === tab.id
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                  ? "bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_6px_16px_rgba(0,174,239,0.3)]"
                   : `${muted} dark:hover:text-white hover:text-slate-900`
               }`}
             >
@@ -395,10 +396,26 @@ export const PurchaseBillingModule: React.FC = () => {
                                                                                                                                                     */}
       {activeSubTab === "NEW_INVOICE" && (
         <div className="space-y-4">
+          {/* Lorry Charges Toggle (Vehicle Inward Style) */}
+          <div className="flex items-center justify-between px-1">
+            <button
+              type="button"
+              onClick={() => setShowCharges(!showCharges)}
+              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5 cursor-pointer font-bold"
+            >
+              <Calculator className="w-3.5 h-3.5" />
+              <span>
+                {showCharges
+                  ? "Hide Lorry Deductions"
+                  : "Add Lorry Charges (Bhaada/Hamali)"}
+              </span>
+            </button>
+          </div>
+
           {/*        COMPACT FORM HEADER        */}
           <div className={`${card} overflow-hidden`}>
-            {/* Row 1: Bill No    Date    Supplier */}
-            <div className="grid grid-cols-[auto_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
+            {/* Row 1: Bill No    Date    Supplier    Vehicle No    Declared Wt */}
+            <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
               {/* Bill No */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5 min-w-[150px]">
                 <span
@@ -431,7 +448,10 @@ export const PurchaseBillingModule: React.FC = () => {
                   />
                   {date && (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-200 dark:border-slate-700 pointer-events-none leading-tight">
-                      {new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long' })}
+                      {new Date(`${date}T00:00:00`).toLocaleDateString(
+                        "en-IN",
+                        { weekday: "long" },
+                      )}
                     </span>
                   )}
                 </div>
@@ -456,10 +476,7 @@ export const PurchaseBillingModule: React.FC = () => {
                   creatable={false}
                 />
               </div>
-            </div>
-
-            {/* Row 2: Vehicle No    Declared Wt    Freight    Hamali    Notes */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-0 divide-x dark:divide-slate-800 divide-slate-100 border-t dark:border-slate-800 border-slate-100">
+              {/* Vehicle No */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
                 <span
                   className={`text-[10px] font-bold uppercase tracking-wider ${label}`}
@@ -474,6 +491,7 @@ export const PurchaseBillingModule: React.FC = () => {
                   className={`${inp} px-2 py-1 text-xs font-mono font-bold uppercase w-full`}
                 />
               </div>
+              {/* Declared Wt */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
                 <span
                   className={`text-[10px] font-bold uppercase tracking-wider ${label}`}
@@ -490,103 +508,60 @@ export const PurchaseBillingModule: React.FC = () => {
                   className={`${inp} px-2 py-1 text-xs font-mono font-bold w-full`}
                 />
               </div>
-              <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${label}`}
-                >
-                  Freight / Bhaada
-                </span>
-                <div className="relative">
-                  <span
-                    className={`absolute left-2 top-1.5 text-[11px] ${muted} font-mono`}
-                  >
-                    {" "}
-                    ₹{" "}
-                  </span>
-                  <input
-                    type="number"
-                    value={freightInput === 0 ? "" : freightInput}
-                    placeholder="0"
-                    onChange={(e) =>
-                      setFreightInput(parseFloat(e.target.value) || 0)
-                    }
-                    className={`${inp} pl-5 pr-2 py-1 text-xs font-mono font-bold dark:text-emerald-400 text-emerald-600 w-full`}
-                  />
-                </div>
-              </div>
-              <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${label}`}
-                >
-                  Hamali / Unloading
-                </span>
-                <div className="relative">
-                  <span
-                    className={`absolute left-2 top-1.5 text-[11px] ${muted} font-mono`}
-                  >
-                    {" "}
-                    ₹{" "}
-                  </span>
-                  <input
-                    type="number"
-                    value={hamaliInput === 0 ? "" : hamaliInput}
-                    placeholder="0"
-                    onChange={(e) =>
-                      setHamaliInput(parseFloat(e.target.value) || 0)
-                    }
-                    className={`${inp} pl-5 pr-2 py-1 text-xs font-mono font-bold dark:text-emerald-400 text-emerald-600 w-full`}
-                  />
-                </div>
-              </div>
-              <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${label}`}
-                >
-                  Notes
-                </span>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Remarks"
-                  className={`${inp} px-2 py-1 text-xs w-full`}
-                />
-              </div>
-            </div>
-
-            {/* Row 3: Balance strip */}
-            <div className="grid grid-cols-3 gap-0 divide-x dark:divide-slate-800 divide-slate-100 border-t dark:border-slate-800 border-slate-100">
-              <div className="px-4 py-2.5 flex items-center justify-between">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${muted}`}
-                >
-                  Previous
-                </span>
-                <span className="text-sm font-black font-mono dark:text-slate-200 text-slate-900">
-                  {" "}
-                  ₹ {previousBalance.toLocaleString("en-IN")}
-                </span>
-              </div>
-              <div className="px-4 py-2.5 flex items-center justify-between dark:bg-emerald-950/20 bg-emerald-50/40">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  + Today
-                </span>
-                <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
-                  {" "}
-                  ₹ {todayAmount.toLocaleString("en-IN")}
-                </span>
-              </div>
-              <div className="px-4 py-2.5 flex items-center justify-between bg-gradient-to-r from-emerald-600 to-teal-600">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">
-                  = Payable
-                </span>
-                <span className="text-base font-black font-mono text-white">
-                  {" "}
-                  ₹ {remainingBalance.toLocaleString("en-IN")}
-                </span>
-              </div>
             </div>
           </div>
+
+          {/* Advanced Lorry Charges Panel (Vehicle Inward Style) */}
+          {showCharges && (
+            <div
+              className={`${card} p-4 bg-slate-50/50 dark:bg-slate-950/30 border-emerald-500/20`}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Lorry Freight (Bhaada ₹)
+                  </label>
+                  <div className="relative">
+                    <span
+                      className={`absolute left-3 top-2.5 text-xs ${muted} font-mono`}
+                    >
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      value={freightInput === 0 ? "" : freightInput}
+                      placeholder="0"
+                      onChange={(e) =>
+                        setFreightInput(parseFloat(e.target.value) || 0)
+                      }
+                      className={`${inp} w-full pl-8 py-2 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400`}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Unloading (Hamali ₹)
+                  </label>
+                  <div className="relative">
+                    <span
+                      className={`absolute left-3 top-2.5 text-xs ${muted} font-mono`}
+                    >
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      value={hamaliInput === 0 ? "" : hamaliInput}
+                      placeholder="0"
+                      onChange={(e) =>
+                        setHamaliInput(parseFloat(e.target.value) || 0)
+                      }
+                      className={`${inp} w-full pl-8 py-2 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/*        ITEMS TABLE        */}
           <div className={`${card} overflow-hidden`}>
@@ -604,14 +579,16 @@ export const PurchaseBillingModule: React.FC = () => {
                   {items.length} rows
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={addItemRow}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-sm cursor-pointer transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Row</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={addItemRow}
+                  className="flex items-center gap-2 px-4 py-2 bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_6px_16px_rgba(0,174,239,0.3)] rounded-xl text-xs font-bold cursor-pointer transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Row</span>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -630,7 +607,6 @@ export const PurchaseBillingModule: React.FC = () => {
                     <th className="py-3 px-4 w-36 text-right font-black text-emerald-500 min-w-[130px]">
                       Amount
                     </th>
-                    <th className="py-3 px-3 min-w-[140px]">Notes</th>
                     <th className="py-3 px-3 w-16 text-center">Act.</th>
                   </tr>
                 </thead>
@@ -720,20 +696,8 @@ export const PurchaseBillingModule: React.FC = () => {
                           />
                         </td>
                         {/* Amount */}
-                        <td className="p-2 px-4 text-right font-black font-mono text-emerald-600 dark:text-emerald-400 dark:bg-emerald-950/15 bg-emerald-50/40 text-sm">
+                        <td className="p-2 px-4 text-right font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/8 text-sm">
                           ₹ {it.amount.toLocaleString("en-IN")}
-                        </td>
-                        {/* Row Note */}
-                        <td className="p-1.5">
-                          <input
-                            type="text"
-                            value={it.rowNote || ""}
-                            placeholder="Supplier note"
-                            onChange={(e) =>
-                              handleItemChange(idx, "rowNote", e.target.value)
-                            }
-                            className={`w-full ${inp} p-2 text-xs`}
-                          />
                         </td>
                         {/* Actions */}
                         <td className="p-1.5 text-center">
@@ -787,21 +751,13 @@ export const PurchaseBillingModule: React.FC = () => {
                       ).toFixed(1)}
                       /KG
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-black text-base">
+                    <td className="py-3.5 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-black text-base bg-emerald-500/8 border-l border-emerald-500/20">
                       ₹ {itemsSubtotal.toLocaleString("en-IN")}
                     </td>
                     <td
-                      colSpan={2}
                       className={`py-3.5 px-3 ${muted} text-[10px] font-normal`}
                     >
-                      <kbd className="dark:bg-slate-800 bg-slate-100 px-1 rounded font-mono">
-                        Enter
-                      </kbd>{" "}
-                      next cell &nbsp;
-                      <kbd className="dark:bg-slate-800 bg-slate-100 px-1 rounded font-mono">
-                        Alt+A
-                      </kbd>{" "}
-                      add row
+                      {/* Note removed as requested */}
                     </td>
                   </tr>
                   {(freight > 0 || hamali > 0) && (
@@ -830,6 +786,36 @@ export const PurchaseBillingModule: React.FC = () => {
               </table>
             </div>
 
+            {/* Summary Strip: Previous | Today | Payable */}
+            <div className="grid grid-cols-3 gap-0 divide-x dark:divide-slate-800 divide-slate-100 border-t dark:border-slate-800 border-slate-100">
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span
+                  className={`text-[11px] font-bold uppercase tracking-wider ${muted}`}
+                >
+                  Previous Balance
+                </span>
+                <span className="text-sm font-black font-mono dark:text-slate-200 text-slate-900">
+                  ₹ {previousBalance.toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="px-5 py-3 flex items-center justify-between dark:bg-emerald-950/20 bg-emerald-50/40">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  + Today's Bill
+                </span>
+                <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                  ₹ {todayAmount.toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="px-5 py-3 flex items-center justify-between bg-gradient-to-r from-emerald-600 to-teal-600">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
+                  = Total Payable
+                </span>
+                <span className="text-base font-black font-mono text-white">
+                  ₹ {remainingBalance.toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+
             {/*        FOOTER: notes + save        */}
             <div
               className={`p-5 ${hdr} border-t flex flex-col sm:flex-row items-center justify-between gap-4`}
@@ -852,16 +838,16 @@ export const PurchaseBillingModule: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleResetForm}
-                  className="px-5 py-3 dark:bg-slate-800 bg-slate-100 dark:hover:bg-slate-700 hover:bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors border dark:border-slate-700 border-slate-200"
+                  className="px-5 py-2.5 dark:bg-slate-800 bg-slate-100 dark:hover:bg-slate-700 hover:bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors border dark:border-slate-700 border-slate-200"
                 >
                   Clear
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveInvoice}
-                  className="px-7 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-sm font-black shadow-lg shadow-emerald-500/20 cursor-pointer transition-all flex items-center gap-2"
+                  className="px-6 py-2.5 bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_6px_16px_rgba(0,174,239,0.3)] rounded-xl text-sm font-bold cursor-pointer transition-all flex items-center gap-2"
                 >
-                  <Save className="w-5 h-5 stroke-[2.5]" />
+                  <Save className="w-5 h-5" />
                   <span>Save Purchase Bill</span>
                 </button>
               </div>

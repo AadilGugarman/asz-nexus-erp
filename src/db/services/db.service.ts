@@ -84,15 +84,22 @@ class DbService {
 
   private _require<T>(repo: T | undefined, name: string): T {
     if (!repo) {
-      if (import.meta.env.DEV) {
-        console.warn(`[DbService] Repository '${name}' accessed but not initialized. Returning dummy.`);
-        return {} as T; // Return empty object to prevent crash in dev
-      }
-       // If we are in production and this happens, it's a fatal setup error
-      throw new Error(
-        `[DbService] Repository '${name}' not initialised. ` +
-          "Call dbService.init() before using repositories.",
+      console.warn(
+        `[DbService] Repository '${name}' accessed before init — returning no-op proxy.`,
       );
+      // Return a safe proxy so callers never crash regardless of environment.
+      // All methods return empty/null gracefully.
+      return new Proxy({} as T, {
+        get: (_target, prop) => {
+          if (typeof prop === "string") {
+            return async (..._args: unknown[]) => {
+              console.warn(`[DbService] ${name}.${prop}() called before init — no-op.`);
+              return prop === "findAll" || prop === "findPaged" ? [] : null;
+            };
+          }
+          return undefined;
+        },
+      });
     }
     return repo;
   }

@@ -12,17 +12,16 @@
 import React from "react";
 import { Minus, Square, X } from "lucide-react";
 import { useWindow } from "@/hooks";
-import { useApp } from "@/context/AppContext";
+import { useAppearanceStore } from "@/store/appearance.store";
 import { APP_CONFIG } from "@/config";
 
 export const WindowControls: React.FC = () => {
-  const { theme } = useApp();
+  const resolvedTheme = useAppearanceStore((s) => s.resolvedTheme);
   const { minimize, toggleMaximize, close, isMaximized } = useWindow();
 
-  // Don't render in browser — no native window to control.
   if (!APP_CONFIG.isTauri) return null;
 
-  const isDark = theme === "dark";
+  const isDark = resolvedTheme === "dark";
 
   const btnBase = [
     "flex items-center justify-center",

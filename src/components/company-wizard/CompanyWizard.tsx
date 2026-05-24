@@ -12,6 +12,7 @@ import { CompanyFormData, ValidationErrors } from "@/types/company";
 import { useSettingsStore } from "@/store";
 import { DEFAULT_SETTINGS } from "@/store/settings.store";
 import { useToast } from "@/hooks/useToast";
+import { ipc } from "@/ipc";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { ROUTES, makeSettingsRoute } from "@/config";
 import type { NavigateFunction } from "react-router-dom";
@@ -357,10 +358,10 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             ...(existingCompany.invoice ?? DEFAULT_INVOICE),
             salesPrefix:
               formData.financial.invoicePrefix ||
-              existingCompany.invoice?.salesPrefix ?? "INV",
+              (existingCompany.invoice?.salesPrefix ?? "INV"),
             salesNextNo:
               Number(formData.financial.invoiceStartingNumber) ||
-              existingCompany.invoice?.salesNextNo ?? 1001,
+              (existingCompany.invoice?.salesNextNo ?? 1001),
           },
           city: formData.details.city,
           state: formData.details.state,
@@ -557,6 +558,11 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
         }}
         onConfigureTemplates={() => {
           navigate(makeSettingsRoute({ section: "INVOICE" }));
+        }}
+        onSeedDemo={async (profile) => {
+          const { useSettingsStore } = await import("@/store/settings.store");
+          const companyId = useSettingsStore.getState().activeCompanyId;
+          await ipc.db.reseedDemoData(profile, companyId);
         }}
       />
 

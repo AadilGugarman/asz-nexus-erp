@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useAppTranslation } from "@/hooks";
-import { useApp } from "../context/AppContext";
+import { useSettingsStore } from "@/store/settings.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useAppearanceStore } from "@/store/appearance.store";
 import {
@@ -132,12 +132,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   setCollapsed,
 }) => {
   const { t } = useAppTranslation("navbar");
-  const { settings } = useApp();
-  const coName = settings?.company?.name || 'Talha Fruit Co.';
-  const coTagline = settings?.company?.tagline || 'ERP System';
-  const logoUrl = settings?.company?.logo || '';
-  const initials = getCompanyInitials(coName);
-  const logout   = useAuthStore((s) => s.logout);
+  const companySettings = useSettingsStore((s) => s.settings.company);
+  const coName    = companySettings?.name    || 'Talha Fruit Co.';
+  const coTagline = companySettings?.tagline || 'ERP System';
+  const logoUrl   = companySettings?.logo    || '';
+  const initials  = getCompanyInitials(coName);
+  const logout    = useAuthStore((s) => s.logout);
   const resolvedTheme = useAppearanceStore((s) => s.resolvedTheme);
   const S = useMemo(() => buildSidebarTokens(resolvedTheme === 'dark'), [resolvedTheme]);
 

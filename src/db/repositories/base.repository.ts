@@ -66,10 +66,19 @@ export class BaseRepository<
 
   // ── findAll ────────────────────────────────────────────────────────────────
 
-  async findAll(where?: SQL): Promise<TSelect[]> {
+  async findAll(where?: SQL, companyId?: string): Promise<TSelect[]> {
     if (!this.db) return [];
     const q = (this.db as any).select().from(this.table);
-    if (where) q.where(where);
+
+    // Build the effective WHERE clause — combine caller's filter with company scope
+    const companyCol = (this.table as any).companyId;
+    if (companyId && companyCol) {
+      const companyFilter = eq(companyCol, companyId);
+      q.where(where ? and(where, companyFilter) : companyFilter);
+    } else if (where) {
+      q.where(where);
+    }
+
     const rows = await q;
     return rows as TSelect[];
   }

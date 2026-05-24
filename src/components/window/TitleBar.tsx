@@ -8,7 +8,8 @@ import React, { useCallback } from 'react';
 import { Pin, PinOff, Maximize2, Minimize2, Sun, Moon, Truck, Keyboard } from 'lucide-react';
 import { WindowControls } from './WindowControls';
 import { useWindow } from '@/hooks';
-import { useApp } from '@/context/AppContext';
+import { useAppearanceStore } from '@/store/appearance.store';
+import { useSettingsStore } from '@/store/settings.store';
 import { APP_CONFIG } from '@/config';
 
 interface TitleBarProps {
@@ -17,7 +18,9 @@ interface TitleBarProps {
 }
 
 export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
-  const { theme, toggleTheme, settings } = useApp();
+  const resolvedTheme = useAppearanceStore((s) => s.resolvedTheme);
+  const toggleTheme   = useAppearanceStore((s) => s.toggleTheme);
+  const companyName   = useSettingsStore((s) => s.settings.company?.name);
   const {
     startDrag,
     toggleMaximize,
@@ -28,8 +31,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
     isFocused,
   } = useWindow();
 
-  const isDark = theme === 'dark';
-  const coName = settings.company?.name || 'TFC ERP';
+  const isDark = resolvedTheme === 'dark';
+  const coName = companyName || 'TFC ERP';
 
   const handleDoubleClick = useCallback(() => {
     toggleMaximize();

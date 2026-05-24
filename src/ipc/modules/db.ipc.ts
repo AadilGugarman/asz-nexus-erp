@@ -169,12 +169,12 @@ export const dbIpc = {
   },
 
   /**
-   * Clears ERP tables and inserts deterministic demo data for the selected profile.
+   * Clears ERP tables (scoped to company) and inserts deterministic demo data.
    */
-  reseedDemoData(profile: SeedProfileKey): Promise<DbSeedExecutionResult> {
+  reseedDemoData(profile: SeedProfileKey, companyId?: string | null): Promise<DbSeedExecutionResult> {
     return ipcInvoke<DbSeedExecutionResult>(
       CMD.db.reseedDemoData,
-      { profile },
+      { profile, company_id: companyId ?? null },
       buildFallbackSeedResult(profile),
     );
   },

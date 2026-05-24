@@ -1,11 +1,5 @@
 /**
  * App.tsx — minimal entry point.
- *
- * Providers are composed in src/providers/index.tsx.
- * Router is in src/router/index.tsx.
- * Layout/shell is in src/app/AppShell.tsx.
- *
- * DO NOT add business logic here.
  */
 
 import { Providers } from './providers';
@@ -14,11 +8,11 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export function App() {
   return (
-    <Providers>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <Providers>
         <AppRouter />
-      </ErrorBoundary>
-    </Providers>
+      </Providers>
+    </ErrorBoundary>
   );
 }
 

@@ -74,7 +74,7 @@ interface AppContextType {
   fyOptions: string[];
   getExportData: () => string;
   companies: CompanyProfile[];
-  activeCompanyId: string;
+  activeCompanyId: string | null;
   addCompany: (profile: CompanyProfile) => void;
   updateCompany: (profile: CompanyProfile) => void;
   deleteCompany: (id: string) => void;
@@ -135,6 +135,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateCompany = useSettingsStore((s) => s.updateCompany);
   const deleteCompany = useSettingsStore((s) => s.deleteCompany);
   const switchCompany = useSettingsStore((s) => s.switchCompany);
+
+  // Convenience: current company id as a non-null string for DB writes
+  const cid = activeCompanyId ?? "default";
 
   // Auto-calculated Inventory & Stock Movements
   const { inventory, stockMovements } = useMemo(() => {
@@ -450,6 +453,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         advancePaid: newArrival.advancePaid,
         status: newArrival.status || "SAVED",
         createdAt: newArrival.createdAt || new Date().toISOString(),
+        companyId: cid,
       };
       if (isUpdate) {
         await dbService.vehicleArrivals.update(newArrival.id, entry);
@@ -494,6 +498,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         remainingBalance: newInvoice.remainingBalance || 0,
         notes: newInvoice.notes,
         createdAt: newInvoice.createdAt || new Date().toISOString(),
+        companyId: cid,
       };
       if (isUpdate) {
         await dbService.invoices.update(newInvoice.id, payload);
@@ -538,6 +543,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         remainingBalance: newInvoice.remainingBalance || 0,
         notes: newInvoice.notes,
         createdAt: newInvoice.createdAt || new Date().toISOString(),
+        companyId: cid,
       };
       if (isUpdate) {
         await dbService.purchaseInvoices.update(newInvoice.id, payload);
@@ -567,6 +573,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         paymentMode: payment.paymentMode,
         referenceNo: payment.referenceNo,
         notes: payment.notes,
+        companyId: cid,
       });
     });
   };
@@ -591,6 +598,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         phone: newSupplier.phone || "",
         city: newSupplier.city || "",
         previousBalance: newSupplier.previousBalance || 0,
+        companyId: cid,
       });
     });
   };
@@ -629,6 +637,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         phone: newCustomer.phone || "",
         city: newCustomer.city || "",
         previousBalance: newCustomer.previousBalance || 0,
+        companyId: cid,
       });
     });
   };
@@ -690,45 +699,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         id: newFruit.id,
         name: newFruit.name,
         varieties: JSON.stringify(newFruit.varieties),
+        companyId: cid,
       });
     });
   };
 
   // ── App Settings ────────────────────────────
   const resetAllData = () => {
-    // Remove all persisted business data from SQLite in the background.
+    // Delete only records belonging to the active company.
     void safeDbWrite("resetAllData", async () => {
-      const fruitRows = await dbService.fruits.findAll();
-      for (const row of fruitRows) {
-        await dbService.fruits.delete(row.id);
-      }
-      const supplierRows = await dbService.suppliers.findAll();
-      for (const row of supplierRows) {
-        await dbService.suppliers.delete(row.id);
-      }
-      const customerRows = await dbService.customers.findAll();
-      for (const row of customerRows) {
-        await dbService.customers.delete(row.id);
-      }
-      const vehicleRows = await dbService.vehicleArrivals.findAll();
-      for (const row of vehicleRows) {
-        await dbService.vehicleArrivals.delete(row.id);
-      }
-      const invoiceRows = await dbService.invoices.findAll();
-      for (const row of invoiceRows) {
-        await dbService.invoices.delete(row.id);
-      }
-      const purchaseRows = await dbService.purchaseInvoices.findAll();
-      for (const row of purchaseRows) {
-        await dbService.purchaseInvoices.delete(row.id);
-      }
-      const paymentRows = await dbService.payments.findAll();
-      for (const row of paymentRows) {
-        await dbService.payments.delete(row.id);
-      }
+      const companyFilter = cid;
+      const [fruitRows, supplierRows, customerRows, vehicleRows, invoiceRows, purchaseRows, paymentRows] =
+        await Promise.all([
+          dbService.fruits.findAll(undefined, companyFilter),
+          dbService.suppliers.findAll(undefined, companyFilter),
+          dbService.customers.findAll(undefined, companyFilter),
+          dbService.vehicleArrivals.findAll(undefined, companyFilter),
+          dbService.invoices.findAll(undefined, companyFilter),
+          dbService.purchaseInvoices.findAll(undefined, companyFilter),
+          dbService.payments.findAll(undefined, companyFilter),
+        ]);
+      await Promise.all([
+        ...fruitRows.map((r) => dbService.fruits.delete(r.id)),
+        ...supplierRows.map((r) => dbService.suppliers.delete(r.id)),
+        ...customerRows.map((r) => dbService.customers.delete(r.id)),
+        ...vehicleRows.map((r) => dbService.vehicleArrivals.delete(r.id)),
+        ...invoiceRows.map((r) => dbService.invoices.delete(r.id)),
+        ...purchaseRows.map((r) => dbService.purchaseInvoices.delete(r.id)),
+        ...paymentRows.map((r) => dbService.payments.delete(r.id)),
+      ]);
     });
 
-    // Clear local UI preferences and app cache keys.
     const keys = [
       STORAGE_KEYS.settings,
       STORAGE_KEYS.companies,

@@ -13,6 +13,7 @@ export const suppliers = sqliteTable('suppliers', {
   phone:           text('phone').notNull().default(''),
   city:            text('city').notNull().default(''),
   previousBalance: real('previous_balance').notNull().default(0),
+  companyId:       text('company_id'),
 });
 
 // ── Customers ─────────────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ export const customers = sqliteTable('customers', {
   phone:           text('phone').notNull().default(''),
   city:            text('city').notNull().default(''),
   previousBalance: real('previous_balance').notNull().default(0),
+  companyId:       text('company_id'),
 });
 
 // ── Inferred types ────────────────────────────────────────────────────────────

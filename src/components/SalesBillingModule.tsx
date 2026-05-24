@@ -73,7 +73,6 @@ export const SalesBillingModule: React.FC = () => {
     "NEW_INVOICE",
   );
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
-  const [showVehicleFields, setShowVehicleFields] = useState(false); // unused
 
   //        form state
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -429,8 +428,8 @@ export const SalesBillingModule: React.FC = () => {
         <div className="space-y-4">
           {/*        COMPACT FORM HEADER        */}
           <div className={`${card} overflow-hidden`}>
-            {/* Row 1: Invoice No    Date    Customer */}
-            <div className="grid grid-cols-[auto_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
+            {/* Row 1: Invoice No    Date    Customer    Vehicle No    Freight */}
+            <div className="grid grid-cols-[auto_1fr_1.5fr_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5 min-w-[150px]">
                 <span
                   className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
@@ -467,7 +466,10 @@ export const SalesBillingModule: React.FC = () => {
                   />
                   {date && (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-200 dark:border-slate-700 pointer-events-none leading-tight">
-                      {new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long' })}
+                      {new Date(`${date}T00:00:00`).toLocaleDateString(
+                        "en-IN",
+                        { weekday: "long" },
+                      )}
                     </span>
                   )}
                 </div>
@@ -491,10 +493,7 @@ export const SalesBillingModule: React.FC = () => {
                   creatable={false}
                 />
               </div>
-            </div>
-
-            {/* Row 2: Vehicle No    Declared Wt    Freight    Notes */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 divide-x dark:divide-slate-800 divide-slate-100 border-t dark:border-slate-800 border-slate-100">
+              {/* Vehicle No */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
                 <span
                   className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
@@ -509,22 +508,7 @@ export const SalesBillingModule: React.FC = () => {
                   className={`${inp} px-2 py-1 text-xs font-mono font-bold uppercase w-full`}
                 />
               </div>
-              <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
-                >
-                  Declared Wt (KG)
-                </span>
-                <input
-                  type="number"
-                  value={declaredWeight === 0 ? "" : declaredWeight}
-                  placeholder="0"
-                  onChange={(e) =>
-                    setDeclaredWeight(parseFloat(e.target.value) || 0)
-                  }
-                  className={`${inp} px-2 py-1 text-xs font-mono font-bold w-full`}
-                />
-              </div>
+              {/* Freight / Bhaada */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
                 <span
                   className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
@@ -549,53 +533,6 @@ export const SalesBillingModule: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
-                >
-                  Notes
-                </span>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Remarks"
-                  className={`${inp} px-2 py-1 text-xs w-full`}
-                />
-              </div>
-            </div>
-
-            {/* Row 3: Balance strip */}
-            <div className="grid grid-cols-3 gap-0 divide-x dark:divide-slate-800 divide-slate-100 border-t dark:border-slate-800 border-slate-100">
-              <div className="px-4 py-2.5 flex items-center justify-between">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${muted}`}
-                >
-                  Previous
-                </span>
-                <span className="text-sm font-black font-mono dark:text-slate-200 text-slate-900">
-                  {" "}
-                  ₹ {previousBalance.toLocaleString("en-IN")}
-                </span>
-              </div>
-              <div className="px-4 py-2.5 flex items-center justify-between dark:bg-indigo-950/20 bg-indigo-50/40">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                  + Today
-                </span>
-                <span className="text-sm font-black font-mono text-indigo-600 dark:text-indigo-400">
-                  {" "}
-                  ₹ {todayAmount.toLocaleString("en-IN")}
-                </span>
-              </div>
-              <div className="px-4 py-2.5 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-violet-600">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">
-                  = Receivable
-                </span>
-                <span className="text-base font-black font-mono text-white">
-                  {" "}
-                  ₹ {remainingBalance.toLocaleString("en-IN")}
-                </span>
-              </div>
             </div>
           </div>
 
@@ -615,14 +552,16 @@ export const SalesBillingModule: React.FC = () => {
                   {items.length}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={addItemRow}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-sm cursor-pointer transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Row</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={addItemRow}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-sm cursor-pointer transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Row</span>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -730,7 +669,7 @@ export const SalesBillingModule: React.FC = () => {
                           />
                         </td>
                         {/* Amount */}
-                        <td className="p-2 px-4 text-right font-black font-mono text-indigo-600 dark:text-indigo-400 dark:bg-indigo-950/15 bg-indigo-50/40 text-sm">
+                        <td className="p-2 px-4 text-right font-black font-mono text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 text-sm">
                           ₹ {it.amount.toLocaleString("en-IN")}
                         </td>
                         {/* Actions */}
@@ -785,20 +724,13 @@ export const SalesBillingModule: React.FC = () => {
                       ).toFixed(1)}
                       /KG
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-indigo-600 dark:text-indigo-400 font-black text-base">
+                    <td className="py-3.5 px-4 text-right font-mono text-indigo-600 dark:text-indigo-400 font-black text-base bg-indigo-500/10 border-l border-indigo-500/20">
                       ₹ {itemsSubtotal.toLocaleString("en-IN")}
                     </td>
                     <td
                       className={`py-3.5 px-3 ${muted} text-[10px] font-normal`}
                     >
-                      <kbd className="dark:bg-slate-800 bg-slate-100 px-1 rounded font-mono">
-                        Enter
-                      </kbd>{" "}
-                      next &nbsp;
-                      <kbd className="dark:bg-slate-800 bg-slate-100 px-1 rounded font-mono">
-                        Alt+A
-                      </kbd>{" "}
-                      add
+                      {/* Keyboard hints removed as requested */}
                     </td>
                   </tr>
                   {freight > 0 && (
@@ -819,6 +751,36 @@ export const SalesBillingModule: React.FC = () => {
                   )}
                 </tfoot>
               </table>
+            </div>
+
+            {/* Summary Strip: Previous | Today | Receivable */}
+            <div className="grid grid-cols-3 gap-0 divide-x dark:divide-slate-800 divide-slate-100 border-t dark:border-slate-800 border-slate-100">
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span
+                  className={`text-[11px] font-bold uppercase tracking-wider ${muted}`}
+                >
+                  Previous Balance
+                </span>
+                <span className="text-sm font-black font-mono dark:text-slate-200 text-slate-900">
+                  ₹ {previousBalance.toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="px-5 py-3 flex items-center justify-between dark:bg-indigo-950/20 bg-indigo-50/40">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  + Today's Bill
+                </span>
+                <span className="text-sm font-black font-mono text-indigo-600 dark:text-indigo-400">
+                  ₹ {todayAmount.toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="px-5 py-3 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-violet-600">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
+                  = Total Receivable
+                </span>
+                <span className="text-base font-black font-mono text-white">
+                  ₹ {remainingBalance.toLocaleString("en-IN")}
+                </span>
+              </div>
             </div>
 
             {/*        FOOTER: notes + save        */}

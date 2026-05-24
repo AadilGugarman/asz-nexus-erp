@@ -18,6 +18,7 @@ pub struct DbStats {
 #[derive(Debug, Deserialize)]
 pub struct DemoSeedRequest {
     pub profile: String,
+    pub company_id: Option<String>,
 }
 
 /// Returns database connection status and live record counts.
@@ -47,7 +48,8 @@ pub async fn db_reseed_demo_data(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<IpcResponse<demo_seed::SeedExecutionResponse>> {
     let mut conn = get_conn(&state.db)?;
-    let result = demo_seed::reseed_demo_data(&mut conn, &payload.profile)?;
+    let company_id = payload.company_id.as_deref().unwrap_or("default");
+    let result = demo_seed::reseed_demo_data(&mut conn, &payload.profile, company_id)?;
     Ok(IpcResponse::ok(result))
 }
 

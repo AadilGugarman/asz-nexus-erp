@@ -13,7 +13,6 @@ use crate::error::{AppError, AppResult};
 const SETTINGS_KEY_APP: &str = "tfc_erp_settings";
 const SETTINGS_KEY_COMPANIES: &str = "tfc_erp_companies";
 const SETTINGS_KEY_ACTIVE_COMPANY: &str = "tfc_erp_active_company";
-const SETTINGS_KEY_ACTIVE_FY: &str = "tfc_erp_active_fy";
 const SETTINGS_KEY_SEED_META: &str = "tfc_erp_demo_seed_metadata";
 
 #[derive(Debug, Clone, Serialize)]
@@ -364,7 +363,14 @@ pub fn seed_plan() -> SeedPlanResponse {
 pub fn reset_demo_data(conn: &mut Connection) -> AppResult<SeedResetResponse> {
     let tx = conn.transaction().map_err(db_err)?;
     let deleted_counts = count_existing(&tx)?;
-    clear_erp_tables(&tx)?;
+    // Reset clears ALL companies' data — used for full wipe only
+    tx.execute("DELETE FROM payments", []).map_err(db_err)?;
+    tx.execute("DELETE FROM invoices", []).map_err(db_err)?;
+    tx.execute("DELETE FROM purchase_invoices", []).map_err(db_err)?;
+    tx.execute("DELETE FROM vehicle_arrivals", []).map_err(db_err)?;
+    tx.execute("DELETE FROM customers", []).map_err(db_err)?;
+    tx.execute("DELETE FROM suppliers", []).map_err(db_err)?;
+    tx.execute("DELETE FROM fruits", []).map_err(db_err)?;
     tx.commit().map_err(db_err)?;
 
     Ok(SeedResetResponse {
@@ -373,7 +379,7 @@ pub fn reset_demo_data(conn: &mut Connection) -> AppResult<SeedResetResponse> {
     })
 }
 
-pub fn reseed_demo_data(conn: &mut Connection, profile: &str) -> AppResult<SeedExecutionResponse> {
+pub fn reseed_demo_data(conn: &mut Connection, profile: &str, company_id: &str) -> AppResult<SeedExecutionResponse> {
     let spec = find_profile(profile)?;
 
     // Use IMMEDIATE transaction to ensure we get a write lock even if frontend is reading
@@ -382,9 +388,9 @@ pub fn reseed_demo_data(conn: &mut Connection, profile: &str) -> AppResult<SeedE
         .map_err(db_err)?;
 
     let deleted_counts = count_existing(&tx)?;
-    clear_erp_tables(&tx)?;
+    clear_erp_tables(&tx, company_id)?;
 
-    let build = build_dataset(&tx, spec)?;
+    let build = build_dataset(&tx, spec, company_id)?;
     tx.commit().map_err(db_err)?;
 
     Ok(SeedExecutionResponse {
@@ -455,15 +461,15 @@ fn count_table(tx: &Transaction<'_>, table: &str) -> AppResult<u32> {
         .map_err(db_err)
 }
 
-fn clear_erp_tables(tx: &Transaction<'_>) -> AppResult<()> {
-    tx.execute("DELETE FROM payments", []).map_err(db_err)?;
-    tx.execute("DELETE FROM invoices", []).map_err(db_err)?;
-    tx.execute("DELETE FROM purchase_invoices", []).map_err(db_err)?;
-    tx.execute("DELETE FROM vehicle_arrivals", []).map_err(db_err)?;
-    tx.execute("DELETE FROM customers", []).map_err(db_err)?;
-    tx.execute("DELETE FROM suppliers", []).map_err(db_err)?;
-    tx.execute("DELETE FROM fruits", []).map_err(db_err)?;
-    tx.execute("DELETE FROM app_settings", []).map_err(db_err)?;
+fn clear_erp_tables(tx: &Transaction<'_>, company_id: &str) -> AppResult<()> {
+    // Only delete rows belonging to this company — other companies' data is untouched.
+    tx.execute("DELETE FROM payments          WHERE company_id = ?1", [company_id]).map_err(db_err)?;
+    tx.execute("DELETE FROM invoices          WHERE company_id = ?1", [company_id]).map_err(db_err)?;
+    tx.execute("DELETE FROM purchase_invoices WHERE company_id = ?1", [company_id]).map_err(db_err)?;
+    tx.execute("DELETE FROM vehicle_arrivals  WHERE company_id = ?1", [company_id]).map_err(db_err)?;
+    tx.execute("DELETE FROM customers         WHERE company_id = ?1", [company_id]).map_err(db_err)?;
+    tx.execute("DELETE FROM suppliers         WHERE company_id = ?1", [company_id]).map_err(db_err)?;
+    tx.execute("DELETE FROM fruits            WHERE company_id = ?1", [company_id]).map_err(db_err)?;
     Ok(())
 }
 
@@ -474,7 +480,7 @@ struct DatasetBuildResult {
     company_name: String,
 }
 
-fn build_dataset(tx: &Transaction<'_>, spec: SeedProfileSpec) -> AppResult<DatasetBuildResult> {
+fn build_dataset(tx: &Transaction<'_>, spec: SeedProfileSpec, company_id: &str) -> AppResult<DatasetBuildResult> {
     let mut rng = SeedRng::new(spec.rng_seed);
     let today = Utc::now().date_naive();
     let start_date = today - Duration::days(spec.approx_history_days as i64);
@@ -482,9 +488,9 @@ fn build_dataset(tx: &Transaction<'_>, spec: SeedProfileSpec) -> AppResult<Datas
     let suppliers = build_suppliers(spec, &mut rng);
     let customers = build_customers(spec, &mut rng);
 
-    insert_fruits(tx, &fruits)?;
-    insert_suppliers(tx, &suppliers)?;
-    insert_customers(tx, &customers)?;
+    insert_fruits(tx, &fruits, company_id)?;
+    insert_suppliers(tx, &suppliers, company_id)?;
+    insert_customers(tx, &customers, company_id)?;
 
     let mut stock = BTreeMap::<String, StockBucket>::new();
     let mut supplier_balances = suppliers
@@ -496,49 +502,20 @@ fn build_dataset(tx: &Transaction<'_>, spec: SeedProfileSpec) -> AppResult<Datas
         .map(|customer| (customer.id.clone(), customer.previous_balance))
         .collect::<BTreeMap<_, _>>();
 
-    insert_vehicle_arrivals(
-        tx,
-        spec,
-        start_date,
-        &fruits,
-        &suppliers,
-        &mut stock,
-        &mut rng,
-    )?;
+    insert_vehicle_arrivals(tx, spec, start_date, &fruits, &suppliers, &mut stock, &mut rng, company_id)?;
+    insert_purchase_invoices(tx, spec, start_date, &fruits, &suppliers, &mut supplier_balances, &mut stock, &mut rng, company_id)?;
+    insert_sales_invoices(tx, spec, start_date, &customers, &mut customer_balances, &mut stock, &mut rng, company_id)?;
+    insert_payments(tx, spec, start_date, &suppliers, &customers, &mut supplier_balances, &mut customer_balances, &mut rng, company_id)?;
 
-    insert_purchase_invoices(
-        tx,
-        spec,
-        start_date,
-        &fruits,
-        &suppliers,
-        &mut supplier_balances,
-        &mut stock,
-        &mut rng,
-    )?;
+    // Read the existing company name from app_settings so we can return it
+    // in the response without overwriting anything the user configured.
+    let company_name = read_company_name(tx);
 
-    insert_sales_invoices(
-        tx,
-        spec,
-        start_date,
-        &customers,
-        &mut customer_balances,
-        &mut stock,
-        &mut rng,
-    )?;
-
-    insert_payments(
-        tx,
-        spec,
-        start_date,
-        &suppliers,
-        &customers,
-        &mut supplier_balances,
-        &mut customer_balances,
-        &mut rng,
-    )?;
-
-    let company_name = seed_settings(tx, spec, start_date, today)?;
+    // Update invoice counters so the next real invoice doesn't collide with
+    // seeded document numbers. We only patch the numeric counters inside the
+    // existing settings blob — everything else (company name, address, etc.)
+    // is left exactly as the user saved it.
+    update_invoice_counters(tx, spec)?;
 
     Ok(DatasetBuildResult {
         inserted_counts: SeedTableCounts {
@@ -549,7 +526,7 @@ fn build_dataset(tx: &Transaction<'_>, spec: SeedProfileSpec) -> AppResult<Datas
             purchase_invoices: spec.purchase_invoices,
             sales_invoices: spec.sales_invoices,
             payments: spec.payments,
-            app_settings: 4,
+            app_settings: 0, // we no longer touch app_settings wholesale
         },
         started_on: start_date.format("%Y-%m-%d").to_string(),
         ended_on: today.format("%Y-%m-%d").to_string(),
@@ -641,52 +618,46 @@ fn build_customers(spec: SeedProfileSpec, rng: &mut SeedRng) -> Vec<CustomerSeed
         .collect()
 }
 
-fn insert_fruits(tx: &Transaction<'_>, fruits: &[FruitSeed]) -> AppResult<()> {
+fn insert_fruits(tx: &Transaction<'_>, fruits: &[FruitSeed], company_id: &str) -> AppResult<()> {
     let mut stmt = tx
-        .prepare("INSERT INTO fruits (id, name, varieties) VALUES (?1, ?2, ?3)")
+        .prepare("INSERT INTO fruits (id, name, varieties, company_id) VALUES (?1, ?2, ?3, ?4)")
         .map_err(db_err)?;
     for fruit in fruits {
-        stmt.execute(params![fruit.id, fruit.name, serde_json::to_string(&fruit.varieties)?])
+        stmt.execute(params![fruit.id, fruit.name, serde_json::to_string(&fruit.varieties)?, company_id])
             .map_err(db_err)?;
     }
     Ok(())
 }
 
-fn insert_suppliers(tx: &Transaction<'_>, suppliers: &[SupplierSeed]) -> AppResult<()> {
+fn insert_suppliers(tx: &Transaction<'_>, suppliers: &[SupplierSeed], company_id: &str) -> AppResult<()> {
     let mut stmt = tx
         .prepare(
-            "INSERT INTO suppliers (id, name, code, phone, city, previous_balance)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO suppliers (id, name, code, phone, city, previous_balance, company_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         )
         .map_err(db_err)?;
     for supplier in suppliers {
         stmt.execute(params![
-            supplier.id,
-            supplier.name,
-            supplier.code,
-            supplier.phone,
-            supplier.city,
-            supplier.previous_balance,
+            supplier.id, supplier.name, supplier.code,
+            supplier.phone, supplier.city, supplier.previous_balance,
+            company_id,
         ])
         .map_err(db_err)?;
     }
     Ok(())
 }
 
-fn insert_customers(tx: &Transaction<'_>, customers: &[CustomerSeed]) -> AppResult<()> {
+fn insert_customers(tx: &Transaction<'_>, customers: &[CustomerSeed], company_id: &str) -> AppResult<()> {
     let mut stmt = tx
         .prepare(
-            "INSERT INTO customers (id, name, phone, city, previous_balance)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO customers (id, name, phone, city, previous_balance, company_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         )
         .map_err(db_err)?;
     for customer in customers {
         stmt.execute(params![
-            customer.id,
-            customer.name,
-            customer.phone,
-            customer.city,
-            customer.previous_balance,
+            customer.id, customer.name, customer.phone,
+            customer.city, customer.previous_balance, company_id,
         ])
         .map_err(db_err)?;
     }
@@ -701,6 +672,7 @@ fn insert_vehicle_arrivals(
     suppliers: &[SupplierSeed],
     stock: &mut BTreeMap<String, StockBucket>,
     rng: &mut SeedRng,
+    company_id: &str,
 ) -> AppResult<()> {
     let mut stmt = tx
         .prepare(
@@ -708,8 +680,8 @@ fn insert_vehicle_arrivals(
              (id, arrival_no, date, day, vehicle_no, vehicle_name, fruit_type,
               total_vehicle_weight, driver_name, notes, rows, total_carets,
               total_calculated_weight, total_amount, freight_charge, hamali_charge,
-              advance_paid, status, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+              advance_paid, status, created_at, company_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
         )
         .map_err(db_err)?;
 
@@ -778,6 +750,7 @@ fn insert_vehicle_arrivals(
             advance,
             "SAVED",
             timestamp_for(date, 6 + (index % 10), 10 + (index % 45)),
+            company_id,
         ])
         .map_err(db_err)?;
     }
@@ -794,14 +767,15 @@ fn insert_purchase_invoices(
     balances: &mut BTreeMap<String, f64>,
     stock: &mut BTreeMap<String, StockBucket>,
     rng: &mut SeedRng,
+    company_id: &str,
 ) -> AppResult<()> {
     let mut stmt = tx
         .prepare(
             "INSERT INTO purchase_invoices
              (id, bill_no, date, supplier_id, supplier_name, items,
               previous_balance, today_amount, freight, hamali,
-              paid_amount, remaining_balance, notes, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+              paid_amount, remaining_balance, notes, created_at, company_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         )
         .map_err(db_err)?;
 
@@ -857,6 +831,7 @@ fn insert_purchase_invoices(
             remaining_balance,
             format!("Purchase bill posted against {} lane supply", supplier.city),
             timestamp_for(date, 10 + (index % 8), 15 + (index % 40)),
+            company_id,
         ])
         .map_err(db_err)?;
     }
@@ -872,14 +847,15 @@ fn insert_sales_invoices(
     balances: &mut BTreeMap<String, f64>,
     stock: &mut BTreeMap<String, StockBucket>,
     rng: &mut SeedRng,
+    company_id: &str,
 ) -> AppResult<()> {
     let mut stmt = tx
         .prepare(
             "INSERT INTO invoices
              (id, invoice_no, date, customer_id, customer_name, items,
               previous_balance, today_amount, hamali, discount,
-              paid_amount, remaining_balance, notes, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+              paid_amount, remaining_balance, notes, created_at, company_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         )
         .map_err(db_err)?;
 
@@ -917,6 +893,7 @@ fn insert_sales_invoices(
             remaining_balance,
             format!("Route dispatch for {} market coverage", customer.city),
             timestamp_for(date, 13 + (index % 7), 5 + (index % 50)),
+            company_id,
         ])
         .map_err(db_err)?;
     }
@@ -933,12 +910,13 @@ fn insert_payments(
     supplier_balances: &mut BTreeMap<String, f64>,
     customer_balances: &mut BTreeMap<String, f64>,
     rng: &mut SeedRng,
+    company_id: &str,
 ) -> AppResult<()> {
     let mut stmt = tx
         .prepare(
             "INSERT INTO payments
-             (id, date, party_type, party_id, party_name, amount, payment_mode, reference_no, notes)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+             (id, date, party_type, party_id, party_name, amount, payment_mode, reference_no, notes, company_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         )
         .map_err(db_err)?;
 
@@ -971,6 +949,7 @@ fn insert_payments(
             payment_mode,
             payment_reference(payment_mode, index as usize),
             format!("{} settlement through {}", party_type, payment_mode.to_lowercase().replace('_', " ")),
+            company_id,
         ])
         .map_err(db_err)?;
     }
@@ -978,118 +957,75 @@ fn insert_payments(
     Ok(())
 }
 
-fn seed_settings(
-    tx: &Transaction<'_>,
-    spec: SeedProfileSpec,
-    start_date: NaiveDate,
-    end_date: NaiveDate,
-) -> AppResult<String> {
-    let company_name = "Talha Fruit Co.".to_string();
-    let app_settings = json!({
-        "company": {
-            "name": company_name,
-            "tagline": "Wholesale fruit merchants and commission agents",
-            "address": "APMC Yard, Market Road, Gate No. 2",
-            "phone": "+91 98765 43210",
-            "email": "contact@talhafruit.co",
-            "gstin": "24ABCDE1234F1ZX",
-            "bankName": "State Bank of India",
-            "accountNo": "458901230001",
-            "ifsc": "SBIN0004589",
-            "upiId": "talhafruit@upi",
-            "logo": ""
-        },
-        "financial": {
-            "financialYearStart": "04-01",
-            "currency": "INR",
-            "commissionRate": 8,
-            "defaultHamali": 0,
-            "defaultFreight": 0
-        },
-        "invoice": {
-            "salesPrefix": "INV",
-            "purchasePrefix": "PUR",
-            "arrivalPrefix": "ARR",
-            "salesNextNo": 1001 + spec.sales_invoices,
-            "purchaseNextNo": 101 + spec.purchase_invoices,
-            "arrivalNextNo": 1 + spec.vehicle_arrivals,
-            "termsText": "Subject to APMC market yard rules. Goods once sold will not be taken back.",
-            "footerNote": "Generated from deterministic offline demo dataset",
-            "showUPI": true,
-            "showBankDetails": true,
-            "templateStyle": "modern",
-            "brandColor": "#fbbf24",
-            "enableQR": true,
-            "autoInvoiceNo": true,
-            "invoiceNumberMode": "sequential",
-            "businessPrefix": "NX",
-            "defaultTaxRate": 0,
-            "paymentDueDays": 15,
-            "showCompanyDetails": true,
-            "showPaymentDetails": true,
-            "watermarkType": "none",
-            "watermarkText": "",
-            "watermarkImage": "",
-            "watermarkOpacity": 0.08,
-            "watermarkSize": 110,
-            "watermarkPosition": "center",
-            "watermarkRepeat": false,
-            "signatureImage": "",
-            "invoiceLogo": "",
-            "enableInvoiceLogo": false
-        },
-        "security": {
-            "appPin": "",
-            "autoLockMinutes": 0,
-            "pinEnabled": false
-        },
-        "setupCompleted": true
-    });
+/// Read the company name from the existing app_settings row.
+/// Returns a fallback string if no settings have been saved yet
+/// (e.g. seeding before the wizard completes — unusual but safe).
+fn read_company_name(tx: &Transaction<'_>) -> String {
+    tx.query_row(
+        "SELECT value FROM app_settings WHERE key = ?1 LIMIT 1",
+        [SETTINGS_KEY_APP],
+        |row| row.get::<_, String>(0),
+    )
+    .ok()
+    .and_then(|json_str| {
+        serde_json::from_str::<serde_json::Value>(&json_str).ok()
+    })
+    .and_then(|v| v["company"]["name"].as_str().map(|s| s.to_string()))
+    .unwrap_or_else(|| "Your Company".to_string())
+}
 
-    let companies = json!([
-        {
-            "id": "co-demo-main",
-            "company": app_settings["company"].clone(),
-            "financial": app_settings["financial"].clone(),
-            "invoice": app_settings["invoice"].clone(),
-            "createdAt": timestamp_now(),
-            "pan": "ABCDE1234F",
-            "city": "Surat",
-            "state": "Gujarat",
-            "pincode": "395003",
-            "logo": ""
+/// Patch only the invoice sequence counters inside the existing settings blob
+/// so the next real invoice the user creates doesn't collide with seeded numbers.
+/// Every other field (company name, address, GSTIN, etc.) is left untouched.
+fn update_invoice_counters(tx: &Transaction<'_>, spec: SeedProfileSpec) -> AppResult<()> {
+    // Read the current settings blob
+    let existing: Option<String> = tx.query_row(
+        "SELECT value FROM app_settings WHERE key = ?1 LIMIT 1",
+        [SETTINGS_KEY_APP],
+        |row| row.get(0),
+    ).ok();
+
+    let mut settings: serde_json::Value = existing
+        .as_deref()
+        .and_then(|s| serde_json::from_str(s).ok())
+        .unwrap_or_else(|| json!({}));
+
+    // Bump counters past the seeded range
+    settings["invoice"]["salesNextNo"]    = json!(1001 + spec.sales_invoices);
+    settings["invoice"]["purchaseNextNo"] = json!(101  + spec.purchase_invoices);
+    settings["invoice"]["arrivalNextNo"]  = json!(1    + spec.vehicle_arrivals);
+
+    let updated = settings.to_string();
+    tx.execute(
+        "INSERT OR REPLACE INTO app_settings (key, value) VALUES (?1, ?2)",
+        params![SETTINGS_KEY_APP, updated],
+    ).map_err(db_err)?;
+
+    // Also patch the same counters inside the companies array so the
+    // active company profile stays in sync.
+    let existing_companies: Option<String> = tx.query_row(
+        "SELECT value FROM app_settings WHERE key = ?1 LIMIT 1",
+        [SETTINGS_KEY_COMPANIES],
+        |row| row.get(0),
+    ).ok();
+
+    if let Some(companies_json) = existing_companies {
+        if let Ok(mut companies) = serde_json::from_str::<serde_json::Value>(&companies_json) {
+            if let Some(arr) = companies.as_array_mut() {
+                for company in arr.iter_mut() {
+                    company["invoice"]["salesNextNo"]    = json!(1001 + spec.sales_invoices);
+                    company["invoice"]["purchaseNextNo"] = json!(101  + spec.purchase_invoices);
+                    company["invoice"]["arrivalNextNo"]  = json!(1    + spec.vehicle_arrivals);
+                }
+                tx.execute(
+                    "INSERT OR REPLACE INTO app_settings (key, value) VALUES (?1, ?2)",
+                    params![SETTINGS_KEY_COMPANIES, companies.to_string()],
+                ).map_err(db_err)?;
+            }
         }
-    ]);
-
-    let seed_meta = json!({
-        "profile": spec.key,
-        "seededAt": timestamp_now(),
-        "dateRange": {
-            "from": start_date.format("%Y-%m-%d").to_string(),
-            "to": end_date.format("%Y-%m-%d").to_string()
-        },
-        "recommendedCounts": to_profile_recommendation(&spec).counts,
-        "strategy": seed_plan().scaling_strategy,
-        "notes": seed_plan().notes,
-    });
-
-    let entries = vec![
-        (SETTINGS_KEY_APP, app_settings),
-        (SETTINGS_KEY_COMPANIES, companies),
-        (SETTINGS_KEY_ACTIVE_COMPANY, json!("co-demo-main")),
-        (SETTINGS_KEY_ACTIVE_FY, json!("2026-27")),
-        ("tfc_erp_setup_done", json!(true)),
-        (SETTINGS_KEY_SEED_META, seed_meta),
-    ];
-
-    let mut stmt = tx
-        .prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?1, ?2)")
-        .map_err(db_err)?;
-    for (key, value) in entries {
-        stmt.execute(params![key, value.to_string()]).map_err(db_err)?;
     }
 
-    Ok(company_name)
+    Ok(())
 }
 
 fn shift_date(

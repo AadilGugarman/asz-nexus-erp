@@ -29,7 +29,7 @@ export const PaymentsModule: React.FC = () => {
   const toast = useToast();
   const dialog = useConfirmDialog();
 
-  const [activeTab, setActiveTab] = useState<'NEW' | 'LIST'>('LIST');
+  const [activeTab, setActiveTab] = useState<'NEW' | 'LIST'>('NEW');
   const [previewPayment, setPreviewPayment] = useState<PaymentReceipt | null>(null);
   const [isListLoading, setIsListLoading] = useState(false);
 
