@@ -22,6 +22,7 @@ import { decidePostStartupRoute } from "./routeDecision";
 
 export const ProtectedRoute: React.FC = () => {
   const startupPhase = useStartupStore((s) => s.phase);
+  const uiReady      = useStartupStore((s) => s.uiReady);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -29,8 +30,13 @@ export const ProtectedRoute: React.FC = () => {
   const isLocked = useLockStore((s) => s.isLocked);
   const location = useLocation();
 
-  if (startupPhase !== "ready")
-    return <StartupScreen message="Preparing workspace..." />;
+  if (startupPhase === 'error') return <StartupScreen />;
+  // Block routing until bar animation completes
+  if (!uiReady) return <StartupScreen />;
+
+  if (!isAuthenticated) {
+    return <Navigate to={ROUTES.login} state={{ from: location }} replace />;
+  }
 
   const target = decidePostStartupRoute({
     startupReady: true,
@@ -41,11 +47,9 @@ export const ProtectedRoute: React.FC = () => {
     isLocked,
   });
 
-  // If the target is NOT dashboard, and we are trying to access dashboard, redirect
   if (target && target !== ROUTES.dashboard && location.pathname !== target) {
     return <Navigate to={target} state={{ from: location }} replace />;
   }
 
-  // If we are authenticated and everything is ready, show the module
   return <Outlet />;
 };

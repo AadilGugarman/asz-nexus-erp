@@ -53,11 +53,6 @@ const InventoryModule = lazy(() =>
     default: m.InventoryModule,
   })),
 );
-const PartiesModule = lazy(() =>
-  import("@/components/PartiesModule").then((m) => ({
-    default: m.PartiesModule,
-  })),
-);
 const PaymentsModule = lazy(() =>
   import("@/components/PaymentsModule").then((m) => ({
     default: m.PaymentsModule,
@@ -68,14 +63,9 @@ const ReportsModule = lazy(() =>
     default: m.ReportsModule,
   })),
 );
-const SupplierModule = lazy(() =>
-  import("@/components/SupplierModule").then((m) => ({
-    default: m.SupplierModule,
-  })),
-);
-const CustomerModule = lazy(() =>
-  import("@/components/CustomerModule").then((m) => ({
-    default: m.CustomerModule,
+const PartiesModule = lazy(() =>
+  import("@/components/PartiesModule").then((m) => ({
+    default: m.PartiesModule,
   })),
 );
 const SettingsModule = lazy(() =>
@@ -122,8 +112,6 @@ const PATH_TO_TAB: Record<string, string> = {
   [ROUTES.parties]: "parties",
   [ROUTES.payments]: "payments",
   [ROUTES.reports]: "reports",
-  [ROUTES.suppliers]: "suppliers",
-  [ROUTES.customers]: "customers",
   [ROUTES.carets]: "carets",
   [ROUTES.settings]: "settings",
 };
@@ -156,8 +144,6 @@ const TabContent = memo<TabContentProps>(({ activeTab, setActiveTab }) => (
     {activeTab === "parties" && <PartiesModule />}
     {activeTab === "payments" && <PaymentsModule />}
     {activeTab === "reports" && <ReportsModule />}
-    {activeTab === "suppliers" && <SupplierModule />}
-    {activeTab === "customers" && <CustomerModule />}
     {activeTab === "carets" && <CaretModule />}
     {activeTab === "settings" && <SettingsModule />}
   </Suspense>
@@ -243,19 +229,19 @@ export const AppShell: React.FC = () => {
         handleSetActiveTab("sales");
       } else if (e.altKey && e.key === "4") {
         e.preventDefault();
-        handleSetActiveTab("inventory");
+        handleSetActiveTab("carets");
       } else if (e.altKey && e.key === "5") {
         e.preventDefault();
         handleSetActiveTab("payments");
       } else if (e.altKey && e.key === "6") {
         e.preventDefault();
-        handleSetActiveTab("reports");
+        handleSetActiveTab("parties");
       } else if (e.altKey && e.key === "7") {
         e.preventDefault();
-        handleSetActiveTab("suppliers");
+        handleSetActiveTab("inventory");
       } else if (e.altKey && e.key === "8") {
         e.preventDefault();
-        handleSetActiveTab("customers");
+        handleSetActiveTab("reports");
       } else if (e.altKey && e.key === "9") {
         e.preventDefault();
         handleSetActiveTab("settings");

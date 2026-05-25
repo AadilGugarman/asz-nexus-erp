@@ -1,10 +1,13 @@
 import React, { useRef, useMemo } from 'react';
-import { PurchaseRow, Supplier, Fruit } from '../types';
 import { Plus, Copy, Trash2, ClipboardPaste } from 'lucide-react';
+
 import { useApp } from '../context/AppContext';
-import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useDataTable } from '../hooks/useDataTable';
+
+import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { DataTable, Pagination } from './ui/table';
+
+import { PurchaseRow, Supplier, Fruit } from '../types';
 
 interface VehicleSpreadsheetProps {
   rows: PurchaseRow[];
@@ -245,22 +248,23 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
         <table ref={tableRef} className="erp-table w-full text-left border-collapse" onPaste={handlePaste}>
           <thead>
             <tr className="bg-[var(--table-header-bg)] text-[var(--text-secondary)] text-xs font-bold uppercase tracking-wider sticky top-0 border-b border-[var(--table-border)] select-none">
-              <th className="py-3 px-4 w-64 min-w-[220px]">Supplier / Party Name</th>
-              <th className="py-3 px-3 w-44 min-w-[150px]">Variety (Vakkal)</th>
-              <th className="py-3 px-3 w-28 text-right">Caret Qty</th>
-              <th className="py-3 px-3 w-32 text-right">Weight (kg)</th>
-              <th className="py-3 px-3 w-32 text-right">Rate (₹/kg)</th>
-              <th className="py-3 px-4 w-36 text-right font-extrabold text-emerald-500">Total Amount</th>
-              <th className="py-3 px-3 min-w-[140px]">Row Notes</th>
-              <th className="py-3 px-3 w-24 text-center">Actions</th>
+              <th className="py-3 px-4 w-64 min-w-[220px] col-text">Supplier / Party Name</th>
+              <th className="py-3 px-3 w-44 min-w-[150px] col-text">Variety (Vakkal)</th>
+              <th className="py-3 px-3 w-28 col-num">Caret Qty</th>
+              <th className="py-3 px-3 w-32 col-num">Weight (kg)</th>
+              <th className="py-3 px-3 w-32 col-num">Rate (₹/kg)</th>
+              <th className="py-3 px-4 w-36 col-num font-extrabold text-emerald-500">Total Amount</th>
+              <th className="py-3 px-3 min-w-[140px] col-text">Row Notes</th>
+              <th className="py-3 px-3 w-24 col-actions">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--table-border)] font-mono text-sm">
             {rowTable.pageRows.map(({ row, idx: rIndex }) => (
               <tr key={row.id} className="hover:bg-[var(--table-row-hover)] font-sans group focus-within:bg-[var(--table-row-hover)] transition-colors">
                 {/* Supplier Dropdown */}
-                <td className="p-1 px-3" data-cell={`${rIndex}-0`}>
+                <td className="p-1 px-3 col-text" data-cell={`${rIndex}-0`}>
                   <CommandSelect
+                    variant="emerald"
                     value={suppliers.find(s => s.id === row.supplierId)?.id || row.supplierId}
                     onChange={(val) => {
                       const matched = suppliers.find(s => s.id === val || s.name === val);
@@ -273,8 +277,9 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                 </td>
 
                 {/* Variety Dropdown */}
-                <td className="p-1" data-cell={`${rIndex}-1`}>
+                <td className="p-1 col-text" data-cell={`${rIndex}-1`}>
                   <CommandSelect
+                    variant="emerald"
                     value={row.variety}
                     onChange={(val) => handleCellChange(rIndex, 'variety', val)}
                     options={availableVarieties.map(v => ({ id: v, label: v, emoji: '📦' }))}
@@ -288,7 +293,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                 </td>
 
                 {/* Caret */}
-                <td className="p-1 text-right">
+                <td className="p-1 col-num">
                   <input
                     type="number"
                     data-cell={`${rIndex}-2`}
@@ -301,7 +306,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                 </td>
 
                 {/* Weight */}
-                <td className="p-1 text-right">
+                <td className="p-1 col-num">
                   <input
                     type="number"
                     step="0.1"
@@ -315,7 +320,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                 </td>
 
                 {/* Rate */}
-                <td className="p-1 text-right">
+                <td className="p-1 col-num">
                   <input
                     type="number"
                     step="0.5"
@@ -329,12 +334,12 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                 </td>
 
                 {/* Amount (Auto Calculated) */}
-                <td className="p-2 px-4 text-right font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/8 text-sm font-mono">
+                <td className="p-2 px-4 col-num font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/8 text-sm font-mono">
                   ₹ {row.amount.toLocaleString('en-IN')}
                 </td>
 
                 {/* Note */}
-                <td className="p-1">
+                <td className="p-1 col-text">
                   <input
                     type="text"
                     data-cell={`${rIndex}-5`}
@@ -347,7 +352,7 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
                 </td>
 
                 {/* Row Actions */}
-                <td className="p-1 text-center">
+                <td className="p-1 col-actions">
                   <div className="flex items-center justify-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
@@ -373,18 +378,18 @@ export const VehicleSpreadsheet: React.FC<VehicleSpreadsheetProps> = ({
           </tbody>
           <tfoot>
             <tr className="bg-[var(--surface-bg)] font-bold text-xs uppercase tracking-wider border-t border-[var(--table-border)] text-[var(--text-primary)] font-sans">
-              <td colSpan={2} className="py-4 px-4 text-right text-[var(--text-muted)]">Inline Table Totals:</td>
-              <td className="py-4 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm font-bold">
+              <td colSpan={2} className="py-4 px-4 col-text text-right text-[var(--text-muted)]">Inline Table Totals:</td>
+              <td className="py-4 px-3 col-num font-mono text-emerald-600 dark:text-emerald-400 text-sm font-bold">
                 {totalCarets} <span className="text-[10px] text-[var(--text-muted)] font-normal">CRT</span>
               </td>
-              <td className="py-4 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 text-sm font-bold">
+              <td className="py-4 px-3 col-num font-mono text-emerald-600 dark:text-emerald-400 text-sm font-bold">
                 {totalWeight.toFixed(1)} <span className="text-[10px] text-[var(--text-muted)] font-normal">KG</span>
               </td>
-              <td className="py-4 px-3 text-right text-[var(--text-muted)]">Avg: {(totalWeight > 0 ? totalAmount / totalWeight : 0).toFixed(1)}/kg</td>
-              <td className="py-4 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-black text-base bg-emerald-500/8 border-l border-emerald-500/20">
+              <td className="py-4 px-3 col-num text-[var(--text-muted)]">Avg: {(totalWeight > 0 ? totalAmount / totalWeight : 0).toFixed(1)}/kg</td>
+              <td className="py-4 px-4 col-num font-mono text-emerald-600 dark:text-emerald-400 font-black text-base bg-emerald-500/8 border-l border-emerald-500/20">
                 ₹ {totalAmount.toLocaleString('en-IN')}
               </td>
-              <td colSpan={2} className="py-4 px-4 text-[var(--text-muted)] text-[11px] font-normal">
+              <td colSpan={2} className="py-4 px-4 col-actions text-[var(--text-muted)] text-[11px] font-normal">
                 Press <kbd className="bg-[var(--card-bg)] px-1.5 py-0.5 rounded font-mono text-emerald-600 dark:text-emerald-400 font-bold border border-[var(--card-border)]">Enter</kbd> or <kbd className="bg-[var(--card-bg)] px-1.5 py-0.5 rounded font-mono text-emerald-600 dark:text-emerald-400 font-bold border border-[var(--card-border)]">Arrows</kbd> to jump
               </td>
             </tr>

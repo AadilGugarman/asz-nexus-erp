@@ -17,10 +17,7 @@ export const ROUTES = {
   parties: "/parties",
   payments: "/payments",
   reports: "/reports",
-  suppliers: "/suppliers",
-  customers: "/customers",
   settings: "/settings",
-
   carets: "/carets",
 
   // ── Auth (public) ─────────────────────────────────────────────────────────
@@ -48,8 +45,6 @@ export const APP_ROUTES = [
   ROUTES.parties,
   ROUTES.payments,
   ROUTES.reports,
-  ROUTES.suppliers,
-  ROUTES.customers,
   ROUTES.carets,
   ROUTES.settings,
 ] as const;

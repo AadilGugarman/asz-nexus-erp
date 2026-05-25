@@ -34,11 +34,11 @@ const PRELOAD_MAP: Record<string, Array<() => Promise<unknown>>> = {
   purchase: [
     () => import('@/components/SalesBillingModule'),
     () => import('@/components/PaymentsModule'),
-    () => import('@/components/SupplierModule'),
+    () => import('@/components/PartiesModule'),
   ],
   sales: [
     () => import('@/components/PaymentsModule'),
-    () => import('@/components/CustomerModule'),
+    () => import('@/components/PartiesModule'),
     () => import('@/components/ReportsModule'),
   ],
   inventory: [
@@ -46,8 +46,8 @@ const PRELOAD_MAP: Record<string, Array<() => Promise<unknown>>> = {
     () => import('@/components/SalesBillingModule'),
   ],
   parties: [
-    () => import('@/components/SupplierModule'),
-    () => import('@/components/CustomerModule'),
+    () => import('@/components/PaymentsModule'),
+    () => import('@/components/ReportsModule'),
   ],
   payments: [
     () => import('@/components/ReportsModule'),
@@ -56,13 +56,8 @@ const PRELOAD_MAP: Record<string, Array<() => Promise<unknown>>> = {
   reports: [
     () => import('@/components/SettingsModule'),
   ],
-  suppliers: [
-    () => import('@/components/PurchaseBillingModule'),
-    () => import('@/components/PaymentsModule'),
-  ],
-  customers: [
-    () => import('@/components/SalesBillingModule'),
-    () => import('@/components/PaymentsModule'),
+  carets: [
+    () => import('@/components/PartiesModule'),
   ],
   settings: [],
 };

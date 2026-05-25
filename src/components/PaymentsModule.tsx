@@ -1,19 +1,21 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { useApp } from '../context/AppContext';
-import { PaymentReceipt } from '../types';
-import { fmtDate } from '@/utils/format';
-import { CommandSelect, CommandOption } from './ui/CommandSelect';
-import { useToast } from './ui/Toast';
-import { useConfirmDialog } from './ui/ConfirmDialog';
 import {
   Wallet, Plus, Search, Trash2, Eye, Calendar, ArrowUpRight, ArrowDownRight,
   DollarSign, CreditCard, Banknote, Smartphone, FileText,
   Printer, X, Building2, Users, UserCheck, ArrowUpDown
 } from 'lucide-react';
+
+import { useApp } from '../context/AppContext';
+
+import { useToast } from './ui/Toast';
+import { useConfirmDialog } from './ui/ConfirmDialog';
+import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
-import { SegmentedControl } from './ui/SegmentedControl';
+
+import { PaymentReceipt } from '../types';
+import { fmtDate } from '@/utils/format';
 
 const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   CASH: { label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" />, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
@@ -291,6 +293,7 @@ export const PaymentsModule: React.FC = () => {
               <div>
                 <CommandSelect
                   id={`payment-party-${direction}`}
+                  variant={direction === 'PAID_TO_SUPPLIER' ? 'emerald' : 'violet'}
                   label={direction === 'PAID_TO_SUPPLIER' ? 'Supplier / Party *' : 'Customer / Buyer *'}
                   value={selectedPartyName}
                   onChange={(val) => {
@@ -491,26 +494,26 @@ export const PaymentsModule: React.FC = () => {
             <table className="erp-table text-left text-xs sm:text-sm">
               <thead>
                 <tr>
-                  <th className="py-3 px-4">
+                  <th className="py-3 px-4 col-text w-28">
                     <button type="button" onClick={() => paymentsTable.toggleSort('date')} className="inline-flex items-center gap-1">
                       Date <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3">Direction</th>
-                  <th className="py-3 px-3">
+                  <th className="py-3 px-3 col-text w-32">Direction</th>
+                  <th className="py-3 px-3 col-text">
                     <button type="button" onClick={() => paymentsTable.toggleSort('partyName')} className="inline-flex items-center gap-1">
                       Party Name <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 text-right font-black dark:text-amber-400 text-amber-700">
+                  <th className="py-3 px-3 col-num font-black dark:text-amber-400 text-amber-700 w-44">
                     <button type="button" onClick={() => paymentsTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
                       Amount <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3">Mode</th>
-                  <th className="py-3 px-3">Reference No.</th>
-                  <th className="py-3 px-3">Notes / Remarks</th>
-                  <th className="py-3 px-4 text-center sticky right-0 bg-[var(--table-header-bg)] z-[3]">Actions</th>
+                  <th className="py-3 px-3 col-text w-40">Mode</th>
+                  <th className="py-3 px-3 col-text w-40">Reference No.</th>
+                  <th className="py-3 px-3 col-text w-48">Notes / Remarks</th>
+                  <th className="py-3 px-4 col-actions sticky right-0 bg-[var(--table-header-bg)] z-[3] w-28">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -536,13 +539,13 @@ export const PaymentsModule: React.FC = () => {
 
                     return (
                       <tr key={p.id} className="transition-colors group font-sans">
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 col-text">
                           <div className="flex items-center space-x-1.5 font-mono text-xs text-[#475569] font-semibold">
                             <Calendar className="w-3.5 h-3.5 text-[#94a3b8]" />
                             <span>{fmtDate(p.date)}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-3">
+                        <td className="py-3.5 px-3 col-text">
                           {isSupplier ? (
                             <span className="inline-flex items-center space-x-1 text-[10px] font-semibold uppercase tracking-wider text-rose-600 bg-rose-500/10 border border-rose-500/30 px-2 py-1 rounded-lg font-mono">
                               <ArrowUpRight className="w-3 h-3" />
@@ -555,7 +558,7 @@ export const PaymentsModule: React.FC = () => {
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-3">
+                        <td className="py-3.5 px-3 col-text">
                           <div className="flex items-center space-x-2">
                             <div className={`p-1 rounded ${isSupplier ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
                               {isSupplier ? <Users className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
@@ -566,24 +569,24 @@ export const PaymentsModule: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3.5 px-3 text-right">
+                        <td className="py-3.5 px-3 col-num">
                           <span className={`text-base font-black font-mono ${isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                             {isSupplier ? '−' : '+'}₹ {p.amount.toLocaleString('en-IN')}
                           </span>
                         </td>
-                        <td className="py-3.5 px-3">
+                        <td className="py-3.5 px-3 col-text">
                           <span className={`inline-flex items-center space-x-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-lg border ${modeMeta.color}`}>
                             {modeMeta.icon}
                             <span>{modeMeta.label}</span>
                           </span>
                         </td>
-                        <td className="py-3.5 px-3">
+                        <td className="py-3.5 px-3 col-text">
                           <span className="font-mono font-semibold text-[#475569] text-xs">{p.referenceNo || '—'}</span>
                         </td>
-                        <td className="py-3.5 px-3">
+                        <td className="py-3.5 px-3 col-text">
                           <span className="text-[#64748b] text-xs truncate block max-w-[180px]">{p.notes || '—'}</span>
                         </td>
-                        <td className="py-3.5 px-4 text-center sticky right-0 bg-[var(--card-bg)] z-[2] border-l border-[var(--table-border)]">
+                        <td className="py-3.5 px-4 col-actions sticky right-0 bg-[var(--card-bg)] z-[2] border-l border-[var(--table-border)]">
                           <div className="flex items-center justify-center space-x-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => setPreviewPayment(p)}
@@ -632,67 +635,71 @@ export const PaymentsModule: React.FC = () => {
           PAYMENT RECEIPT PREVIEW MODAL
          ══════════════════════════════════════════════ */}
       {previewPayment && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 pt-8 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 border-slate-200 rounded-2xl max-w-[600px] w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-slide-up">
-            {/* Modal Header */}
-            <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-950 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between no-print">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg"><Wallet className="w-5 h-5" /></div>
+        <div className="fixed inset-0 z-[99999] overflow-y-auto animate-fade-in custom-scrollbar">
+          <div className="min-h-screen dark:bg-slate-950/90 bg-slate-200/90 backdrop-blur-md flex flex-col items-center py-6 sm:py-12 px-3 sm:px-4">
+            {/* Toolbar */}
+            <div className="w-full max-w-[650px] mb-4 flex items-center justify-between no-print animate-slide-down">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-sm border border-slate-200 dark:border-slate-700">
+                  <Wallet className="w-6 h-6" />
+                </div>
                 <div>
-                  <h3 className="text-sm font-bold dark:text-white text-slate-900">Payment Receipt</h3>
-                  <p className="text-[11px] dark:text-slate-400 text-slate-500 font-mono">{previewPayment.id}</p>
+                  <h3 className="text-base font-black dark:text-white text-slate-900 tracking-tight uppercase">Payment Receipt</h3>
+                  <p className="text-[10px] dark:text-slate-400 text-slate-500 font-mono tracking-wider">#{previewPayment.id.slice(-8).toUpperCase()}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <button onClick={() => window.print()} className="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-lg font-bold text-xs shadow cursor-pointer transition-colors">
-                  <Printer className="w-4 h-4" /><span>Print</span>
+                <button onClick={() => window.print()} className="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer active:scale-95">
+                  <Printer className="w-4 h-4" /><span>Print Receipt</span>
                 </button>
-                <button onClick={() => setPreviewPayment(null)} className="p-2 dark:text-slate-400 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg cursor-pointer transition-colors"><X className="w-5 h-5" /></button>
+                <button onClick={() => setPreviewPayment(null)} className="p-2.5 dark:text-slate-400 text-slate-500 dark:hover:text-white hover:text-slate-900 dark:bg-slate-800 bg-white rounded-xl cursor-pointer transition-all border dark:border-slate-700 border-slate-200 shadow-sm active:scale-95">
+                  <X className="w-6 h-6" />
+                </button>
               </div>
             </div>
 
-            {/* Printable Content */}
-            <div className="flex-1 overflow-y-auto bg-white text-slate-900 printable-patti">
-              <div className="p-8 max-w-[560px] mx-auto font-[system-ui,sans-serif] text-[13px]">
+            {/* The Actual White Paper Sheet */}
+            <div className="w-full max-w-[650px] bg-white rounded-xl shadow-2xl dark:shadow-black/60 shadow-slate-400/20 overflow-hidden border border-slate-200/50 dark:border-slate-700/30 printable-patti animate-slide-up">
+              <div className="p-10 max-w-[600px] mx-auto font-[system-ui,sans-serif] text-[13px] leading-relaxed text-slate-900">
                 {/* Header */}
-                <div className="flex justify-between items-start border-b-[3px] border-slate-900 pb-4 mb-6">
+                <div className="flex justify-between items-start border-b-[3px] border-slate-900 pb-5 mb-6">
                   <div>
-                    <div className="flex items-center space-x-2 mb-0.5">
-                      {cs.logo && <img src={cs.logo} alt="Logo" className="h-8 max-w-[80px] object-contain shrink-0" />}
-                      <h1 className="text-[20px] font-black tracking-tight text-slate-950 leading-none">{cs.name.toUpperCase()}</h1>
+                    <div className="flex items-center space-x-3 mb-1">
+                      {cs.logo && <img src={cs.logo} alt="Logo" className="h-9 max-w-[90px] object-contain shrink-0" />}
+                      <h1 className="text-[24px] font-black tracking-tight text-slate-950 leading-none">{cs.name.toUpperCase()}</h1>
                     </div>
-                    <p className="text-[10px] font-bold text-slate-600 mt-0.5 tracking-[0.15em] uppercase">Wholesale Fruit Commission Agents</p>
-                    <p className="text-[10px] text-slate-500 mt-1">Central Fruit Market, APMC Yard &nbsp;|&nbsp; +91 99887 77665</p>
+                    <p className="text-[11px] font-bold text-slate-600 mt-1 tracking-[0.15em] uppercase">{cs.tagline}</p>
+                    <p className="text-[10.5px] text-slate-500 mt-1.5 leading-relaxed">{cs.address}<br/>Phone: {cs.phone} &nbsp;|&nbsp; Email: {cs.email}</p>
                   </div>
-                  <div className="text-right">
-                    <div className="inline-block border-2 border-amber-700 px-4 py-2 rounded-lg bg-amber-50">
-                      <div className="text-[8px] font-black tracking-[0.2em] uppercase text-amber-500">
+                  <div className="text-right shrink-0 ml-6">
+                    <div className="inline-block border-2 border-amber-700 px-5 py-3 rounded-lg bg-amber-50">
+                      <div className="text-[9px] font-black tracking-[0.2em] uppercase text-amber-500">
                         {previewPayment.partyType === 'SUPPLIER' ? 'PAYMENT VOUCHER' : 'PAYMENT RECEIPT'}
                       </div>
-                      <div className="text-[11px] font-mono font-bold text-amber-900 mt-0.5">{fmtDate(previewPayment.date)}</div>
+                      <div className="text-[20px] font-black font-mono text-amber-900 leading-tight mt-0.5">{fmtDate(previewPayment.date)}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-2 gap-0 border border-slate-300 rounded-lg overflow-hidden mb-6 text-[11px]">
-                  <div className="p-3 bg-slate-50 border-r border-slate-300">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="grid grid-cols-2 gap-0 border border-slate-300 rounded-lg overflow-hidden mb-8 text-[11px]">
+                  <div className="p-4 bg-slate-50 border-r border-slate-300">
+                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
                       {previewPayment.partyType === 'SUPPLIER' ? 'Paid To (Supplier)' : 'Received From (Customer)'}
                     </div>
-                    <div className="font-bold text-slate-900 mt-0.5 text-sm">{previewPayment.partyName}</div>
+                    <div className="font-black text-slate-950 text-[16px]">{previewPayment.partyName}</div>
                   </div>
-                  <div className="p-3 bg-white">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Payment Mode</div>
-                    <div className="font-bold text-slate-900 mt-0.5">{getPaymentModeMeta(previewPayment.paymentMode).label}</div>
+                  <div className="p-4 bg-white">
+                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Payment Mode</div>
+                    <div className="font-black text-slate-950 text-[14px]">{getPaymentModeMeta(previewPayment.paymentMode).label}</div>
                   </div>
-                  <div className="p-3 bg-white border-r border-slate-300 border-t">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Reference / UTR No.</div>
-                    <div className="font-bold font-mono text-slate-900 mt-0.5">{previewPayment.referenceNo || '—'}</div>
+                  <div className="p-4 bg-white border-r border-slate-300 border-t">
+                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Reference / UTR No.</div>
+                    <div className="font-mono font-bold text-slate-700 text-[12px]">{previewPayment.referenceNo || '—'}</div>
                   </div>
-                  <div className="p-3 bg-slate-50 border-t">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Remarks</div>
-                    <div className="text-slate-700 mt-0.5">{previewPayment.notes || '—'}</div>
+                  <div className="p-4 bg-slate-50 border-t">
+                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Remarks</div>
+                    <div className="text-slate-600 font-medium italic">{previewPayment.notes || '—'}</div>
                   </div>
                 </div>
 
@@ -724,6 +731,7 @@ export const PaymentsModule: React.FC = () => {
                 </div>
               </div>
             </div>
+            <div className="h-12 shrink-0" />
           </div>
         </div>
       )}

@@ -1,29 +1,23 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { useApp } from "../context/AppContext";
-import { Invoice, InvoiceItem } from "../types";
-import { InvoicePreviewModal } from "./InvoicePreviewModal";
 import {
-  ShoppingCart,
-  Plus,
-  Save,
-  Search,
-  Eye,
-  Trash2,
-  FileText,
-  Calendar,
-  Copy,
-  ArrowUpDown,
+  ShoppingCart, Plus, Save, Search, Eye, Trash2,
+  FileText, Calendar, Copy, ArrowUpDown
 } from "lucide-react";
+
+import { useApp } from "../context/AppContext";
+import { useDataTable } from "../hooks/useDataTable";
+import { useAppTranslation } from "@/hooks";
+
 import { CommandSelect, CommandOption } from "./ui/CommandSelect";
 import { useToast } from "./ui/Toast";
 import { useConfirmDialog } from "./ui/ConfirmDialog";
-import { getNextUniqueInvoiceNumber } from "../utils/invoice-number";
-import { useAppTranslation } from "@/hooks";
-import { useDataTable } from "../hooks/useDataTable";
 import { DataTable, Pagination } from "./ui/table";
 import { ModuleEmptyState } from "./ui/DataStates";
+import { InvoicePreviewModal } from "./InvoicePreviewModal";
 
-import { fmtDate, fmtDateWithDay } from "@/utils/format";
+import { Invoice, InvoiceItem } from "../types";
+import { getNextUniqueInvoiceNumber } from "../utils/invoice-number";
+import { fmtDate } from "@/utils/format";
 
 //        helpers
 // formatDateWithDay is now fmtDateWithDay from utils/format
@@ -634,17 +628,17 @@ export const SalesBillingModule: React.FC = () => {
                   <tr
                     className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none`}
                   >
-                    <th className="py-3 px-4 min-w-[150px]">Fruit Category</th>
-                    <th className="py-3 px-3 min-w-[150px]">
+                    <th className="py-3 px-4 min-w-[150px] col-text">Fruit Category</th>
+                    <th className="py-3 px-3 min-w-[150px] col-text">
                       Variety (Vakkal)
                     </th>
-                    <th className="py-3 px-3 w-24 text-right">Carets</th>
-                    <th className="py-3 px-3 w-28 text-right">Weight (KG)</th>
-                    <th className="py-3 px-3 w-28 text-right">Rate / KG</th>
-                    <th className="py-3 px-4 w-36 text-right font-black text-indigo-600 dark:text-indigo-400 min-w-[130px]">
+                    <th className="py-3 px-3 w-24 col-num">Carets</th>
+                    <th className="py-3 px-3 w-28 col-num">Weight (KG)</th>
+                    <th className="py-3 px-3 w-28 col-num">Rate / KG</th>
+                    <th className="py-3 px-4 w-36 col-num font-black text-indigo-600 dark:text-indigo-400 min-w-[130px]">
                       Amount
                     </th>
-                    <th className="py-3 px-3 w-16 text-center">Act.</th>
+                    <th className="py-3 px-3 w-16 col-actions">Act.</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100 font-mono">
@@ -659,8 +653,9 @@ export const SalesBillingModule: React.FC = () => {
                         className="dark:hover:bg-slate-800/30 hover:bg-slate-50/80 font-sans group transition-colors"
                       >
                         {/* Fruit Category */}
-                        <td className="p-1.5 px-3" data-inv-cell={`${idx}-0`}>
+                        <td className="p-1.5 px-3 col-text" data-inv-cell={`${idx}-0`}>
                           <CommandSelect
+                            variant="violet"
                             value={it.fruitCategory}
                             onChange={(val) => {
                               const f = fruits.find(f => f.id === val || f.name === val);
@@ -673,8 +668,9 @@ export const SalesBillingModule: React.FC = () => {
                           />
                         </td>
                         {/* Variety */}
-                        <td className="p-1.5" data-inv-cell={`${idx}-1`}>
+                        <td className="p-1.5 col-text" data-inv-cell={`${idx}-1`}>
                           <CommandSelect
+                            variant="violet"
                             value={it.lotVariety}
                             onChange={(val) => handleItemChange(idx, "lotVariety", val)}
                             options={varieties.map(v => ({ id: v, label: v, emoji: '📦' }))}
@@ -686,7 +682,7 @@ export const SalesBillingModule: React.FC = () => {
                           />
                         </td>
                         {/* Carets */}
-                        <td className="p-1.5 text-right">
+                        <td className="p-1.5 col-num">
                           <input
                             type="number"
                             data-inv-cell={`${idx}-2`}
@@ -700,7 +696,7 @@ export const SalesBillingModule: React.FC = () => {
                           />
                         </td>
                         {/* Weight */}
-                        <td className="p-1.5 text-right">
+                        <td className="p-1.5 col-num">
                           <input
                             type="number"
                             step="0.1"
@@ -715,7 +711,7 @@ export const SalesBillingModule: React.FC = () => {
                           />
                         </td>
                         {/* Rate */}
-                        <td className="p-1.5 text-right">
+                        <td className="p-1.5 col-num">
                           <input
                             type="number"
                             step="0.5"
@@ -730,11 +726,11 @@ export const SalesBillingModule: React.FC = () => {
                           />
                         </td>
                         {/* Amount */}
-                        <td className="p-2 px-4 text-right font-black font-mono text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 text-sm">
+                        <td className="p-2 px-4 col-num font-black font-mono text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 text-sm">
                           ₹ {it.amount.toLocaleString("en-IN")}
                         </td>
                         {/* Actions */}
-                        <td className="p-1.5 text-center">
+                        <td className="p-1.5 col-actions">
                           <div className="flex items-center justify-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
                             <button
                               type="button"
@@ -765,18 +761,18 @@ export const SalesBillingModule: React.FC = () => {
                   >
                     <td
                       colSpan={2}
-                      className={`py-3.5 px-4 text-right ${muted}`}
+                      className={`py-3.5 px-4 col-text text-right ${muted}`}
                     >
                       Subtotal
                     </td>
-                    <td className="py-3.5 px-3 text-right font-mono text-indigo-600 dark:text-indigo-400">
+                    <td className="py-3.5 px-3 col-num font-mono text-indigo-600 dark:text-indigo-400">
                       {totalCarets} CRT
                     </td>
-                    <td className="py-3.5 px-3 text-right font-mono text-indigo-600 dark:text-indigo-400">
+                    <td className="py-3.5 px-3 col-num font-mono text-indigo-600 dark:text-indigo-400">
                       {totalWeight.toFixed(1)} KG
                     </td>
                     <td
-                      className={`py-3.5 px-3 text-right ${muted} text-[10px]`}
+                      className={`py-3.5 px-3 col-num text-right ${muted} text-[10px]`}
                     >
                       Avg ₹{" "}
                       {(totalWeight > 0
@@ -785,11 +781,11 @@ export const SalesBillingModule: React.FC = () => {
                       ).toFixed(1)}
                       /KG
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-indigo-600 dark:text-indigo-400 font-black text-base bg-indigo-500/10 border-l border-indigo-500/20">
+                    <td className="py-3.5 px-4 col-num font-mono text-indigo-600 dark:text-indigo-400 font-black text-base bg-indigo-500/10 border-l border-indigo-500/20">
                       ₹ {itemsSubtotal.toLocaleString("en-IN")}
                     </td>
                     <td
-                      className={`py-3.5 px-3 ${muted} text-[10px] font-normal`}
+                      className={`py-3.5 px-3 col-actions ${muted} text-[10px] font-normal`}
                     >
                       {/* Keyboard hints removed as requested */}
                     </td>
@@ -800,14 +796,14 @@ export const SalesBillingModule: React.FC = () => {
                     >
                       <td
                         colSpan={5}
-                        className={`py-2.5 px-4 text-right ${muted}`}
+                        className={`py-2.5 px-4 col-text text-right ${muted}`}
                       >
                         Freight / Bhaada ₹ {freight.toLocaleString("en-IN")}
                       </td>
-                      <td className="py-2.5 px-4 text-right font-mono text-indigo-600 dark:text-indigo-400 font-black text-base">
+                      <td className="py-2.5 px-4 col-num font-mono text-indigo-600 dark:text-indigo-400 font-black text-base">
                         ₹ {todayAmount.toLocaleString("en-IN")}
                       </td>
-                      <td />
+                      <td className="col-actions" />
                     </tr>
                   )}
                 </tfoot>
@@ -930,7 +926,7 @@ export const SalesBillingModule: React.FC = () => {
                 <tr
                   className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider`}
                 >
-                  <th className="py-3.5 px-4">
+                  <th className="py-3.5 px-4 col-text">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("invoiceNo")}
@@ -939,7 +935,7 @@ export const SalesBillingModule: React.FC = () => {
                       Invoice / Date <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3">
+                  <th className="py-3.5 px-3 col-text">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("customerName")}
@@ -948,10 +944,10 @@ export const SalesBillingModule: React.FC = () => {
                       Customer <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3">Vehicle</th>
-                  <th className="py-3.5 px-3 text-right">Carets</th>
-                  <th className="py-3.5 px-3 text-right">Weight</th>
-                  <th className="py-3.5 px-3 text-right font-black text-indigo-600 dark:text-indigo-400">
+                  <th className="py-3.5 px-3 col-text">Vehicle</th>
+                  <th className="py-3.5 px-3 col-num">Carets</th>
+                  <th className="py-3.5 px-3 col-num">Weight</th>
+                  <th className="py-3.5 px-3 col-num font-black text-indigo-600 dark:text-indigo-400">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("todayAmount")}
@@ -960,7 +956,7 @@ export const SalesBillingModule: React.FC = () => {
                       Total <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 text-right font-black dark:text-slate-200 text-slate-900">
+                  <th className="py-3.5 px-3 col-num font-black dark:text-slate-200 text-slate-900">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("remainingBalance")}
@@ -969,7 +965,7 @@ export const SalesBillingModule: React.FC = () => {
                       Balance <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-4 text-center">Actions</th>
+                  <th className="py-3.5 px-4 col-actions w-28">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
@@ -992,92 +988,73 @@ export const SalesBillingModule: React.FC = () => {
                       (s, it) => s + (Number(it.weight) || 0),
                       0,
                     );
-                    return (
-                      <tr
+                    return (                      <tr
                         key={inv.id}
                         className="dark:hover:bg-slate-800/30 hover:bg-slate-50/80 transition-colors font-sans group"
                       >
-                        <td className="py-3.5 px-4 font-mono">
+                        <td className="py-3.5 px-4 col-text font-mono">
                           <span className="font-bold dark:text-slate-200 text-slate-900 block text-sm">
                             {inv.invoiceNo}
                           </span>
-                          <span
-                            className={`text-[11px] ${muted} flex items-center mt-0.5 font-sans`}
-                          >
-                            <Calendar className="w-3 h-3 mr-1 text-indigo-500" />
-                            {fmtDateWithDay(inv.date)}
+                          <span className={`text-[10px] ${muted} font-medium`}>
+                            {fmtDate(inv.date)}
                           </span>
                         </td>
-                        <td className="py-3.5 px-3 font-sans">
-                          <span className="font-bold dark:text-white text-slate-900 block text-sm">
-                            {inv.customerName}
-                          </span>
-                          <span
-                            className={`${muted} text-[11px] block truncate max-w-[180px]`}
-                          >
-                            {inv.items.length} lot
-                            {inv.items.length !== 1 ? "s" : ""} •{" "}
-                            {inv.items
-                              .map((i) => i.fruitCategory || i.fruit)
-                              .join(", ")}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-3 font-sans">
-                          {inv.vehicleNo ? (
-                            <span className="font-mono font-bold dark:text-slate-300 text-slate-700 text-xs">
-                              {inv.vehicleNo}
+                        <td className="py-3.5 px-3 col-text">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                              {inv.customerName.charAt(0)}
+                            </div>
+                            <span className="font-semibold text-[var(--text-primary)]">
+                              {inv.customerName}
                             </span>
-                          ) : (
-                            <span className={`${muted} text-xs`}>—</span>
-                          )}
-                          {inv.declaredWeight ? (
-                            <span className={`block text-[10px] ${muted}`}>
-                              {inv.declaredWeight} KG declared
-                            </span>
-                          ) : null}
+                          </div>
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono font-semibold dark:text-slate-300 text-slate-700">
-                          {carets}
+                        <td className="py-3.5 px-3 col-text">
+                          <span className="font-mono text-xs font-bold px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {inv.vehicleNo || "DIRECT"}
+                          </span>
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono font-semibold dark:text-slate-300 text-slate-700">
-                          {weight.toFixed(1)}
+                        <td className="py-3.5 px-3 col-num font-mono font-bold text-slate-600 dark:text-slate-400">
+                          {carets} <span className="text-[9px] font-sans">CRT</span>
                         </td>
-                        <td className="py-3.5 px-3 text-right font-black font-mono text-indigo-600 dark:text-indigo-400 text-sm">
+                        <td className="py-3.5 px-3 col-num font-mono font-bold text-slate-600 dark:text-slate-400">
+                          {weight.toFixed(1)}{" "}
+                          <span className="text-[9px] font-sans">KG</span>
+                        </td>
+                        <td className="py-3.5 px-3 col-num font-mono font-black text-indigo-600 dark:text-indigo-400 text-base">
                           ₹ {inv.todayAmount.toLocaleString("en-IN")}
-                          {inv.freight ? (
-                            <span
-                              className={`block text-[10px] font-sans font-normal ${muted}`}
-                            >
-                              incl. freight
-                            </span>
-                          ) : null}
                         </td>
-                        <td className="py-3.5 px-3 text-right font-black font-mono dark:text-slate-200 text-slate-900 text-sm">
+                        <td className="py-3.5 px-3 col-num font-mono font-black dark:text-slate-200 text-slate-900 text-sm">
                           ₹ {inv.remainingBalance.toLocaleString("en-IN")}
                         </td>
-                        <td className="py-3.5 px-4 text-center font-sans">
-                          <div className="flex items-center justify-center gap-1">
+                        <td className="py-3.5 px-4 col-actions">
+                          <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                             <button
                               onClick={() => setPreviewInvoice(inv)}
-                              className="px-3 py-1.5 dark:bg-slate-800 bg-slate-100 hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white dark:text-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-sm cursor-pointer border dark:border-slate-700 border-slate-200"
+                              className={`p-2 ${muted} hover:text-indigo-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}
+                              title="View Preview"
                             >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View</span>
+                              <Eye className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={async () => {
-                                const ok = await dialog.confirm({
-                                  variant: "destructive",
-                                  title: `Delete ${inv.invoiceNo}?`,
-                                  description: `This will permanently delete the invoice for ${inv.customerName}.`,
-                                  confirmText: "Delete",
+                              onClick={() => {
+                                dialog.confirm({
+                                  title: "Delete Invoice?",
+                                  message: `Are you sure you want to delete ${inv.invoiceNo}? This will also adjust the customer balance and inventory.`,
+                                  confirmLabel: "Delete Invoice",
+                                  confirmVariant: "danger",
+                                  onConfirm: () => {
+                                    deleteInvoice(inv.id);
+                                    toast.success(
+                                      "Invoice Deleted",
+                                      "The invoice record and associated stock have been removed.",
+                                    );
+                                  },
                                 });
-                                if (ok) {
-                                  deleteInvoice(inv.id);
-                                  toast.info("Invoice Deleted", inv.invoiceNo);
-                                }
                               }}
                               className={`p-2 ${muted} hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}
+                              title="Delete Invoice"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

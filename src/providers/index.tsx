@@ -18,6 +18,7 @@ import { DbProvider } from './DbProvider';
 import { ToastProvider } from '@/components/ui/Toast';
 import { ConfirmDialogProvider } from '@/components/ui/ConfirmDialog';
 import { SonnerProvider } from './SonnerProvider';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -31,7 +32,9 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
           <SonnerProvider>
             <ConfirmDialogProvider>
               <ToastProvider>
-                {children}
+                <ErrorBoundary>
+                  {children}
+                </ErrorBoundary>
               </ToastProvider>
             </ConfirmDialogProvider>
           </SonnerProvider>

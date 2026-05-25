@@ -554,8 +554,8 @@ export const SettingsModule: React.FC = () => {
     mono?: boolean;
     disabled?: boolean;
   }) => (
-    <div>
-      <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">
+    <div className="space-y-1.5">
+      <label className="block text-[11px] font-black uppercase tracking-[0.15em] dark:text-slate-400 text-slate-600 ml-1">
         {label}
       </label>
       <input
@@ -564,7 +564,7 @@ export const SettingsModule: React.FC = () => {
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className={`w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs outline-none focus:border-cyan-500 transition-all disabled:opacity-50 ${mono ? "font-mono font-bold" : ""}`}
+        className={`w-full dark:bg-slate-950 bg-white border-2 dark:border-slate-800 border-slate-200 dark:text-white text-slate-900 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 shadow-sm transition-all duration-300 disabled:opacity-50 ${mono ? "font-mono font-black uppercase" : "font-black tracking-tight"}`}
       />
     </div>
   );

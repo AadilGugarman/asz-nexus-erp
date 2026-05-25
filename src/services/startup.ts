@@ -1,19 +1,22 @@
 /**
  * services/startup.ts
- * Parallel startup orchestrator.
+ * Startup orchestrator.
  *
- * Runs non-blocking startup tasks (DB warm-up, window show, chunk preloads)
- * so the app is interactive as fast as possible.
+ * Responsibilities:
+ *   - afterFirstPaint(): show the Tauri window, schedule idle preloads,
+ *     wire production side-effects.
+ *   - afterLogin(): run post-authentication tasks (backup service init).
  *
- * Usage (called once from main.tsx before rendering):
- *   await startup.run();
+ * The heavy lifting (DB, auth, settings, company) is done by
+ * useStartupStore.initialize() which is called from main.tsx before
+ * createRoot() so it runs in parallel with React mounting.
  *
- * The window is hidden in tauri.conf.json ("visible": false) and shown here
- * only after the first React paint, eliminating the white-flash on startup.
+ * The window is hidden in tauri.conf.json ("visible": false) and shown
+ * here only after the first React paint, eliminating the white-flash.
  */
 
 import { APP_CONFIG } from "@/config";
-import { useProductionStartup } from "./production.service";
+import { initProductionStartup } from "./production.service";
 
 // ── Timing helpers ────────────────────────────────────────────────────────────
 
@@ -56,9 +59,13 @@ async function showWindow(): Promise<void> {
 
 /** Preload the most-visited chunk (dashboard) during idle time. */
 function schedulePreloads(): void {
-  if (typeof requestIdleCallback === "undefined") return;
+  // Fallback for environments without requestIdleCallback (e.g. Safari < 16)
+  const idle =
+    typeof requestIdleCallback !== "undefined"
+      ? requestIdleCallback
+      : (cb: () => void) => setTimeout(cb, 1);
 
-  requestIdleCallback(
+  idle(
     () => {
       // Preload dashboard — the first screen after login
       import("@/components/ExecutiveDashboard").catch((err) => {
@@ -70,7 +77,7 @@ function schedulePreloads(): void {
     { timeout: 3000 },
   );
 
-  requestIdleCallback(
+  idle(
     () => {
       // Preload the two most-used billing modules
       void import("@/components/SalesBillingModule").catch((err) => {
@@ -94,37 +101,30 @@ function schedulePreloads(): void {
 
 export const startup = {
   /**
-   * Run all startup tasks in parallel.
-   * Call this before ReactDOM.createRoot() so tasks start immediately.
-   */
-  async run(): Promise<void> {
-    log("starting");
-    log("parallel tasks launched");
-  },
-
-  /**
    * Called after the user has logged in and the app is fully interactive.
-   * Backup init is deferred until here so the pool is ready.
+   * Runs post-authentication tasks that should not block the startup sequence.
    */
   async afterLogin(): Promise<void> {
     try {
       const { backupService } = await import("./backup.service");
       await backupService.init();
+      log("backup service ready (post-login)");
     } catch (e) {
+      // Non-fatal — backup failing should never block the user
       if (import.meta.env.DEV) console.warn("[startup] afterLogin failed:", e);
     }
-    log("post-login tasks launched");
   },
 
   /**
-   * Called after the first React render completes.
-   * Shows the window and schedules idle-time preloads.
+   * Called after the first React render completes (requestAnimationFrame in main.tsx).
+   * Shows the Tauri window and schedules idle-time chunk preloads.
    */
   afterFirstPaint(): void {
     // Show window on next microtask so React has committed the DOM
     void showWindow();
     schedulePreloads();
-    useProductionStartup();
+    // Wire production side-effects (hydration event, memory trim, etc.)
+    initProductionStartup();
     log("first paint complete");
   },
 };

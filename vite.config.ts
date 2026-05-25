@@ -151,8 +151,6 @@ export default defineConfig(({ command, mode }) => {
               'PartiesModule':        'mod-parties',
               'PaymentsModule':       'mod-payments',
               'ReportsModule':        'mod-reports',
-              'SupplierModule':       'mod-suppliers',
-              'CustomerModule':       'mod-customers',
               'SettingsModule':       'mod-settings',
               'MasterModule':         'mod-settings',
             };

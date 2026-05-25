@@ -4,26 +4,34 @@ import { useSettingsStore } from "@/store/settings.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useAppearanceStore } from "@/store/appearance.store";
 import {
-  Truck,
-  ShoppingCart,
-  ShoppingBag,
-  Users,
-  UserCheck,
-  Package,
-  Settings,
-  Keyboard,
-  BarChart3,
-  Wallet,
-  FileBarChart2,
-  Contact,
-  PanelLeftClose,
-  PanelLeft,
-  ChevronRight,
-  Menu,
-  X,
-  LogOut,
-  Box,
+  Truck, ShoppingCart, ShoppingBag, Package, Settings,
+  Keyboard, BarChart3, Wallet, FileBarChart2, Contact,
+  PanelLeftClose, PanelLeft, ChevronRight, Menu, X,
+  LogOut, Box,
 } from "lucide-react";
+
+// ── ERP Logo Icon (sidebar header) ───────────────────────────────────────────
+// Same mark as TitleBar — rising bars + trend line.
+const ErpLogoIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    viewBox="0 0 16 16"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    aria-hidden="true"
+  >
+    <rect x="1"   y="10"  width="3" height="5"    rx="0.75" fill="white" opacity="0.95" />
+    <rect x="6.5" y="7"   width="3" height="8"    rx="0.75" fill="white" opacity="0.95" />
+    <rect x="12"  y="3.5" width="3" height="11.5" rx="0.75" fill="white" opacity="0.95" />
+    <polyline
+      points="2.5,10 8,7 13.5,3.5"
+      stroke="white" strokeWidth="1.4"
+      strokeLinecap="round" strokeLinejoin="round"
+      opacity="0.9"
+    />
+    <circle cx="13.5" cy="3.5" r="1.2" fill="white" opacity="0.95" />
+  </svg>
+);
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 function buildSidebarTokens(isDark: boolean) {
@@ -157,17 +165,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         { id: "arrival",  label: t("items.arrival"),  icon: Truck,        badge: "IN" },
         { id: "purchase", label: t("items.purchase"), icon: ShoppingBag },
         { id: "sales",    label: t("items.sales"),    icon: ShoppingCart },
+        { id: "carets",    label: "Caret Tracking",    icon: Box },
         { id: "payments", label: t("items.payments"), icon: Wallet },
       ],
     },
     {
       title: t("groups.data"),
       items: [
-        { id: "inventory", label: t("items.inventory"), icon: Package },
         { id: "parties",   label: t("items.parties"),   icon: Contact },
-        { id: "suppliers", label: t("items.suppliers"), icon: Users },
-        { id: "customers", label: t("items.customers"), icon: UserCheck },
-        { id: "carets",    label: "Caret Tracking",     icon: Box },
+        { id: "inventory", label: t("items.inventory"), icon: Package },
         { id: "reports",   label: t("items.reports"),   icon: FileBarChart2 },
       ],
     },
@@ -187,7 +193,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   // ── Sidebar inner content ─────────────────────────────────────────────────
   const SidebarContent: React.FC = () => (
     <div className="flex flex-col h-full">
-
 
       {/* ── Nav groups ── */}
       <div className="flex-1 overflow-y-auto py-3 px-2.5 space-y-4 scrollbar-thin">
@@ -328,7 +333,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 style={{ background: S.logoBg }}
                 className="p-1.5 rounded-lg shadow-md"
               >
-                <Truck className="w-4 h-4 text-white stroke-[2.5]" />
+                <ErpLogoIcon className="w-4 h-4" />
               </div>
               <span style={{ color: S.companyName }} className="font-semibold text-sm">
                 {initials}

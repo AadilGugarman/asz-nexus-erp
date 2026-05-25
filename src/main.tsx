@@ -2,9 +2,13 @@
  * main.tsx — application entry point.
  *
  * Startup sequence:
- *  1. startup.run()     — launches auth + DB warm-up in parallel (non-blocking)
- *  2. createRoot()      — mounts React
- *  3. startup.afterFirstPaint() — shows the Tauri window, schedules preloads
+ *  1. Inline <script> in index.html applies theme/font before this runs
+ *  2. runStorageMigration()          — migrate legacy localStorage keys
+ *  3. initAppearanceSystem() etc.    — apply persisted preferences
+ *  4. useStartupStore.initialize()   — DB + auth + settings warm-up (non-blocking)
+ *  5. createRoot() / render()        — mount React
+ *  6. requestAnimationFrame callback — fade out HTML loader, show Tauri window,
+ *                                      schedule idle-time chunk preloads
  *
  * StrictMode is enabled in dev (double-renders catch side-effect bugs) and
  * disabled in production (halves the number of renders on mount).
@@ -65,11 +69,12 @@ createRoot(root).render(app);
 
 // After React commits the first frame, show the window and schedule preloads
 requestAnimationFrame(() => {
-  // Remove the initial HTML loader
+  // Remove the initial HTML loader — fade it out over 500ms
   const loader = document.getElementById("initial-loader");
   if (loader) {
+    loader.style.transition = "opacity 0.5s ease-out";
     loader.style.opacity = "0";
-    setTimeout(() => loader.remove(), 300);
+    setTimeout(() => loader.remove(), 500);
   }
 
   // Show the window immediately on the first paint

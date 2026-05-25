@@ -117,9 +117,8 @@ interface SettingsState {
 }
 
 function deriveDefaultActiveFY(settings: AppSettings): string {
-  const [monthStart] = settings.financial.financialYearStart
-    .split("-")
-    .map(Number);
+  const fyStart = settings?.financial?.financialYearStart ?? "04-01";
+  const [monthStart] = fyStart.split("-").map(Number);
   const now = new Date();
   const currentYear = now.getFullYear();
   const baseYear =

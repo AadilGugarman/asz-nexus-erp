@@ -81,9 +81,12 @@ async function maybeTrimOnBackground(reason: string): Promise<void> {
 
 /**
  * Wires production startup side-effects in a singleton-safe way.
- * Safe to call multiple times.
+ * Safe to call multiple times — guards with listenersAttached flag.
+ *
+ * Named initProductionStartup (not useProductionStartup) because this is
+ * called from a service, not from a React component or hook.
  */
-export function useProductionStartup(): void {
+export function initProductionStartup(): void {
   void emitHydratedEvent();
 
   if (listenersAttached) return;

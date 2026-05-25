@@ -1,14 +1,17 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
-import { fmtDate } from '@/utils/format';
 import {
   FileBarChart2, Calendar, Printer, Filter, TrendingUp,
   ArrowUpRight, ArrowDownRight, Package, Users, UserCheck, DollarSign, Layers, Banknote, ArrowUpDown
 } from 'lucide-react';
+
+import { useApp } from '../context/AppContext';
+import { useDataTable } from '../hooks/useDataTable';
+
+import { DataTable, Pagination } from './ui/table';
 import { StatementPreview } from './ui/StatementPreview';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
-import { useDataTable } from '../hooks/useDataTable';
-import { DataTable, Pagination } from './ui/table';
+
+import { fmtDate } from '@/utils/format';
 
 type ReportTab = 'DAILY' | 'DATERANGE' | 'PARTY' | 'FRUIT' | 'OUTSTANDING' | 'PNL';
 
@@ -366,10 +369,18 @@ export const ReportsModule: React.FC = () => {
               >
                 <table className="erp-table w-full text-left text-xs">
                   <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                    <th className="py-2.5 px-4"><button type="button" onClick={() => dailyTable.toggleSort('type')} className="inline-flex items-center gap-1">Type <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3"><button type="button" onClick={() => dailyTable.toggleSort('reference')} className="inline-flex items-center gap-1">Reference <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3"><button type="button" onClick={() => dailyTable.toggleSort('party')} className="inline-flex items-center gap-1">Party <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => dailyTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">Amount <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-4 col-text w-36"><button type="button" onClick={() => dailyTable.toggleSort('type')} className="inline-flex items-center gap-1">Type <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-3 col-text w-32"><button type="button" onClick={() => dailyTable.toggleSort('reference')} className="inline-flex items-center gap-1">Reference <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-3 col-text"><button type="button" onClick={() => dailyTable.toggleSort('party')} className="inline-flex items-center gap-1">Party <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-3 col-num w-44"><button type="button" onClick={() => dailyTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">Amount <ArrowUpDown className="w-3 h-3" /></button></th>
                   </tr></thead>
                   <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                    {dailyTable.pageRows.map(tx => <tr key={tx.id} className="dark:hover:bg-slate-800/40 hover:bg-slate-50"><td className="py-2.5 px-4"><span className={`font-bold ${tx.direction === 'OUT' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{tx.type}</span></td><td className="py-2.5 px-3 font-mono font-bold dark:text-white text-slate-900">{tx.reference}</td><td className="py-2.5 px-3 dark:text-slate-300 text-slate-700">{tx.party}</td><td className={`py-2.5 px-3 text-right font-mono font-bold ${tx.direction === 'OUT' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>₹ {tx.amount.toLocaleString('en-IN')}</td></tr>)}
+                    {dailyTable.pageRows.map(tx => <tr key={tx.id} className="dark:hover:bg-slate-800/40 hover:bg-slate-50">
+                      <td className="py-2.5 px-4 col-text"><span className={`font-bold ${tx.direction === 'OUT' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{tx.type}</span></td>
+                      <td className="py-2.5 px-3 col-text font-mono font-bold dark:text-white text-slate-900">{tx.reference}</td>
+                      <td className="py-2.5 px-3 col-text dark:text-slate-300 text-slate-700">{tx.party}</td>
+                      <td className={`py-2.5 px-3 col-num font-mono font-bold ${tx.direction === 'OUT' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>₹ {tx.amount.toLocaleString('en-IN')}</td>
+                    </tr>)}
                   </tbody>
                 </table>
               </DataTable>
@@ -426,18 +437,23 @@ export const ReportsModule: React.FC = () => {
               >
                 <table className="erp-table w-full text-left text-xs">
                   <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                    <th className="py-2.5 px-4"><button type="button" onClick={() => rangeTable.toggleSort('date')} className="inline-flex items-center gap-1">Date <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => rangeTable.toggleSort('purchase')} className="inline-flex items-center gap-1 ml-auto">Purchase <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => rangeTable.toggleSort('sales')} className="inline-flex items-center gap-1 ml-auto">Sales <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => rangeTable.toggleSort('paidOut')} className="inline-flex items-center gap-1 ml-auto">Paid Out <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => rangeTable.toggleSort('received')} className="inline-flex items-center gap-1 ml-auto">Received <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-4 text-right"><button type="button" onClick={() => rangeTable.toggleSort('net')} className="inline-flex items-center gap-1 ml-auto">Net Cash Flow <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-4 col-text w-32"><button type="button" onClick={() => rangeTable.toggleSort('date')} className="inline-flex items-center gap-1">Date <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-3 col-num w-36"><button type="button" onClick={() => rangeTable.toggleSort('purchase')} className="inline-flex items-center gap-1 ml-auto">Purchase <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-3 col-num w-36"><button type="button" onClick={() => rangeTable.toggleSort('sales')} className="inline-flex items-center gap-1 ml-auto">Sales <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-3 col-num w-36"><button type="button" onClick={() => rangeTable.toggleSort('paidOut')} className="inline-flex items-center gap-1 ml-auto">Paid Out <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-3 col-num w-36"><button type="button" onClick={() => rangeTable.toggleSort('received')} className="inline-flex items-center gap-1 ml-auto">Received <ArrowUpDown className="w-3 h-3" /></button></th>
+                    <th className="py-2.5 px-4 col-num w-44"><button type="button" onClick={() => rangeTable.toggleSort('net')} className="inline-flex items-center gap-1 ml-auto">Net Cash Flow <ArrowUpDown className="w-3 h-3" /></button></th>
                   </tr></thead>
                   <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100 font-mono">
                     {rangeTable.pageRows.map((d) => {
                       const net = d.net;
                       return (<tr key={d.date} className="dark:hover:bg-slate-800/40 hover:bg-slate-50">
-                        <td className="py-2.5 px-4 font-semibold dark:text-slate-200 text-slate-800">{fmtDate(d.date)}</td>
-                        <td className="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400 font-semibold">{d.purchase > 0 ? `₹ ${d.purchase.toLocaleString('en-IN')}` : '—'}</td>
-                        <td className="py-2.5 px-3 text-right text-emerald-600 dark:text-emerald-400 font-semibold">{d.sales > 0 ? `₹ ${d.sales.toLocaleString('en-IN')}` : '—'}</td>
-                        <td className="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400">{d.paidOut > 0 ? `₹ ${d.paidOut.toLocaleString('en-IN')}` : '—'}</td>
-                        <td className="py-2.5 px-3 text-right text-emerald-600 dark:text-emerald-400">{d.received > 0 ? `₹ ${d.received.toLocaleString('en-IN')}` : '—'}</td>
-                        <td className={`py-2.5 px-4 text-right font-bold ${net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{net >= 0 ? '+' : ''}₹ {net.toLocaleString('en-IN')}</td>
+                        <td className="py-2.5 px-4 col-text font-semibold dark:text-slate-200 text-slate-800">{fmtDate(d.date)}</td>
+                        <td className="py-2.5 px-3 col-num text-rose-600 dark:text-rose-400 font-semibold">{d.purchase > 0 ? `₹ ${d.purchase.toLocaleString('en-IN')}` : '—'}</td>
+                        <td className="py-2.5 px-3 col-num text-emerald-600 dark:text-emerald-400 font-semibold">{d.sales > 0 ? `₹ ${d.sales.toLocaleString('en-IN')}` : '—'}</td>
+                        <td className="py-2.5 px-3 col-num text-rose-600 dark:text-rose-400">{d.paidOut > 0 ? `₹ ${d.paidOut.toLocaleString('en-IN')}` : '—'}</td>
+                        <td className="py-2.5 px-3 col-num text-emerald-600 dark:text-emerald-400">{d.received > 0 ? `₹ ${d.received.toLocaleString('en-IN')}` : '—'}</td>
+                        <td className={`py-2.5 px-4 col-num font-bold ${net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{net >= 0 ? '+' : ''}₹ {net.toLocaleString('en-IN')}</td>
                       </tr>);
                     })}
                   </tbody>
@@ -470,23 +486,26 @@ export const ReportsModule: React.FC = () => {
             >
               <table className="erp-table w-full text-left text-xs">
                 <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                  <th className="py-2.5 px-4"><button type="button" onClick={() => supplierTable.toggleSort('name')} className="inline-flex items-center gap-1">Supplier Name <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => supplierTable.toggleSort('purchase')} className="inline-flex items-center gap-1 ml-auto">Total Purchase <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => supplierTable.toggleSort('paid')} className="inline-flex items-center gap-1 ml-auto">Total Paid <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-4 text-right font-black"><button type="button" onClick={() => supplierTable.toggleSort('balance')} className="inline-flex items-center gap-1 ml-auto">Outstanding <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-4 col-text"><button type="button" onClick={() => supplierTable.toggleSort('name')} className="inline-flex items-center gap-1">Supplier Name <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-36"><button type="button" onClick={() => supplierTable.toggleSort('purchase')} className="inline-flex items-center gap-1 ml-auto">Total Purchase <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-36"><button type="button" onClick={() => supplierTable.toggleSort('paid')} className="inline-flex items-center gap-1 ml-auto">Total Paid <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-4 col-num w-44 font-black"><button type="button" onClick={() => supplierTable.toggleSort('balance')} className="inline-flex items-center gap-1 ml-auto">Outstanding <ArrowUpDown className="w-3 h-3" /></button></th>
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                   {supplierTable.pageRows.map(s => (
                     <tr key={s.name} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
-                      <td className="py-2.5 px-4 font-bold dark:text-white text-slate-900">{s.name}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-rose-600 dark:text-rose-400">₹ {s.purchase.toLocaleString('en-IN')}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">₹ {s.paid.toLocaleString('en-IN')}</td>
-                      <td className="py-2.5 px-4 text-right font-mono font-black dark:text-white text-slate-900">₹ {s.balance.toLocaleString('en-IN')}</td>
+                      <td className="py-2.5 px-4 col-text font-bold dark:text-white text-slate-900">{s.name}</td>
+                      <td className="py-2.5 px-3 col-num font-mono font-semibold text-rose-600 dark:text-rose-400">₹ {s.purchase.toLocaleString('en-IN')}</td>
+                      <td className="py-2.5 px-3 col-num font-mono font-semibold text-emerald-600 dark:text-emerald-400">₹ {s.paid.toLocaleString('en-IN')}</td>
+                      <td className="py-2.5 px-4 col-num font-mono font-black dark:text-white text-slate-900">₹ {s.balance.toLocaleString('en-IN')}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot><tr className="dark:bg-slate-950 bg-slate-100 font-bold border-t-2 dark:border-slate-700 border-slate-300">
-                  <td className="py-2.5 px-4 text-right text-[10px] uppercase tracking-wider dark:text-slate-400 text-slate-500">TOTAL</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-rose-600 dark:text-rose-400">₹ {partyData.suppliers.reduce((s,x)=>s+x.purchase,0).toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">₹ {partyData.suppliers.reduce((s,x)=>s+x.paid,0).toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 px-4 text-right font-mono font-black dark:text-white text-slate-900 text-sm">₹ {partyData.suppliers.reduce((s,x)=>s+x.balance,0).toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-4 col-text text-right text-[10px] uppercase tracking-wider dark:text-slate-400 text-slate-500">TOTAL</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-rose-600 dark:text-rose-400">₹ {partyData.suppliers.reduce((s,x)=>s+x.purchase,0).toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-emerald-600 dark:text-emerald-400">₹ {partyData.suppliers.reduce((s,x)=>s+x.paid,0).toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-4 col-num font-mono font-black dark:text-white text-slate-900 text-sm">₹ {partyData.suppliers.reduce((s,x)=>s+x.balance,0).toLocaleString('en-IN')}</td>
                 </tr></tfoot>
               </table>
             </DataTable>
@@ -502,23 +521,26 @@ export const ReportsModule: React.FC = () => {
             >
               <table className="erp-table w-full text-left text-xs">
                 <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                  <th className="py-2.5 px-4"><button type="button" onClick={() => customerTable.toggleSort('name')} className="inline-flex items-center gap-1">Customer Name <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => customerTable.toggleSort('sales')} className="inline-flex items-center gap-1 ml-auto">Total Sales <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => customerTable.toggleSort('received')} className="inline-flex items-center gap-1 ml-auto">Total Received <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-4 text-right font-black"><button type="button" onClick={() => customerTable.toggleSort('balance')} className="inline-flex items-center gap-1 ml-auto">Outstanding <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-4 col-text"><button type="button" onClick={() => customerTable.toggleSort('name')} className="inline-flex items-center gap-1">Customer Name <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-36"><button type="button" onClick={() => customerTable.toggleSort('sales')} className="inline-flex items-center gap-1 ml-auto">Total Sales <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-36"><button type="button" onClick={() => customerTable.toggleSort('received')} className="inline-flex items-center gap-1 ml-auto">Total Received <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-4 col-num w-44 font-black"><button type="button" onClick={() => customerTable.toggleSort('balance')} className="inline-flex items-center gap-1 ml-auto">Outstanding <ArrowUpDown className="w-3 h-3" /></button></th>
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                   {customerTable.pageRows.map(c => (
                     <tr key={c.name} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
-                      <td className="py-2.5 px-4 font-bold dark:text-white text-slate-900">{c.name}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-indigo-600 dark:text-indigo-400">₹ {c.sales.toLocaleString('en-IN')}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">₹ {c.received.toLocaleString('en-IN')}</td>
-                      <td className="py-2.5 px-4 text-right font-mono font-black dark:text-white text-slate-900">₹ {c.balance.toLocaleString('en-IN')}</td>
+                      <td className="py-2.5 px-4 col-text font-bold dark:text-white text-slate-900">{c.name}</td>
+                      <td className="py-2.5 px-3 col-num font-mono font-semibold text-indigo-600 dark:text-indigo-400">₹ {c.sales.toLocaleString('en-IN')}</td>
+                      <td className="py-2.5 px-3 col-num font-mono font-semibold text-emerald-600 dark:text-emerald-400">₹ {c.received.toLocaleString('en-IN')}</td>
+                      <td className="py-2.5 px-4 col-num font-mono font-black dark:text-white text-slate-900">₹ {c.balance.toLocaleString('en-IN')}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot><tr className="dark:bg-slate-950 bg-slate-100 font-bold border-t-2 dark:border-slate-700 border-slate-300">
-                  <td className="py-2.5 px-4 text-right text-[10px] uppercase tracking-wider dark:text-slate-400 text-slate-500">TOTAL</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-indigo-600 dark:text-indigo-400">₹ {partyData.customers.reduce((s,x)=>s+x.sales,0).toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">₹ {partyData.customers.reduce((s,x)=>s+x.received,0).toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 px-4 text-right font-mono font-black dark:text-white text-slate-900 text-sm">₹ {partyData.customers.reduce((s,x)=>s+x.balance,0).toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-4 col-text text-right text-[10px] uppercase tracking-wider dark:text-slate-400 text-slate-500">TOTAL</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-indigo-600 dark:text-indigo-400">₹ {partyData.customers.reduce((s,x)=>s+x.sales,0).toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-emerald-600 dark:text-emerald-400">₹ {partyData.customers.reduce((s,x)=>s+x.received,0).toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-4 col-num font-mono font-black dark:text-white text-slate-900 text-sm">₹ {partyData.customers.reduce((s,x)=>s+x.balance,0).toLocaleString('en-IN')}</td>
                 </tr></tfoot>
               </table>
             </DataTable>
@@ -540,11 +562,15 @@ export const ReportsModule: React.FC = () => {
             >
               <table className="erp-table w-full text-left text-xs">
                 <thead><tr className="dark:bg-slate-900/50 bg-slate-100 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                  <th className="py-2.5 px-4"><button type="button" onClick={() => fruitTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Fruit <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3"><button type="button" onClick={() => fruitTable.toggleSort('variety')} className="inline-flex items-center gap-1">Variety <ArrowUpDown className="w-3 h-3" /></button></th>
-                  <th className="py-2.5 px-3 text-right"><button type="button" onClick={() => fruitTable.toggleSort('purchased')} className="inline-flex items-center gap-1 ml-auto">Purchased (KG) <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => fruitTable.toggleSort('purchaseAmt')} className="inline-flex items-center gap-1 ml-auto">Purchase ₹ <ArrowUpDown className="w-3 h-3" /></button></th>
-                  <th className="py-2.5 px-3 text-right"><button type="button" onClick={() => fruitTable.toggleSort('sold')} className="inline-flex items-center gap-1 ml-auto">Sold (KG) <ArrowUpDown className="w-3 h-3" /></button></th><th className="py-2.5 px-3 text-right"><button type="button" onClick={() => fruitTable.toggleSort('salesAmt')} className="inline-flex items-center gap-1 ml-auto">Sales ₹ <ArrowUpDown className="w-3 h-3" /></button></th>
-                  <th className="py-2.5 px-3 text-right">Avg Buy/KG</th><th className="py-2.5 px-3 text-right">Avg Sell/KG</th>
-                  <th className="py-2.5 px-4 text-right font-black"><button type="button" onClick={() => fruitTable.toggleSort('stock')} className="inline-flex items-center gap-1 ml-auto">Stock (KG) <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-4 col-text"><button type="button" onClick={() => fruitTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Fruit <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-text"><button type="button" onClick={() => fruitTable.toggleSort('variety')} className="inline-flex items-center gap-1">Variety <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-32"><button type="button" onClick={() => fruitTable.toggleSort('purchased')} className="inline-flex items-center gap-1 ml-auto">Purchased (KG) <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-32"><button type="button" onClick={() => fruitTable.toggleSort('purchaseAmt')} className="inline-flex items-center gap-1 ml-auto">Purchase ₹ <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-32"><button type="button" onClick={() => fruitTable.toggleSort('sold')} className="inline-flex items-center gap-1 ml-auto">Sold (KG) <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-32"><button type="button" onClick={() => fruitTable.toggleSort('salesAmt')} className="inline-flex items-center gap-1 ml-auto">Sales ₹ <ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="py-2.5 px-3 col-num w-28">Avg Buy/KG</th>
+                  <th className="py-2.5 px-3 col-num w-28">Avg Sell/KG</th>
+                  <th className="py-2.5 px-4 col-num w-36 font-black"><button type="button" onClick={() => fruitTable.toggleSort('stock')} className="inline-flex items-center gap-1 ml-auto">Stock (KG) <ArrowUpDown className="w-3 h-3" /></button></th>
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                   {fruitTable.pageRows.map((f, i) => {
@@ -552,27 +578,27 @@ export const ReportsModule: React.FC = () => {
                     const avgSell = f.sold > 0 ? f.salesAmt / f.sold : 0;
                     return (
                       <tr key={i} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
-                        <td className="py-2.5 px-4 font-bold dark:text-white text-slate-900">{f.fruit}</td>
-                        <td className="py-2.5 px-3 font-semibold dark:text-slate-200 text-slate-800">{f.variety}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-semibold">{f.purchased.toLocaleString()}</td>
-                        <td className="py-2.5 px-3 text-right font-mono text-rose-600 dark:text-rose-400 font-semibold">₹ {f.purchaseAmt.toLocaleString('en-IN')}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-semibold">{f.sold.toLocaleString()}</td>
-                        <td className="py-2.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">₹ {f.salesAmt.toLocaleString('en-IN')}</td>
-                        <td className="py-2.5 px-3 text-right font-mono dark:text-slate-400 text-slate-600">₹{avgBuy.toFixed(1)}</td>
-                        <td className="py-2.5 px-3 text-right font-mono dark:text-slate-400 text-slate-600">₹{avgSell.toFixed(1)}</td>
-                        <td className={`py-2.5 px-4 text-right font-mono font-black ${f.stock > 0 ? 'text-teal-600 dark:text-teal-400' : f.stock < 0 ? 'text-rose-600 dark:text-rose-400' : 'dark:text-slate-500 text-slate-400'}`}>{f.stock.toLocaleString()}</td>
+                        <td className="py-2.5 px-4 col-text font-bold dark:text-white text-slate-900">{f.fruit}</td>
+                        <td className="py-2.5 px-3 col-text font-semibold dark:text-slate-200 text-slate-800">{f.variety}</td>
+                        <td className="py-2.5 px-3 col-num font-mono font-semibold">{f.purchased.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 col-num font-mono text-rose-600 dark:text-rose-400 font-semibold">₹ {f.purchaseAmt.toLocaleString('en-IN')}</td>
+                        <td className="py-2.5 px-3 col-num font-mono font-semibold">{f.sold.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 col-num font-mono text-emerald-600 dark:text-emerald-400 font-semibold">₹ {f.salesAmt.toLocaleString('en-IN')}</td>
+                        <td className="py-2.5 px-3 col-num font-mono dark:text-slate-400 text-slate-600">₹{avgBuy.toFixed(1)}</td>
+                        <td className="py-2.5 px-3 col-num font-mono dark:text-slate-400 text-slate-600">₹{avgSell.toFixed(1)}</td>
+                        <td className={`py-2.5 px-4 col-num font-mono font-black ${f.stock > 0 ? 'text-teal-600 dark:text-teal-400' : f.stock < 0 ? 'text-rose-600 dark:text-rose-400' : 'dark:text-slate-500 text-slate-400'}`}>{f.stock.toLocaleString()}</td>
                       </tr>
                     );
                   })}
                 </tbody>
                 <tfoot><tr className="dark:bg-slate-950 bg-slate-100 font-bold border-t-2 dark:border-slate-700 border-slate-300">
-                  <td colSpan={2} className="py-2.5 px-4 text-right text-[10px] uppercase tracking-wider dark:text-slate-400 text-slate-500">GRAND TOTAL</td>
-                  <td className="py-2.5 px-3 text-right font-mono font-bold">{fruitData.reduce((s,f)=>s+f.purchased,0).toLocaleString()}</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-rose-600 dark:text-rose-400 font-bold">₹ {fruitData.reduce((s,f)=>s+f.purchaseAmt,0).toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 px-3 text-right font-mono font-bold">{fruitData.reduce((s,f)=>s+f.sold,0).toLocaleString()}</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-bold">₹ {fruitData.reduce((s,f)=>s+f.salesAmt,0).toLocaleString('en-IN')}</td>
+                  <td colSpan={2} className="py-2.5 px-4 col-text text-right text-[10px] uppercase tracking-wider dark:text-slate-400 text-slate-500">GRAND TOTAL</td>
+                  <td className="py-2.5 px-3 col-num font-mono font-bold">{fruitData.reduce((s,f)=>s+f.purchased,0).toLocaleString()}</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-rose-600 dark:text-rose-400 font-bold">₹ {fruitData.reduce((s,f)=>s+f.purchaseAmt,0).toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-3 col-num font-mono font-bold">{fruitData.reduce((s,f)=>s+f.sold,0).toLocaleString()}</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-emerald-600 dark:text-emerald-400 font-bold">₹ {fruitData.reduce((s,f)=>s+f.salesAmt,0).toLocaleString('en-IN')}</td>
                   <td colSpan={2}></td>
-                  <td className="py-2.5 px-4 text-right font-mono font-black dark:text-teal-400 text-teal-700 text-sm">{fruitData.reduce((s,f)=>s+f.stock,0).toLocaleString()}</td>
+                  <td className="py-2.5 px-4 col-num font-mono font-black dark:text-teal-400 text-teal-700 text-sm">{fruitData.reduce((s,f)=>s+f.stock,0).toLocaleString()}</td>
                 </tr></tfoot>
               </table>
             </DataTable>
@@ -651,50 +677,50 @@ export const ReportsModule: React.FC = () => {
                 <tbody>
                   {/* Revenue */}
                   <tr className="border-b dark:border-slate-800 border-slate-200">
-                    <td className="py-3 font-bold dark:text-emerald-400 text-emerald-700 uppercase text-xs tracking-wider" colSpan={2}>Revenue / Income</td>
+                    <td className="py-3 font-bold dark:text-emerald-400 text-emerald-700 uppercase text-xs tracking-wider col-text" colSpan={2}>Revenue / Income</td>
                   </tr>
                   <tr className="dark:hover:bg-slate-800/30 hover:bg-slate-50">
-                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium">Total Sales Revenue</td>
-                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">₹ {pnlData.totalSales.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium col-text">Total Sales Revenue</td>
+                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 col-num">₹ {pnlData.totalSales.toLocaleString('en-IN')}</td>
                   </tr>
                   {pnlData.totalHamali > 0 && <tr className="dark:hover:bg-slate-800/30 hover:bg-slate-50">
-                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium">Hamali / Loading Charges Collected</td>
-                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">₹ {pnlData.totalHamali.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium col-text">Hamali / Loading Charges Collected</td>
+                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 col-num">₹ {pnlData.totalHamali.toLocaleString('en-IN')}</td>
                   </tr>}
 
                   {/* Cost */}
                   <tr className="border-b border-t-2 dark:border-slate-700 border-slate-300 mt-4">
-                    <td className="py-3 font-bold dark:text-rose-400 text-rose-700 uppercase text-xs tracking-wider" colSpan={2}>Cost of Goods / Expenses</td>
+                    <td className="py-3 font-bold dark:text-rose-400 text-rose-700 uppercase text-xs tracking-wider col-text" colSpan={2}>Cost of Goods / Expenses</td>
                   </tr>
                   <tr className="dark:hover:bg-slate-800/30 hover:bg-slate-50">
-                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium">Total Purchase Cost (Vehicle + Direct)</td>
-                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-rose-600 dark:text-rose-400">₹ {pnlData.totalPurchase.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium col-text">Total Purchase Cost (Vehicle + Direct)</td>
+                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-rose-600 dark:text-rose-400 col-num">₹ {pnlData.totalPurchase.toLocaleString('en-IN')}</td>
                   </tr>
                   {pnlData.totalFreight > 0 && <tr className="dark:hover:bg-slate-800/30 hover:bg-slate-50">
-                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium">Freight / Transport Charges</td>
-                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-rose-600 dark:text-rose-400">₹ {pnlData.totalFreight.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium col-text">Freight / Transport Charges</td>
+                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-rose-600 dark:text-rose-400 col-num">₹ {pnlData.totalFreight.toLocaleString('en-IN')}</td>
                   </tr>}
                   {pnlData.totalDiscount > 0 && <tr className="dark:hover:bg-slate-800/30 hover:bg-slate-50">
-                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium">Discounts Given to Customers</td>
-                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-rose-600 dark:text-rose-400">₹ {pnlData.totalDiscount.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 pl-6 dark:text-slate-300 text-slate-700 font-medium col-text">Discounts Given to Customers</td>
+                    <td className="py-2.5 pr-6 text-right font-mono font-bold text-rose-600 dark:text-rose-400 col-num">₹ {pnlData.totalDiscount.toLocaleString('en-IN')}</td>
                   </tr>}
 
                   {/* Gross Profit */}
                   <tr className="border-t-2 dark:border-slate-600 border-slate-400 dark:bg-slate-950 bg-slate-100">
-                    <td className="py-3 pl-6 font-black dark:text-white text-slate-900 uppercase text-xs tracking-wider">Gross Trading Profit / (Loss)</td>
-                    <td className={`py-3 pr-6 text-right font-mono font-black text-lg ${pnlData.grossProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>₹ {pnlData.grossProfit.toLocaleString('en-IN')}</td>
+                    <td className="py-3 pl-6 font-black dark:text-white text-slate-900 uppercase text-xs tracking-wider col-text">Gross Trading Profit / (Loss)</td>
+                    <td className={`py-3 pr-6 text-right font-mono font-black text-lg ${pnlData.grossProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} col-num`}>₹ {pnlData.grossProfit.toLocaleString('en-IN')}</td>
                   </tr>
 
                   {/* Margin */}
                   <tr className="border-t dark:border-slate-800 border-slate-200 dark:bg-slate-900/50 bg-white">
-                    <td className="py-3 pl-6 dark:text-slate-400 text-slate-600 font-semibold">Gross Margin %</td>
-                    <td className={`py-3 pr-6 text-right font-mono font-black ${pnlData.margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{pnlData.margin.toFixed(1)}%</td>
+                    <td className="py-3 pl-6 dark:text-slate-400 text-slate-600 font-semibold col-text">Gross Margin %</td>
+                    <td className={`py-3 pr-6 text-right font-mono font-black ${pnlData.margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} col-num`}>{pnlData.margin.toFixed(1)}%</td>
                   </tr>
 
                   {/* Net Profit */}
                   <tr className="border-t-[3px] dark:border-emerald-500 border-emerald-600 dark:bg-emerald-950/30 bg-emerald-50">
-                    <td className="py-4 pl-6 font-black dark:text-white text-slate-900 uppercase text-sm tracking-wider">Net Trading Profit</td>
-                    <td className={`py-4 pr-6 text-right font-mono font-black text-2xl ${pnlData.netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>₹ {pnlData.netProfit.toLocaleString('en-IN')}</td>
+                    <td className="py-4 pl-6 font-black dark:text-white text-slate-900 uppercase text-sm tracking-wider col-text">Net Trading Profit</td>
+                    <td className={`py-4 pr-6 text-right font-mono font-black text-2xl ${pnlData.netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} col-num`}>₹ {pnlData.netProfit.toLocaleString('en-IN')}</td>
                   </tr>
                 </tbody>
               </table>

@@ -1,11 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { fmtDate } from '@/utils/format';
+import { 
+  Package, Search, Filter, ArrowUpRight, ArrowDownRight, 
+  Layers, AlertTriangle, RefreshCw, ArrowUpDown 
+} from 'lucide-react';
+
 import { useApp } from '../context/AppContext';
-import { Package, Search, Filter, ArrowUpRight, ArrowDownRight, Layers, AlertTriangle, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { useDataTable } from '../hooks/useDataTable';
+
+import { DataTable, Pagination } from './ui/table';
 import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
-import { useDataTable } from '../hooks/useDataTable';
-import { DataTable, Pagination } from './ui/table';
+
+import { fmtDate } from '@/utils/format';
 
 export const InventoryModule: React.FC = () => {
   const { inventory, stockMovements, fruits } = useApp();
@@ -180,6 +186,7 @@ export const InventoryModule: React.FC = () => {
         <div className="flex items-center space-x-3 w-full sm:w-auto">
           <Filter className="w-4 h-4 text-[#94a3b8] hidden sm:block" />
           <CommandSelect
+            variant="sky"
             value={filterFruit}
             onChange={(val) => setFilterFruit(val)}
             options={fruitOptions}
@@ -217,11 +224,11 @@ export const InventoryModule: React.FC = () => {
             <table className="erp-table text-left font-sans">
               <thead>
                 <tr>
-                  <th className="py-3.5 px-6"><button type="button" onClick={() => liveStockTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Fruit Category <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3.5 px-4"><button type="button" onClick={() => liveStockTable.toggleSort('variety')} className="inline-flex items-center gap-1">Variety (Vakkal) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3.5 px-4 text-right"><button type="button" onClick={() => liveStockTable.toggleSort('totalCarets')} className="inline-flex items-center gap-1 ml-auto">Carets Quantity <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3.5 px-6 text-right text-[#00aeef]"><button type="button" onClick={() => liveStockTable.toggleSort('totalWeight')} className="inline-flex items-center gap-1 ml-auto">Total Net Weight (KG) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3.5 px-6 text-center">Status / Health</th>
+                  <th className="py-3.5 px-6 col-text"><button type="button" onClick={() => liveStockTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Fruit Category <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3.5 px-4 col-text"><button type="button" onClick={() => liveStockTable.toggleSort('variety')} className="inline-flex items-center gap-1">Variety (Vakkal) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3.5 px-4 col-num w-44"><button type="button" onClick={() => liveStockTable.toggleSort('totalCarets')} className="inline-flex items-center gap-1 ml-auto">Carets Quantity <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3.5 px-6 col-num text-[#00aeef] w-52"><button type="button" onClick={() => liveStockTable.toggleSort('totalWeight')} className="inline-flex items-center gap-1 ml-auto">Total Net Weight (KG) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3.5 px-6 col-actions w-44">Status / Health</th>
                 </tr>
               </thead>
               <tbody className="font-mono">
@@ -242,20 +249,20 @@ export const InventoryModule: React.FC = () => {
 
                     return (
                       <tr key={item.key} className="font-sans group">
-                        <td className="py-4 px-6 font-semibold text-[#0f172a] flex items-center space-x-2.5 font-sans">
+                        <td className="py-4 px-6 col-text font-semibold text-[#0f172a] flex items-center space-x-2.5 font-sans">
                           <div className={`w-2.5 h-2.5 rounded-full ${isOut ? 'bg-rose-500' : isLowStock ? 'bg-amber-400 animate-pulse' : 'bg-teal-500'}`}></div>
                           <span>{item.fruit}</span>
                         </td>
-                        <td className="py-4 px-4 font-semibold text-[#0f172a] text-[15px] font-sans">
+                        <td className="py-4 px-4 col-text font-semibold text-[#0f172a] text-[15px] font-sans">
                           {item.variety}
                         </td>
-                        <td className="py-4 px-4 text-right font-mono font-semibold text-[#334155] text-sm">
+                        <td className="py-4 px-4 col-num font-mono font-semibold text-[#334155] text-sm">
                           {item.totalCarets} <span className="text-xs text-[#64748b] font-normal font-sans">CRT</span>
                         </td>
-                        <td className="py-4 px-6 text-right font-mono font-semibold text-base text-[#00aeef] bg-[rgba(0,174,239,0.06)]">
+                        <td className="py-4 px-6 col-num font-mono font-semibold text-base text-[#00aeef] bg-[rgba(0,174,239,0.06)]">
                           {item.totalWeight.toLocaleString('en-IN')} <span className="text-xs text-[#0369a1] font-normal font-sans">KG</span>
                         </td>
-                        <td className="py-4 px-6 text-center font-sans">
+                        <td className="py-4 px-6 col-actions font-sans">
                           {isOut ? (
                             <span className="bg-rose-500/10 text-rose-700 border border-rose-500/30 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider font-mono">
                               Out of Stock
@@ -307,13 +314,13 @@ export const InventoryModule: React.FC = () => {
             <table className="erp-table text-left">
               <thead>
                 <tr>
-                  <th className="py-3 px-4"><button type="button" onClick={() => movementTable.toggleSort('date')} className="inline-flex items-center gap-1">Date & Time <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3 px-3">Movement Type</th>
-                  <th className="py-3 px-3"><button type="button" onClick={() => movementTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Item Variety <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3 px-4">Source / Reference</th>
-                  <th className="py-3 px-3 text-right"><button type="button" onClick={() => movementTable.toggleSort('weightChange')} className="inline-flex items-center gap-1 ml-auto">Weight Change <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3 px-3 text-right">Carets Change</th>
-                  <th className="py-3 px-4 text-right text-[#00aeef]"><button type="button" onClick={() => movementTable.toggleSort('resultingWeight')} className="inline-flex items-center gap-1 ml-auto">Resulting Balance <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3 px-4 col-text w-28"><button type="button" onClick={() => movementTable.toggleSort('date')} className="inline-flex items-center gap-1">Date & Time <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3 px-3 col-text w-40">Movement Type</th>
+                  <th className="py-3 px-3 col-text"><button type="button" onClick={() => movementTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Item Variety <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3 px-4 col-text">Source / Reference</th>
+                  <th className="py-3 px-3 col-num w-36"><button type="button" onClick={() => movementTable.toggleSort('weightChange')} className="inline-flex items-center gap-1 ml-auto">Weight Change <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  <th className="py-3 px-3 col-num w-36">Carets Change</th>
+                  <th className="py-3 px-4 col-num text-[#00aeef] w-48"><button type="button" onClick={() => movementTable.toggleSort('resultingWeight')} className="inline-flex items-center gap-1 ml-auto">Resulting Balance <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
                 </tr>
               </thead>
               <tbody className="font-mono font-medium">
@@ -332,8 +339,8 @@ export const InventoryModule: React.FC = () => {
                     const isStockIn = m.type === 'ARRIVAL' || m.type === 'PURCHASE_BILL';
                     return (
                       <tr key={m.id} className="font-sans group">
-                        <td className="py-3.5 px-4 font-mono text-[#64748b] whitespace-nowrap text-xs">{fmtDate(m.date)}</td>
-                        <td className="py-3.5 px-3">
+                        <td className="py-3.5 px-4 col-text font-mono text-[#64748b] whitespace-nowrap text-xs">{fmtDate(m.date)}</td>
+                        <td className="py-3.5 px-3 col-text">
                           {isStockIn ? (
                             <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase flex items-center w-max font-mono">
                               <ArrowUpRight className="w-3.5 h-3.5 mr-1 text-emerald-600" />
@@ -346,19 +353,19 @@ export const InventoryModule: React.FC = () => {
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-3 font-semibold text-[#0f172a] font-sans">
+                        <td className="py-3.5 px-3 col-text font-semibold text-[#0f172a] font-sans">
                           {m.fruit} <span className="text-[#64748b] font-medium font-sans">({m.variety})</span>
                         </td>
-                        <td className="py-3.5 px-4 text-[#334155] font-sans truncate max-w-[240px] font-medium">
+                        <td className="py-3.5 px-4 col-text text-[#334155] font-sans truncate max-w-[240px] font-medium">
                           {m.reference}
                         </td>
-                        <td className={`py-3.5 px-3 text-right font-mono font-semibold text-sm ${isStockIn ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <td className={`py-3.5 px-3 col-num font-mono font-semibold text-sm ${isStockIn ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {isStockIn ? `+${m.weightChange}` : m.weightChange} KG
                         </td>
-                        <td className={`py-3.5 px-3 text-right font-mono font-semibold text-sm ${isStockIn ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <td className={`py-3.5 px-3 col-num font-mono font-semibold text-sm ${isStockIn ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {isStockIn ? `+${m.caretChange}` : m.caretChange} CRT
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#00aeef] bg-[rgba(0,174,239,0.06)] text-sm">
+                        <td className="py-3.5 px-4 col-num font-mono font-semibold text-[#00aeef] bg-[rgba(0,174,239,0.06)] text-sm">
                           {m.resultingWeight} KG <span className="text-[11px] text-[#64748b] font-normal font-sans">({m.resultingCarets} CRT)</span>
                         </td>
                       </tr>

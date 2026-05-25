@@ -50,18 +50,20 @@ import {
 
 /** Root redirect — send to /setup on first run, /dashboard otherwise. */
 const RootRedirect: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const startupPhase = useStartupStore((s) => s.phase);
+  const uiReady      = useStartupStore((s) => s.uiReady);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
 
-  if (!startupReady)
-    return <StartupScreen message="Preparing application..." />;
+  if (startupPhase === 'error') return <StartupScreen />;
+  // Wait for both real work AND bar animation to complete
+  if (!uiReady) return <StartupScreen />;
 
   const target = decidePostStartupRoute({
-    startupReady,
+    startupReady: true,
     isSetupDone,
     isSetupComplete,
     isAuthenticated,
@@ -74,49 +76,46 @@ const RootRedirect: React.FC = () => {
 
 /** Setup route — only accessible when setup is NOT done yet. */
 const SetupRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const startupPhase = useStartupStore((s) => s.phase);
+  const uiReady      = useStartupStore((s) => s.uiReady);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
 
-  if (!startupReady)
-    return <StartupScreen message="Checking setup status..." />;
+  if (startupPhase === 'error') return <StartupScreen />;
+  if (!uiReady) return <StartupScreen />;
 
-  // If password setup is already done, we shouldn't be here.
-  // Unless we are moving to company onboarding.
   if (isSetupDone) {
     const target = decidePostStartupRoute({
-      startupReady,
+      startupReady: true,
       isSetupDone,
       isSetupComplete,
       isAuthenticated,
       hasCompany,
       isLocked,
     });
-
-    if (target && target !== ROUTES.setup) {
-      return <Navigate to={target} replace />;
-    }
+    if (target && target !== ROUTES.setup) return <Navigate to={target} replace />;
   }
   return <LazyAuthLayout />;
 };
 
 /** Company-setup route — must be authenticated, must NOT have a company yet. */
 const CompanySetupRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const startupPhase = useStartupStore((s) => s.phase);
+  const uiReady      = useStartupStore((s) => s.uiReady);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
 
-  if (!startupReady)
-    return <StartupScreen message="Checking onboarding status..." />;
+  if (startupPhase === 'error') return <StartupScreen />;
+  if (!uiReady) return <StartupScreen />;
 
   const target = decidePostStartupRoute({
-    startupReady,
+    startupReady: true,
     isSetupDone,
     isSetupComplete,
     isAuthenticated,
@@ -124,26 +123,24 @@ const CompanySetupRoute: React.FC = () => {
     isLocked,
   });
 
-  if (target && target !== ROUTES.companySetup) {
-    return <Navigate to={target} replace />;
-  }
-
+  if (target && target !== ROUTES.companySetup) return <Navigate to={target} replace />;
   return <Outlet />;
 };
 
 const LockRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const startupPhase = useStartupStore((s) => s.phase);
+  const uiReady      = useStartupStore((s) => s.uiReady);
   const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasCompany = useCompanyStore((s) => s.hasCompany);
   const isLocked = useLockStore((s) => s.isLocked);
 
-  if (!startupReady)
-    return <StartupScreen message="Applying security policies..." />;
+  if (startupPhase === 'error') return <StartupScreen />;
+  if (!uiReady) return <StartupScreen />;
 
   const target = decidePostStartupRoute({
-    startupReady,
+    startupReady: true,
     isSetupDone,
     isSetupComplete,
     isAuthenticated,
@@ -151,10 +148,7 @@ const LockRoute: React.FC = () => {
     isLocked,
   });
 
-  if (target && target !== ROUTES.lock) {
-    return <Navigate to={target} replace />;
-  }
-
+  if (target && target !== ROUTES.lock) return <Navigate to={target} replace />;
   return <Outlet />;
 };
 
@@ -193,18 +187,18 @@ export const AppRoutes: React.FC = () => {
         {/* ── Protected routes (authenticated only) ──────────────────── */}
         <Route element={<ProtectedRoute />}>
           <Route element={<LazyAppLayout />}>
-            <Route path={ROUTES.dashboard} element={<LazyAppShell />} />
-            <Route path={ROUTES.arrival} element={<LazyAppShell />} />
-            <Route path={ROUTES.purchase} element={<LazyAppShell />} />
-            <Route path={ROUTES.sales} element={<LazyAppShell />} />
-            <Route path={ROUTES.inventory} element={<LazyAppShell />} />
-            <Route path={ROUTES.parties} element={<LazyAppShell />} />
-            <Route path={ROUTES.payments} element={<LazyAppShell />} />
-            <Route path={ROUTES.reports} element={<LazyAppShell />} />
-            <Route path={ROUTES.suppliers} element={<LazyAppShell />} />
-            <Route path={ROUTES.customers} element={<LazyAppShell />} />
-            <Route path={ROUTES.carets} element={<LazyAppShell />} />
-            <Route path={ROUTES.settings} element={<LazyAppShell />} />
+            <Route path={ROUTES.dashboard}  element={<LazyAppShell />} />
+            <Route path={ROUTES.arrival}    element={<LazyAppShell />} />
+            <Route path={ROUTES.purchase}   element={<LazyAppShell />} />
+            <Route path={ROUTES.sales}      element={<LazyAppShell />} />
+            <Route path={ROUTES.inventory}  element={<LazyAppShell />} />
+            <Route path={ROUTES.parties}    element={<LazyAppShell />} />
+            <Route path={ROUTES.payments}   element={<LazyAppShell />} />
+            <Route path={ROUTES.reports}    element={<LazyAppShell />} />
+            <Route path={ROUTES.suppliers}  element={<LazyAppShell />} />
+            <Route path={ROUTES.customers}  element={<LazyAppShell />} />
+            <Route path={ROUTES.carets}     element={<LazyAppShell />} />
+            <Route path={ROUTES.settings}   element={<LazyAppShell />} />
           </Route>
         </Route>
 

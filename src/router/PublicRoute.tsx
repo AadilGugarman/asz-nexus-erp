@@ -18,22 +18,24 @@ import { StartupScreen } from "@/components/router/StartupScreen";
 import { decidePostStartupRoute } from "./routeDecision";
 
 export const PublicRoute: React.FC = () => {
-  const startupReady = useStartupStore((s) => s.phase === "ready");
+  const uiReady        = useStartupStore((s) => s.uiReady);
+  const startupPhase   = useStartupStore((s) => s.phase);
   const settingsLoaded = useSettingsStore((s) => s.isLoaded);
-  const companyReady = useCompanyStore((s) => s.initialized);
+  const companyReady   = useCompanyStore((s) => s.initialized);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isSetupDone = useAuthStore((s) => s.isSetupDone);
-  const hasCompany = useCompanyStore((s) => s.hasCompany);
-  const isLocked = useLockStore((s) => s.isLocked);
-  const routerReady = startupReady && settingsLoaded && companyReady;
+  const isSetupDone    = useAuthStore((s) => s.isSetupDone);
+  const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
+  const hasCompany     = useCompanyStore((s) => s.hasCompany);
+  const isLocked       = useLockStore((s) => s.isLocked);
 
-  if (!routerReady)
-    return <StartupScreen message="Initializing startup flow..." />;
+  if (startupPhase === 'error') return <StartupScreen />;
+  if (!uiReady || !settingsLoaded || !companyReady) return <StartupScreen />;
 
   if (isAuthenticated) {
     const target = decidePostStartupRoute({
-      startupReady,
+      startupReady: true,
       isSetupDone,
+      isSetupComplete,
       isAuthenticated,
       hasCompany,
       isLocked,

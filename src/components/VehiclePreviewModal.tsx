@@ -21,28 +21,32 @@ export const VehiclePreviewModal: React.FC<VehiclePreviewModalProps> = ({ vehicl
   const netPayable = vehicle.totalAmount + freight + hamali - advance;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 pt-8 animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 border-slate-200 rounded-2xl max-w-[820px] w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-slide-up">
-        {/* Modal Header - no-print */}
-        <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-950 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between no-print">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg"><FileText className="w-5 h-5" /></div>
+    <div className="fixed inset-0 z-[99999] overflow-y-auto animate-fade-in custom-scrollbar">
+      <div className="min-h-screen dark:bg-slate-950/90 bg-slate-200/90 backdrop-blur-md flex flex-col items-center py-6 sm:py-12 px-3 sm:px-4">
+        {/* Toolbar */}
+        <div className="w-full max-w-[850px] mb-4 flex items-center justify-between no-print animate-slide-down">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-sm border border-slate-200 dark:border-slate-700">
+              <FileText className="w-6 h-6" />
+            </div>
             <div>
-              <h3 className="text-sm font-bold dark:text-white text-slate-900">Vehicle Inward Receipt — <span className="font-mono">{vehicle.arrivalNo}</span></h3>
-              <p className="text-[11px] dark:text-slate-400 text-slate-500">Print or save as PDF</p>
+              <h3 className="text-base font-black dark:text-white text-slate-900 tracking-tight uppercase">Vehicle Receipt Preview</h3>
+              <p className="text-[10px] dark:text-slate-400 text-slate-500 font-mono tracking-wider">{vehicle.arrivalNo} · {fmtDate(vehicle.date)}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button onClick={() => window.print()} className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow cursor-pointer transition-colors">
+            <button onClick={() => window.print()} className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer active:scale-95">
               <Printer className="w-4 h-4" /><span>Print / PDF</span>
             </button>
-            <button onClick={onClose} className="p-2 dark:text-slate-400 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg cursor-pointer transition-colors"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} className="p-2.5 dark:text-slate-400 text-slate-500 dark:hover:text-white hover:text-slate-900 dark:bg-slate-800 bg-white rounded-xl cursor-pointer transition-all border dark:border-slate-700 border-slate-200 shadow-sm active:scale-95">
+              <X className="w-6 h-6" />
+            </button>
           </div>
         </div>
 
-        {/* PRINTABLE RECEIPT */}
-        <div className="flex-1 overflow-y-auto bg-white text-slate-900 printable-patti" id="print-area">
-          <div className="p-10 max-w-[780px] mx-auto font-[system-ui,sans-serif] text-[13px] leading-relaxed">
+        {/* The Actual White Paper Sheet */}
+        <div className="w-full max-w-[850px] bg-white rounded-xl shadow-2xl dark:shadow-black/60 shadow-slate-400/20 overflow-hidden border border-slate-200/50 dark:border-slate-700/30 printable-patti animate-slide-up">
+          <div className="p-10 max-w-[780px] mx-auto font-[system-ui,sans-serif] text-[13px] leading-relaxed text-slate-900">
 
             {/* ── HEADER ─────────────────────────── */}
             <div className="flex justify-between items-start border-b-[3px] border-slate-900 pb-5 mb-6">
@@ -80,38 +84,38 @@ export const VehiclePreviewModal: React.FC<VehiclePreviewModalProps> = ({ vehicl
             </div>
 
             {/* ── ITEMS TABLE ────────────────────── */}
-            <table className="w-full border-collapse text-[11.5px] mb-6">
+            <table className="w-full border-collapse text-[11.5px] mb-6 erp-table">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  <th className="py-2.5 px-3 text-left font-bold rounded-tl-lg w-8">#</th>
-                  <th className="py-2.5 px-3 text-left font-bold">Supplier / Party</th>
-                  <th className="py-2.5 px-3 text-left font-bold">Variety</th>
-                  <th className="py-2.5 px-3 text-right font-bold">Carets</th>
-                  <th className="py-2.5 px-3 text-right font-bold">Weight</th>
-                  <th className="py-2.5 px-3 text-right font-bold">Rate/KG</th>
-                  <th className="py-2.5 px-3 text-right font-bold rounded-tr-lg">Amount (₹)</th>
+                  <th className="py-2.5 px-3 col-text rounded-tl-lg w-8">#</th>
+                  <th className="py-2.5 px-3 col-text">Supplier / Party</th>
+                  <th className="py-2.5 px-3 col-text">Variety</th>
+                  <th className="py-2.5 px-3 col-num w-24">Carets</th>
+                  <th className="py-2.5 px-3 col-num w-24">Weight</th>
+                  <th className="py-2.5 px-3 col-num w-24">Rate/KG</th>
+                  <th className="py-2.5 px-3 col-num rounded-tr-lg w-32">Amount (₹)</th>
                 </tr>
               </thead>
               <tbody>
                 {vehicle.rows.map((row, idx) => (
                   <tr key={row.id} className={`border-b border-slate-200 ${idx % 2 ? 'bg-slate-50/60' : ''}`}>
-                    <td className="py-2 px-3 text-slate-400 font-mono">{idx + 1}</td>
-                    <td className="py-2 px-3 font-semibold text-slate-900">{row.supplierName}</td>
-                    <td className="py-2 px-3 text-slate-700 font-medium">{row.variety}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold">{row.caret}</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold">{row.weight}</td>
-                    <td className="py-2 px-3 text-right font-mono">{row.rate.toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{row.amount.toLocaleString('en-IN')}</td>
+                    <td className="py-2 px-3 col-text text-slate-400 font-mono">{idx + 1}</td>
+                    <td className="py-2 px-3 col-text font-semibold text-slate-900">{row.supplierName}</td>
+                    <td className="py-2 px-3 col-text text-slate-700 font-medium">{row.variety}</td>
+                    <td className="py-2 px-3 col-num font-mono font-semibold">{row.caret}</td>
+                    <td className="py-2 px-3 col-num font-mono font-semibold">{row.weight}</td>
+                    <td className="py-2 px-3 col-num font-mono">{row.rate.toFixed(2)}</td>
+                    <td className="py-2 px-3 col-num font-mono font-bold text-slate-900">{row.amount.toLocaleString('en-IN')}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-900 bg-slate-100 font-bold">
-                  <td colSpan={3} className="py-2.5 px-3 text-right text-[10px] uppercase tracking-wider text-slate-500">Total Inward</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-emerald-800">{vehicle.totalCarets}</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-emerald-800">{vehicle.totalCalculatedWeight}</td>
-                  <td className="py-2.5 px-3 text-right text-[10px] text-slate-500">Avg ₹{(vehicle.totalCalculatedWeight > 0 ? vehicle.totalAmount / vehicle.totalCalculatedWeight : 0).toFixed(1)}/kg</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-[14px] font-black text-slate-950">₹ {vehicle.totalAmount.toLocaleString('en-IN')}</td>
+                  <td colSpan={3} className="py-2.5 px-3 col-text text-right text-[10px] uppercase tracking-wider text-slate-500">Total Inward</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-emerald-800">{vehicle.totalCarets}</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-emerald-800">{vehicle.totalCalculatedWeight}</td>
+                  <td className="py-2.5 px-3 col-num text-[10px] text-slate-500">Avg ₹{(vehicle.totalCalculatedWeight > 0 ? vehicle.totalAmount / vehicle.totalCalculatedWeight : 0).toFixed(1)}/kg</td>
+                  <td className="py-2.5 px-3 col-num font-mono text-[14px] font-black text-slate-950">₹ {vehicle.totalAmount.toLocaleString('en-IN')}</td>
                 </tr>
               </tfoot>
             </table>
@@ -154,6 +158,7 @@ export const VehiclePreviewModal: React.FC<VehiclePreviewModalProps> = ({ vehicl
             </div>
           </div>
         </div>
+        <div className="h-12 shrink-0" />
       </div>
     </div>
   );

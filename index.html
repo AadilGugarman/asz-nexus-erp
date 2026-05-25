@@ -25,34 +25,113 @@
         align-items: center;
         justify-content: center;
         z-index: 9999;
-        transition: opacity 0.3s ease-out;
+        background-color: #f8fafc;
+        transition: opacity 0.35s ease-out;
+        overflow: hidden;
+      }
+      html.dark #initial-loader { background-color: #060d18; }
+
+      /* ── Dot-grid background ── */
+      #initial-loader::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle, rgba(0,174,239,0.18) 1px, transparent 1px);
+        background-size: 28px 28px;
+        opacity: 0.35;
+        pointer-events: none;
       }
 
-      .loader-logo {
-        width: 64px;
-        height: 64px;
-        background: linear-gradient(135deg, #00c896, #00aeef);
-        border-radius: 16px;
+      /* ── Ambient blobs ── */
+      .loader-blob {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+        filter: blur(40px);
+      }
+      .loader-blob-tr {
+        top: -160px; right: -160px;
+        width: 600px; height: 600px;
+        background: radial-gradient(circle, rgba(0,174,239,0.18) 0%, transparent 65%);
+      }
+      .loader-blob-bl {
+        bottom: -160px; left: -160px;
+        width: 600px; height: 600px;
+        background: radial-gradient(circle, rgba(0,200,150,0.18) 0%, transparent 65%);
+      }
+
+      /* ── Logo tile — previous style: white rotated card ── */
+      .loader-tile {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        border-radius: 24px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 20px 50px rgba(0,174,239,0.2), 0 8px 20px rgba(0,0,0,0.08);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 24px;
-        box-shadow: 0 10px 25px rgba(0, 174, 239, 0.2);
+        transform: rotate(12deg);
+        margin-bottom: 32px;
       }
 
-      .loader-spinner {
-        width: 20px;
-        height: 20px;
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        border-top-color: #00aeef;
+      /* ── Inner gradient square with icon ── */
+      .loader-icon-box {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #00c896 0%, #00aeef 100%);
+        box-shadow: 0 4px 14px rgba(0,174,239,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ── Spinner badge — bottom-right of tile ── */
+      .loader-badge {
+        position: absolute;
+        bottom: -8px;
+        right: -8px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
-        animation: spin 0.8s linear infinite;
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .loader-spinner {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid #00aeef;
+        border-top-color: transparent;
+        animation: loaderSpin 0.9s linear infinite;
+      }
+      @keyframes loaderSpin { to { transform: rotate(360deg); } }
+
+      /* ── Bar animations for the ERP icon ── */
+      @keyframes barUp {
+        from { transform: scaleY(0); opacity: 0; }
+        to   { transform: scaleY(1); opacity: 0.9; }
+      }
+      @keyframes lineIn {
+        to { stroke-dashoffset: 0; }
+      }
+      @keyframes dotIn {
+        to { opacity: 1; }
       }
 
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
+      /* ── Fade-in for the whole loader content ── */
+      @keyframes loaderFadeUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .loader-tile {
+        animation: loaderFadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both;
       }
     </style>
     <script>
@@ -126,10 +205,41 @@
   </head>
   <body>
     <div id="initial-loader">
-      <div class="loader-logo">
-        <span style="color: white; font-weight: 900; font-size: 32px; font-family: 'Inter', sans-serif;">A</span>
+      <!-- Ambient blobs -->
+      <div class="loader-blob loader-blob-tr"></div>
+      <div class="loader-blob loader-blob-bl"></div>
+
+      <!-- White rotated tile (previous style) -->
+      <div class="loader-tile">
+        <!-- Inner gradient box with ERP chart icon -->
+        <div class="loader-icon-box">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
+            width="22" height="22" aria-hidden="true">
+            <!-- Bar 1 — slower, spring bounce -->
+            <rect x="5" y="26" width="6" height="9" rx="1.5" fill="white" opacity="0.9"
+              style="transform-origin:8px 35px; animation:barUp 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.3s both" />
+            <!-- Bar 2 -->
+            <rect x="17" y="20" width="6" height="15" rx="1.5" fill="white" opacity="0.9"
+              style="transform-origin:20px 35px; animation:barUp 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.55s both" />
+            <!-- Bar 3 -->
+            <rect x="29" y="13" width="6" height="22" rx="1.5" fill="white" opacity="0.9"
+              style="transform-origin:32px 35px; animation:barUp 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.8s both" />
+            <!-- Trend line draws itself -->
+            <polyline points="8,26 20,18 32,11"
+              stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              fill="none" opacity="0.95"
+              style="stroke-dasharray:32; stroke-dashoffset:32; animation:lineIn 0.9s ease-out 1.3s forwards" />
+            <!-- Tip dot -->
+            <circle cx="32" cy="11" r="2.5" fill="white"
+              style="opacity:0; animation:dotIn 0.4s ease-out 2.1s forwards" />
+          </svg>
+        </div>
+
+        <!-- Spinner badge -->
+        <div class="loader-badge">
+          <div class="loader-spinner"></div>
+        </div>
       </div>
-      <div class="loader-spinner"></div>
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

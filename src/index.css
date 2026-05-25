@@ -248,6 +248,71 @@
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   }
 
+  /* ══════════════════════════════════════════════════
+     FORCE WHITE PAPER PRINT STYLE
+     Ensures invoices/statements stay white in dark mode
+  ══════════════════════════════════════════════════ */
+  .printable-patti {
+    background-color: #ffffff !important;
+    color: #0f172a !important; /* slate-900 */
+    color-scheme: light !important;
+  }
+
+  /* Reset all children to ignore dark mode within printable area */
+  .dark .printable-patti,
+  .dark .printable-patti * {
+    background-color: transparent;
+    color: #0f172a; /* slate-900 */
+    border-color: #e2e8f0; /* slate-200 */
+    box-shadow: none;
+  }
+
+  /* Specific background resets for common print elements */
+  .dark .printable-patti .bg-slate-50,
+  .dark .printable-patti .bg-slate-100 { background-color: #f8fafc !important; }
+  .dark .printable-patti .bg-indigo-50 { background-color: #eef2ff !important; }
+  .dark .printable-patti .bg-emerald-50 { background-color: #ecfdf5 !important; }
+  .dark .printable-patti .bg-rose-50 { background-color: #fff1f2 !important; }
+  .dark .printable-patti .bg-amber-50 { background-color: #fffbeb !important; }
+
+  /* Ensure text colors remain professional and readable */
+  .dark .printable-patti .text-slate-900,
+  .dark .printable-patti .text-slate-950,
+  .dark .printable-patti .text-slate-800 { color: #0f172a !important; }
+  .dark .printable-patti .text-slate-700,
+  .dark .printable-patti .text-slate-600 { color: #334155 !important; }
+  .dark .printable-patti .text-slate-500,
+  .dark .printable-patti .text-slate-400 { color: #64748b !important; }
+  .dark .printable-patti .text-indigo-600,
+  .dark .printable-patti .text-indigo-700 { color: #4f46e5 !important; }
+  .dark .printable-patti .text-emerald-600,
+  .dark .printable-patti .text-emerald-700 { color: #059669 !important; }
+  .dark .printable-patti .text-rose-600,
+  .dark .printable-patti .text-rose-700 { color: #e11d48 !important; }
+  
+  /* Table specific resets */
+  .dark .printable-patti table { background-color: white !important; }
+  .dark .printable-patti thead tr { background-color: #f8fafc !important; }
+  .dark .printable-patti tbody tr { background-color: white !important; border-bottom-color: #f1f5f9 !important; }
+
+  /* Keep gradients in print if they are subtle indigo/brand colors */
+  .dark .printable-patti .from-indigo-600 { --tw-gradient-from: #4f46e5 !important; }
+  .dark .printable-patti .to-violet-600 { --tw-gradient-to: #7c3aed !important; }
+  .dark .printable-patti .text-white { color: #ffffff !important; }
+
+  @media print {
+    .no-print { display: none !important; }
+    body { background: white !important; padding: 0 !important; margin: 0 !important; }
+    .printable-patti {
+      box-shadow: none !important;
+      border: none !important;
+      width: 100% !important;
+      max-width: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+  }
+
   /* ── Primary Button ────────────────────────────── */
   .erp-btn-primary {
     border-radius: 0.75rem;
@@ -298,6 +363,7 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.82rem;
+    table-layout: fixed; /* Professional standard for alignment consistency */
   }
   .erp-table thead th {
     position: sticky; top: 0; z-index: 2;
@@ -307,12 +373,21 @@
     text-transform: uppercase; letter-spacing: 0.07em;
     border-bottom: 1px solid var(--table-border);
     padding: 0.82rem 0.9rem;
+    vertical-align: middle;
   }
   .erp-table tbody td {
     padding: 0.82rem 0.9rem;
     border-bottom: 1px solid var(--table-border);
     color: var(--text-primary);
+    vertical-align: middle;
+    height: var(--table-row-height);
   }
+
+  /* Global Alignment Standards */
+  .erp-table th.col-text, .erp-table td.col-text { text-align: left; }
+  .erp-table th.col-num, .erp-table td.col-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .erp-table th.col-actions, .erp-table td.col-actions { text-align: center; }
+
   .erp-table tbody tr:nth-child(even) {
     background: color-mix(in srgb, var(--surface-bg) 60%, transparent);
   }

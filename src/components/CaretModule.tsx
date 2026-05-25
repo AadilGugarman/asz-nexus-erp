@@ -5,30 +5,24 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import {
+  Package, Search, Trash2, ArrowUpRight, ArrowDownRight,
+  ArrowUpDown, FileText, RotateCcw, Printer, MapPin,
+  Phone, Edit3
+} from 'lucide-react';
+
 import { useApp } from '../context/AppContext';
-import { CaretTransaction, Customer } from '../types';
-import { fmtDate } from '@/utils/format';
+import { useDataTable } from '../hooks/useDataTable';
+
 import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
-import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
-import { useAppearance } from '@/hooks';
-import {
-  Package, Search, Trash2, ArrowUpRight, ArrowDownRight,
-  ArrowUpDown, Calendar, AlertTriangle, X, FileText, RotateCcw,
-  Users, Printer, MapPin, Phone, Edit3
-} from 'lucide-react';
+import { StatementPreview } from './ui/StatementPreview';
 
-// ── Shared style tokens ───────────────────────────────────────────────────────
-const card  = 'dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200/80 shadow-sm';
-const hdr   = 'dark:bg-slate-950 bg-slate-50/80 border-b dark:border-slate-800 border-slate-200/80';
-const inp   = 'dark:bg-slate-950 bg-white border dark:border-slate-700/80 border-slate-200 dark:text-white text-slate-900 rounded-lg outline-none transition-all focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10';
-const muted = 'dark:text-slate-400 text-slate-500';
-const lbl   = 'dark:text-slate-400 text-slate-600';
-
-const ALERT_THRESHOLD = 50;
+import { CaretTransaction } from '../types';
+import { fmtDate } from '@/utils/format';
 
 export const CaretModule: React.FC = () => {
   const { 
@@ -37,14 +31,10 @@ export const CaretModule: React.FC = () => {
     caretTransactions, 
     addCaretTransaction, 
     updateCaretTransaction, 
-    deleteCaretTransaction,
-    activeCompanyId,
-    companies
+    deleteCaretTransaction
   } = useApp();
   const toast  = useToast();
   const dialog = useConfirmDialog();
-
-  const activeCompany = companies.find(c => c.id === activeCompanyId);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id || '');
@@ -56,15 +46,12 @@ export const CaretModule: React.FC = () => {
 
   // ── Return form modal state ────────────────────────────────────────────────
   const [showReturnModal, setShowReturnModal] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [editingTx, setEditingTx] = useState<CaretTransaction | null>(null);
   const [returnQty, setReturnQty] = useState<number>(0);
   const [returnFruit, setReturnFruit] = useState('');
   const [returnNote, setReturnNote] = useState('');
   const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]);
-
-  // ── Print state ────────────────────────────────────────────────────────────
-  const [isPrinting, setIsPrinting] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
 
   // ── Data Derivation ────────────────────────────────────────────────────────
   const selectedCustomer = useMemo(() => {
@@ -188,7 +175,11 @@ export const CaretModule: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!selectedCustomer) {
+      toast.error('No Customer Selected', 'Select a customer to print their statement.');
+      return;
+    }
+    setShowPrintPreview(true);
   };
 
   const handleDelete = async (tx: CaretTransaction) => {
@@ -249,103 +240,85 @@ export const CaretModule: React.FC = () => {
   const currentPending = currentSummary.given - currentSummary.returned;
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Hidden Print Content */}
-      <div className="hidden print:block font-sans p-8">
-        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
-          <div>
-            <h1 className="text-3xl font-black uppercase tracking-tight">{activeCompany?.company.name}</h1>
-            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">{activeCompany?.company.tagline}</p>
-            <p className="text-xs mt-3 text-slate-600 max-w-md">{activeCompany?.company.address}</p>
-            <div className="flex gap-4 mt-2 text-xs font-bold text-slate-700">
-              <span>PH: {activeCompany?.company.phone}</span>
-              {activeCompany?.company.gstin && <span>GSTIN: {activeCompany?.company.gstin}</span>}
+    <div className="h-[calc(100vh-100px)] flex flex-col space-y-3 font-sans overflow-hidden -mt-2">
+      {/* Statement Preview Modal */}
+      {selectedCustomer && (
+        <StatementPreview
+          isOpen={showPrintPreview}
+          onClose={() => setShowPrintPreview(false)}
+          title="Caret Statement"
+          subtitle={`Ledger for ${selectedCustomer.name}`}
+          accentColor="#f59e0b"
+        >
+          <div className="flex justify-between items-end mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Statement For</p>
+              <h3 className="text-2xl font-black text-slate-900">{selectedCustomer.name}</h3>
+              <p className="text-xs font-bold text-slate-500 mt-1">{selectedCustomer.city} · {selectedCustomer.phone}</p>
             </div>
-          </div>
-          <div className="text-right">
-            <h2 className="text-xl font-black uppercase tracking-widest text-slate-400">Caret Statement</h2>
-            <p className="text-sm font-bold mt-2">Date: {fmtDate(new Date().toISOString())}</p>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-end mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-200">
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Statement For</p>
-            <h3 className="text-2xl font-black text-slate-900">{selectedCustomer?.name}</h3>
-            <p className="text-xs font-bold text-slate-500 mt-1">{selectedCustomer?.city} · {selectedCustomer?.phone}</p>
-          </div>
-          <div className="text-right">
-            <div className="flex gap-8">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Given</p>
-                <p className="text-lg font-black text-rose-600">{currentSummary.given}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Returned</p>
-                <p className="text-lg font-black text-emerald-600">{currentSummary.returned}</p>
-              </div>
-              <div className="border-l-2 border-slate-200 pl-8">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Balance</p>
-                <p className="text-2xl font-black text-amber-600">{currentPending}</p>
+            <div className="text-right">
+              <div className="flex gap-8">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Given</p>
+                  <p className="text-lg font-black text-rose-600">{currentSummary.given}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Returned</p>
+                  <p className="text-lg font-black text-emerald-600">{currentSummary.returned}</p>
+                </div>
+                <div className="border-l-2 border-slate-200 pl-8">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Balance</p>
+                  <p className="text-2xl font-black text-amber-600">{currentPending}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="border-b-2 border-slate-900 text-slate-500 font-black uppercase tracking-widest">
-              <th className="py-3 px-2">Date</th>
-              <th className="py-3 px-2">Type</th>
-              <th className="py-3 px-2">Description</th>
-              <th className="py-3 px-2 text-right">Given</th>
-              <th className="py-3 px-2 text-right">Return</th>
-              <th className="py-3 px-4 text-right">Running</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {ledgerEntries.map(entry => (
-              <tr key={entry.id}>
-                <td className="py-3 px-2 font-mono">{fmtDate(entry.date)}</td>
-                <td className="py-3 px-2 font-bold">{entry.type}</td>
-                <td className="py-3 px-2">
-                  <p className="font-bold">{entry.fruitName}</p>
-                  <p className="text-[10px] text-slate-400">{entry.billNo || entry.note || '-'}</p>
-                </td>
-                <td className="py-3 px-2 text-right font-mono font-bold text-rose-600">{entry.type === 'GIVEN' ? `+${entry.caretQty}` : '-'}</td>
-                <td className="py-3 px-2 text-right font-mono font-bold text-emerald-600">{entry.type === 'RETURN' ? `-${entry.caretQty}` : '-'}</td>
-                <td className="py-3 px-4 text-right font-mono font-black">{entry.runningBalance}</td>
+          <table className="w-full text-left text-xs border-collapse erp-table">
+            <thead>
+              <tr className="border-b-2 border-slate-900 text-slate-500 font-black uppercase tracking-widest">
+                <th className="py-3 px-2 col-text w-24">Date</th>
+                <th className="py-3 px-2 col-text w-24">Type</th>
+                <th className="py-3 px-2 col-text">Description</th>
+                <th className="py-3 px-2 col-num w-24">Given</th>
+                <th className="py-3 px-2 col-num w-24">Return</th>
+                <th className="py-3 px-4 col-num w-28">Running</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="mt-12 flex justify-between items-end border-t border-slate-100 pt-8">
-          <div className="text-[10px] text-slate-400 italic">
-            * This is a computer generated caret statement for {selectedCustomer?.name}.
-          </div>
-          <div className="text-center">
-            <div className="w-48 border-b border-slate-300 mb-2"></div>
-            <p className="text-[10px] font-black uppercase tracking-widest">Authorized Signatory</p>
-          </div>
-        </div>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {ledgerEntries.map(entry => (
+                <tr key={entry.id}>
+                  <td className="py-3 px-2 col-text font-mono">{fmtDate(entry.date)}</td>
+                  <td className="py-3 px-2 col-text font-bold">{entry.type}</td>
+                  <td className="py-3 px-2 col-text">
+                    <p className="font-bold">{entry.fruitName}</p>
+                    <p className="text-[10px] text-slate-400">{entry.billNo || entry.note || '-'}</p>
+                  </td>
+                  <td className="py-3 px-2 col-num font-mono font-bold text-rose-600">{entry.type === 'GIVEN' ? `+${entry.caretQty}` : '-'}</td>
+                  <td className="py-3 px-2 col-num font-mono font-bold text-emerald-600">{entry.type === 'RETURN' ? `-${entry.caretQty}` : '-'}</td>
+                  <td className="py-3 px-4 col-num font-mono font-black">{entry.runningBalance}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </StatementPreview>
+      )}
 
       {/* Top Header */}
-      <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 print:hidden">
+      <div className="erp-panel shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 print:hidden">
         <div>
-          <h1 className="erp-title text-[1.1rem] flex items-center space-x-2.5">
-            <Package className="w-6 h-6 text-amber-500" />
+          <h1 className="erp-title text-[1rem] flex items-center space-x-2">
+            <Package className="w-5 h-5 text-amber-500" />
             <span>CARET / CRATE MANAGEMENT</span>
           </h1>
-          <p className="erp-subtitle mt-1">Customer-wise caret tracking — given, returned, and pending balance</p>
+          <p className="erp-subtitle text-[10px] mt-0.5">Customer-wise caret tracking — given, returned, and pending balance</p>
         </div>
 
         <div className="erp-surface flex items-center space-x-2 p-1.5">
           <button
             onClick={() => setShowReturnModal(true)}
             className="erp-btn-primary flex items-center space-x-1.5 px-4 py-2 text-xs"
-            style={{ backgroundColor: '#f59e0b' }} // amber-500
+            style={{ background: '#f59e0b' }} // amber-500
           >
             <RotateCcw className="w-4 h-4" />
             <span>Record Caret Return</span>
@@ -360,29 +333,29 @@ export const CaretModule: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 font-sans print:block">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 font-sans print:block">
         {/* LEFT COLUMN: CUSTOMERS LIST */}
-        <div className="lg:col-span-1 erp-table-wrap rounded-2xl overflow-hidden flex flex-col h-[700px] no-print print:hidden">
-          <div className="p-4 bg-[#f8fafc] border-b border-[#edf2f7]">
+        <div className="w-full lg:w-72 shrink-0 erp-table-wrap rounded-2xl overflow-hidden flex flex-col no-print print:hidden">
+          <div className="p-2.5 dark:bg-slate-950/50 bg-slate-50 border-b dark:border-slate-800 border-slate-200">
             <div className="relative">
-              <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search customer..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setHighlightedIdx(0);
                 }}
-                className="erp-input w-full pl-9 pr-4"
+                className="erp-input w-full pl-8 pr-3 min-h-[2.25rem] text-[11px]"
                 onFocus={() => setHighlightedIdx(0)}
                 onBlur={() => setTimeout(() => setHighlightedIdx(-1), 100)}
                 autoComplete="off"
               />
             </div>
           </div>
-          <div ref={customerListRef} className="flex-1 overflow-y-auto divide-y divide-[#edf2f7]" tabIndex={-1}>
+          <div ref={customerListRef} className="flex-1 overflow-y-auto divide-y dark:divide-slate-800 divide-slate-100 custom-scrollbar" tabIndex={-1}>
             {filteredCustomers.length === 0 ? (
               <ModuleEmptyState title="No customers found" subtitle="Try a different name or city." />
             ) : filteredCustomers.map((c, idx) => {
@@ -395,18 +368,18 @@ export const CaretModule: React.FC = () => {
                 <div
                   key={c.id}
                   onClick={() => setSelectedCustomerId(c.id)}
-                  className={`p-4 cursor-pointer transition-colors font-sans ${
-                    isHighlighted ? 'bg-amber-100/80 border-l-4 border-amber-400' : isSelected ? 'bg-amber-500/10 border-l-4 border-amber-500' : 'hover:bg-[#f8fafc]'
+                  className={`p-3 px-4 cursor-pointer transition-colors font-sans ${
+                    isHighlighted ? 'bg-amber-100/80 dark:bg-amber-900/20 border-l-4 border-amber-400' : isSelected ? 'bg-amber-500/10 border-l-4 border-amber-500' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                   }`}
                   tabIndex={-1}
                 >
                   <div className="flex items-center justify-between font-sans">
-                    <span className="font-semibold text-[#0f172a] text-sm">{c.name}</span>
+                    <span className="font-semibold dark:text-white text-slate-900 text-sm">{c.name}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-1.5 text-xs text-[#64748b] font-sans">
+                  <div className="flex items-center justify-between mt-1 text-[11px] dark:text-slate-400 text-slate-500 font-sans">
                     <span>{c.city}</span>
-                    <span className={`font-mono font-bold ${pending > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {pending} Pending
+                    <span className={`font-mono font-bold ${pending > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                      {pending}
                     </span>
                   </div>
                 </div>
@@ -416,153 +389,161 @@ export const CaretModule: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: CARET LEDGER */}
-        <div className={`lg:col-span-3 erp-panel rounded-2xl p-6 flex flex-col space-y-6 printable-patti font-sans print:hidden`}>
+        <div className={`flex-1 erp-panel rounded-2xl p-4 flex flex-col space-y-3 font-sans overflow-hidden min-h-0 print:hidden`}>
           {selectedCustomer ? (
             <>
-              {/* Customer Header Info */}
-              <div className="bg-[#f8fafc] p-6 rounded-2xl border border-[#e2e8f0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-sans">
+              {/* Customer Header Info - Compact */}
+              <div className="shrink-0 dark:bg-slate-900/50 bg-[#f8fafc] p-3 px-4 rounded-xl border dark:border-slate-800 border-[#e2e8f0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-sans">
                 <div>
-                  <h2 className="text-2xl font-semibold text-[#0f172a]">{selectedCustomer.name}</h2>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-[#64748b] font-sans">
-                    <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {selectedCustomer.city}</span>
-                    <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {selectedCustomer.phone}</span>
+                  <h2 className="text-lg font-bold dark:text-slate-100 text-[#0f172a] leading-tight">{selectedCustomer.name}</h2>
+                  <div className="flex flex-wrap gap-x-3 mt-0.5 text-[10px] dark:text-slate-400 text-[#64748b] font-sans">
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {selectedCustomer.city}</span>
+                    <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {selectedCustomer.phone}</span>
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <div className="bg-white p-3 px-5 rounded-xl border border-[#e2e8f0] text-right min-w-[120px] shadow-sm">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#64748b] block">Total Given</span>
-                    <span className="text-xl font-semibold font-mono mt-0.5 block text-rose-600">{currentSummary.given}</span>
+                <div className="flex gap-2">
+                  <div className="dark:bg-slate-900 bg-white p-1.5 px-3 rounded-lg border dark:border-slate-800 border-[#e2e8f0] text-right min-w-[80px] shadow-sm">
+                    <span className="text-[8px] font-bold uppercase tracking-tight dark:text-slate-500 text-[#64748b] block">Total Given</span>
+                    <span className="text-base font-bold font-mono block text-rose-600 leading-tight">{currentSummary.given}</span>
                   </div>
-                  <div className="bg-white p-3 px-5 rounded-xl border border-[#e2e8f0] text-right min-w-[120px] shadow-sm">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#64748b] block">Returned</span>
-                    <span className="text-xl font-semibold font-mono mt-0.5 block text-emerald-600">{currentSummary.returned}</span>
+                  <div className="dark:bg-slate-900 bg-white p-1.5 px-3 rounded-lg border dark:border-slate-800 border-[#e2e8f0] text-right min-w-[80px] shadow-sm">
+                    <span className="text-[8px] font-bold uppercase tracking-tight dark:text-slate-500 text-[#64748b] block">Returned</span>
+                    <span className="text-base font-bold font-mono block text-emerald-600 leading-tight">{currentSummary.returned}</span>
                   </div>
-                  <div className="bg-white p-3 px-5 rounded-xl border border-[#e2e8f0] text-right min-w-[140px] shadow-sm border-b-4 border-b-amber-500">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#64748b] block">Pending Carets</span>
-                    <span className="text-2xl font-black font-mono mt-0.5 block text-amber-600">{currentPending}</span>
+                  <div className="dark:bg-slate-900 bg-white p-1.5 px-3 rounded-lg border dark:border-slate-800 border-[#e2e8f0] text-right min-w-[100px] shadow-sm border-b-2 border-b-amber-500">
+                    <span className="text-[8px] font-bold uppercase tracking-tight dark:text-slate-500 text-[#64748b] block">Pending</span>
+                    <span className="text-lg font-black font-mono block text-amber-600 leading-tight">{currentPending}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Table Toolbar */}
-              <div className="flex items-center justify-between">
+              {/* Table Toolbar - Sticky */}
+              <div className="shrink-0 flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-bold text-slate-700">Transaction History</span>
+                  <FileText className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-[10px] font-bold dark:text-slate-400 text-slate-600 uppercase tracking-widest">Transaction History</span>
                 </div>
               </div>
 
-              <DataTable
-                className="font-sans"
-                footer={
-                  <Pagination
-                    page={ledgerTable.page}
-                    totalPages={ledgerTable.totalPages}
-                    totalRecords={ledgerTable.totalRecords}
-                    pageSize={ledgerTable.pageSize}
-                    pageSizeOptions={ledgerTable.pageSizeOptions}
-                    onPageChange={ledgerTable.setPage}
-                    onPageSizeChange={ledgerTable.setPageSize}
-                    label="ledger entries"
-                  />
-                }
-              >
-                <table className="erp-table text-left text-xs sm:text-sm font-sans">
-                  <thead>
-                    <tr>
-                      <th className="py-3.5 px-4 w-28">
-                        <button type="button" onClick={() => ledgerTable.toggleSort('date')} className="inline-flex items-center gap-1">
-                          Date <ArrowUpDown className="w-3.5 h-3.5" />
-                        </button>
-                      </th>
-                      <th className="py-3.5 px-3 w-32">Type</th>
-                      <th className="py-3.5 px-3">Fruit / Description</th>
-                      <th className="py-3.5 px-3">Bill / Note</th>
-                      <th className="py-3.5 px-3 text-right text-rose-600">
-                        <button type="button" onClick={() => ledgerTable.toggleSort('caretQty')} className="inline-flex items-center gap-1 ml-auto">
-                          Given <ArrowUpDown className="w-3.5 h-3.5" />
-                        </button>
-                      </th>
-                      <th className="py-3.5 px-3 text-right text-emerald-600">Return</th>
-                      <th className="py-3.5 px-4 text-right font-black text-amber-600">
-                        <button type="button" onClick={() => ledgerTable.toggleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
-                          Running Balance <ArrowUpDown className="w-3.5 h-3.5" />
-                        </button>
-                      </th>
-                      <th className="py-3.5 px-4 text-center w-16">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-mono">
-                    {isLoading ? (
+              {/* Scrollable Table Area */}
+              <div className="flex-1 min-h-0">
+                <DataTable
+                  className="h-full flex flex-col"
+                  scrollClassName="flex-1 overflow-auto custom-scrollbar"
+                  footer={
+                    <div className="shrink-0 border-t dark:border-slate-800 border-slate-100 dark:bg-slate-900 bg-white">
+                      <Pagination
+                        page={ledgerTable.page}
+                        totalPages={ledgerTable.totalPages}
+                        totalRecords={ledgerTable.totalRecords}
+                        pageSize={ledgerTable.pageSize}
+                        pageSizeOptions={ledgerTable.pageSizeOptions}
+                        onPageChange={ledgerTable.setPage}
+                        onPageSizeChange={ledgerTable.setPageSize}
+                        label="ledger entries"
+                      />
+                    </div>
+                  }
+                >
+                  <table className="erp-table text-left text-xs sm:text-sm font-sans">
+                    <thead>
                       <tr>
-                        <td colSpan={8} className="p-0"><TableSkeleton rows={8} cols={8} /></td>
+                        <th className="py-3.5 px-4 w-28 col-text">
+                          <button type="button" onClick={() => ledgerTable.toggleSort('date')} className="inline-flex items-center gap-1">
+                            Date <ArrowUpDown className="w-3.5 h-3.5" />
+                          </button>
+                        </th>
+                        <th className="py-3.5 px-3 w-32 col-text">Type</th>
+                        <th className="py-3.5 px-3 col-text">Fruit / Description</th>
+                        <th className="py-3.5 px-3 col-text">Bill / Note</th>
+                        <th className="py-3.5 px-3 col-num text-rose-600 w-32">
+                          <button type="button" onClick={() => ledgerTable.toggleSort('caretQty')} className="inline-flex items-center gap-1 ml-auto">
+                            Given <ArrowUpDown className="w-3.5 h-3.5" />
+                          </button>
+                        </th>
+                        <th className="py-3.5 px-3 col-num text-emerald-600 w-32">Return</th>
+                        <th className="py-3.5 px-4 col-num font-black text-amber-600 w-36">
+                          <button type="button" onClick={() => ledgerTable.toggleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
+                            Running Balance <ArrowUpDown className="w-3.5 h-3.5" />
+                          </button>
+                        </th>
+                        <th className="py-3.5 px-4 col-actions w-24">Action</th>
                       </tr>
-                    ) : ledgerTable.totalRecords === 0 ? (
-                      <tr>
-                        <td colSpan={8}>
-                          <ModuleEmptyState 
-                            title="No caret transactions found" 
-                            subtitle="Try selecting a different customer or adjusting your filters." 
-                          />
-                        </td>
-                      </tr>
-                    ) : ledgerTable.data.map((entry) => {
-                      const isGiven = entry.type === 'GIVEN';
-                      return (
-                        <tr key={entry.id} className="font-sans group">
-                          <td className="py-4 px-4 font-mono font-medium text-[#64748b] text-xs">{fmtDate(entry.date)}</td>
-                          <td className="py-4 px-3 font-sans">
-                            {isGiven ? (
-                              <span className="bg-rose-500/10 text-rose-700 border border-rose-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono">
-                                <ArrowUpRight className="w-3.5 h-3.5 mr-1 text-rose-600" /> GIVEN
-                              </span>
-                            ) : (
-                              <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono">
-                                <ArrowDownRight className="w-3.5 h-3.5 mr-1 text-emerald-600" /> RETURN
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-3 font-sans">
-                            <span className="font-semibold text-[#0f172a] block text-sm">{entry.fruitName || 'Mixed Fruits'}</span>
-                          </td>
-                          <td className="py-4 px-3 max-w-[200px] font-sans">
-                            <span className="font-mono text-[#64748b] block text-xs">{entry.billNo || 'Manual Entry'}</span>
-                            <span className="text-[11px] text-[#94a3b8] block truncate font-medium">{entry.note || '-'}</span>
-                          </td>
-                          <td className="py-4 px-3 text-right font-mono font-semibold text-rose-700 text-sm">
-                            {isGiven ? `+${entry.caretQty}` : '-'}
-                          </td>
-                          <td className="py-4 px-3 text-right font-mono font-semibold text-emerald-600 text-sm">
-                            {!isGiven ? `-${entry.caretQty}` : '-'}
-                          </td>
-                          <td className="py-4 px-4 text-right font-mono font-black text-amber-700 bg-amber-500/5 text-sm">
-                            {entry.runningBalance}
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                              <button onClick={() => handleOpenEdit(entry)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all">
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleDelete(entry)}
-                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                    </thead>
+                    <tbody className="font-mono">
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={8} className="p-0"><TableSkeleton rows={8} cols={8} /></td>
+                        </tr>
+                      ) : ledgerTable.totalRecords === 0 ? (
+                        <tr>
+                          <td colSpan={8}>
+                            <ModuleEmptyState 
+                              title="No caret transactions found" 
+                              subtitle="Try selecting a different customer or adjusting your filters." 
+                            />
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </DataTable>
+                      ) : ledgerTable.data.map((entry) => {
+                        const isGiven = entry.type === 'GIVEN';
+                        return (
+                          <tr key={entry.id} className="font-sans group">
+                            <td className="py-4 px-4 col-text font-mono font-medium dark:text-slate-400 text-[#64748b] text-xs">{fmtDate(entry.date)}</td>
+                            <td className="py-4 px-3 col-text font-sans">
+                              {isGiven ? (
+                                <span className="bg-rose-500/10 text-rose-700 border border-rose-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono">
+                                  <ArrowUpRight className="w-3.5 h-3.5 mr-1 text-rose-600" /> GIVEN
+                                </span>
+                              ) : (
+                                <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono">
+                                  <ArrowDownRight className="w-3.5 h-3.5 mr-1 text-emerald-600" /> RETURN
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-4 px-3 col-text font-sans">
+                              <span className="font-semibold dark:text-slate-200 text-[#0f172a] block text-sm">{entry.fruitName || 'Mixed Fruits'}</span>
+                            </td>
+                            <td className="py-4 px-3 col-text max-w-[200px] font-sans">
+                              <span className="font-mono dark:text-slate-400 text-[#64748b] block text-xs">{entry.billNo || 'Manual Entry'}</span>
+                              <span className="text-[11px] dark:text-slate-500 text-[#94a3b8] block truncate font-medium">{entry.note || '-'}</span>
+                            </td>
+                            <td className="py-4 px-3 col-num font-mono font-semibold text-rose-700 text-sm">
+                              {isGiven ? `+${entry.caretQty}` : '-'}
+                            </td>
+                            <td className="py-4 px-3 col-num font-mono font-semibold text-emerald-600 text-sm">
+                              {!isGiven ? `-${entry.caretQty}` : '-'}
+                            </td>
+                            <td className="py-4 px-4 col-num font-mono font-black text-amber-700 bg-amber-500/5 text-sm">
+                              {entry.runningBalance}
+                            </td>
+                            <td className="py-4 px-4 col-actions">
+                              <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                <button onClick={() => handleOpenEdit(entry)}
+                                  className="p-1.5 dark:text-slate-500 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all">
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => handleDelete(entry)}
+                                  className="p-1.5 dark:text-slate-500 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </DataTable>
+              </div>
             </>
           ) : (
-            <ModuleEmptyState
-              title="No customer selected"
-              subtitle="Select a customer from the sidebar to view their full caret ledger history."
-            />
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+              <ModuleEmptyState
+                title="No customer selected"
+                subtitle="Select a customer from the sidebar to view their full caret ledger history."
+              />
+            </div>
           )}
         </div>
       </div>
@@ -613,6 +594,7 @@ export const CaretModule: React.FC = () => {
 
               <div>
                 <CommandSelect
+                  variant="amber"
                   label="Fruit Name (Optional)"
                   value={returnFruit}
                   onChange={(val) => {
@@ -633,7 +615,7 @@ export const CaretModule: React.FC = () => {
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-[var(--card-border)]">
                 <button type="button" onClick={() => { setShowReturnModal(false); setEditingTx(null); }} className="erp-btn-secondary px-5 py-2.5">Cancel</button>
-                <button type="submit" className="erp-btn-primary px-6 py-2.5" style={{ backgroundColor: editingTx ? '#6366f1' : '#f59e0b' }}>
+                <button type="submit" className="erp-btn-primary px-6 py-2.5" style={{ background: editingTx ? '#6366f1' : '#f59e0b' }}>
                   {editingTx ? 'Update Entry' : 'Save Return'}
                 </button>
               </div>

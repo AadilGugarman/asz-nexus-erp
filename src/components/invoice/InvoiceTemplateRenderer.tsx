@@ -133,28 +133,28 @@ const ModernHeader: React.FC<{ invoice: Invoice; company: CompanySettings; setti
 const ModernItemTable: React.FC<{ invoice: Invoice; accent: string }> = ({ invoice, accent }) => {
   return (
     <div className="mt-8 overflow-hidden rounded-3xl border border-slate-100 shadow-sm">
-      <table className="w-full border-collapse text-[11px] sm:text-[12px]">
+      <table className="w-full border-collapse text-[11px] sm:text-[12px] erp-table">
         <thead>
           <tr className="bg-slate-50 text-slate-500 border-b border-slate-100">
-            <th className="py-5 px-6 text-left font-black uppercase tracking-wider w-12">#</th>
-            <th className="py-5 px-2 text-left font-black uppercase tracking-wider">Description</th>
-            <th className="py-5 px-2 text-left font-black uppercase tracking-wider">Variety</th>
-            <th className="py-5 px-2 text-right font-black uppercase tracking-wider">Crt</th>
-            <th className="py-5 px-2 text-right font-black uppercase tracking-wider">Weight</th>
-            <th className="py-5 px-2 text-right font-black uppercase tracking-wider">Rate</th>
-            <th className="py-5 px-6 text-right font-black uppercase tracking-wider">Amount</th>
+            <th className="py-5 px-6 col-text font-black uppercase tracking-wider w-12">#</th>
+            <th className="py-5 px-2 col-text font-black uppercase tracking-wider">Description</th>
+            <th className="py-5 px-2 col-text font-black uppercase tracking-wider">Variety</th>
+            <th className="py-5 px-2 col-num font-black uppercase tracking-wider w-16">Crt</th>
+            <th className="py-5 px-2 col-num font-black uppercase tracking-wider w-24">Weight</th>
+            <th className="py-5 px-2 col-num font-black uppercase tracking-wider w-24">Rate</th>
+            <th className="py-5 px-6 col-num font-black uppercase tracking-wider w-32">Amount</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
           {invoice.items.map((item, idx) => (
             <tr key={item.id} className="hover:bg-slate-50/30 transition-colors">
-              <td className="py-4 px-6 text-slate-400 font-mono">{idx + 1}</td>
-              <td className="py-4 px-2 font-black text-slate-900">{item.fruit}</td>
-              <td className="py-4 px-2 text-slate-600 font-bold uppercase tracking-tight">{item.lotVariety}</td>
-              <td className="py-4 px-2 text-right font-mono font-black text-slate-700">{item.caret}</td>
-              <td className="py-4 px-2 text-right font-mono font-black text-slate-700">{item.weight} <span className="text-[9px] text-slate-400">KG</span></td>
-              <td className="py-4 px-2 text-right font-mono text-slate-600 font-bold">{currency(item.rate)}</td>
-              <td className="py-4 px-6 text-right font-mono font-black text-slate-900 text-[13px]">{currency(item.amount)}</td>
+              <td className="py-4 px-6 col-text text-slate-400 font-mono">{idx + 1}</td>
+              <td className="py-4 px-2 col-text font-black text-slate-900">{item.fruit}</td>
+              <td className="py-4 px-2 col-text text-slate-600 font-bold uppercase tracking-tight">{item.lotVariety}</td>
+              <td className="py-4 px-2 col-num font-mono font-black text-slate-700">{item.caret}</td>
+              <td className="py-4 px-2 col-num font-mono font-black text-slate-700">{item.weight} <span className="text-[9px] text-slate-400">KG</span></td>
+              <td className="py-4 px-2 col-num font-mono text-slate-600 font-bold">{currency(item.rate)}</td>
+              <td className="py-4 px-6 col-num font-mono font-black text-slate-900 text-[13px]">{currency(item.amount)}</td>
             </tr>
           ))}
         </tbody>

@@ -1,9 +1,12 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer, Download, Share2, FileText } from 'lucide-react';
+
 import { useApp } from '../../context/AppContext';
-import { useToast } from './Toast';
 import { useAppearance } from '@/hooks';
+
+import { useToast } from './Toast';
+
 import { fmtDate } from '@/utils/format';
 
 interface StatementPreviewProps {
@@ -32,8 +35,8 @@ export const StatementPreview: React.FC<StatementPreviewProps> = ({ isOpen, onCl
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] overflow-y-auto animate-fade-in">
-      <div className="min-h-screen dark:bg-slate-950/95 bg-slate-300/80 backdrop-blur-md flex flex-col items-center py-6 sm:py-10 px-4">
+    <div className="fixed inset-0 z-[99999] overflow-y-auto animate-fade-in custom-scrollbar">
+      <div className="min-h-screen dark:bg-slate-950/90 bg-slate-200/90 backdrop-blur-md flex flex-col items-center py-6 sm:py-10 px-4">
 
         {/* ── Action Bar ────────────────────────────── */}
         <div className="w-full max-w-[850px] mb-4 flex items-center justify-between no-print animate-slide-down">

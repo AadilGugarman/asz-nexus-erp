@@ -128,10 +128,10 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
 
   return (
     <div className={`relative w-full ${className}`} ref={containerRef}>
-      <div className="relative">
+      <div className="relative group">
         {icon && (
-          <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
-            {icon}
+          <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-amber-500 transition-colors z-10">
+            {React.cloneElement(icon as React.ReactElement, { size: 14 })}
           </div>
         )}
         <input
@@ -143,10 +143,10 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className={`w-full ${icon ? "pl-8" : "px-3"} pr-8 py-2 rounded-lg border text-xs font-medium bg-white focus:outline-none focus:ring-2 transition-all ${
+          className={`w-full ${icon ? "pl-10" : "px-3.5"} pr-10 py-2.5 rounded-xl border-2 text-sm font-bold bg-white dark:bg-slate-950 shadow-sm focus:outline-none transition-all duration-300 ${
             error
-              ? "border-red-300 focus:ring-red-100 focus:border-red-500"
-              : "border-slate-200 focus:ring-amber-100 focus:border-amber-500"
+              ? "border-rose-500 ring-4 ring-rose-500/10"
+              : "border-slate-200 dark:border-slate-800 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 dark:focus:border-amber-400"
           }`}
         />
         {query && (
@@ -157,52 +157,58 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
               onChange("");
               inputRef.current?.focus();
             }}
-            className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-rose-500 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg transition-all"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {isOpen && filteredOptions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-          <ul className="max-h-60 overflow-y-auto py-1">
+        <div className="absolute z-[9999] w-full mt-1.5 bg-white dark:bg-slate-900 backdrop-blur-3xl rounded-2xl border-2 dark:border-slate-800 border-slate-200 shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] overflow-hidden animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-300 ease-out">
+          <ul className="max-h-72 overflow-y-auto p-2 scrollbar-none">
             {filteredOptions.map((opt, idx) => (
               <li
                 key={`${opt.city}-${opt.pincode}`}
                 onClick={() => handleSelect(opt)}
                 onMouseEnter={() => setActiveIndex(idx)}
-                className={`px-3 py-2 cursor-pointer flex items-center justify-between transition-colors ${
-                  idx === activeIndex ? "bg-amber-50" : "hover:bg-slate-50"
+                className={`group px-3.5 py-2.5 rounded-xl cursor-pointer flex items-center justify-between transition-all duration-300 mb-1 last:mb-0 border-2 ${
+                  idx === activeIndex 
+                    ? "bg-amber-600 text-white scale-[1.01] border-white/10 shadow-md shadow-amber-600/20 z-10" 
+                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border-transparent"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <MapPin className={`w-3 h-3 ${idx === activeIndex ? "text-amber-500" : "text-slate-400"}`} />
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm border-2 ${
+                    idx === activeIndex 
+                      ? "bg-white/20 border-white/20" 
+                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group-hover:border-slate-300 dark:group-hover:border-slate-700 shadow-inner"
+                  }`}>
+                    <MapPin className={`w-4 h-4 ${idx === activeIndex ? "text-white" : "text-amber-500"}`} />
+                  </div>
                   <div>
-                    <span className={`text-xs font-semibold ${idx === activeIndex ? "text-amber-900" : "text-slate-700"}`}>
+                    <span className={`text-[13px] font-black tracking-tight block ${idx === activeIndex ? "text-white" : "text-slate-900 dark:text-white"}`}>
                       {opt.city}
                     </span>
-                    <span className="text-[10px] text-slate-400 ml-2">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 block opacity-70 ${idx === activeIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"}`}>
                       {opt.state}
                     </span>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-medium text-slate-400">
+                <span className={`text-[10px] font-black font-mono px-1.5 py-0.5 rounded-lg border-2 ${
+                  idx === activeIndex ? "bg-white/20 border-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400"
+                }`}>
                   {opt.pincode}
                 </span>
               </li>
             ))}
           </ul>
-          <div className="bg-slate-50 px-3 py-1.5 border-t border-slate-100 flex justify-between items-center">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Local Suggestions</span>
-            <span className="text-[9px] text-slate-400 font-medium">↑↓ to navigate</span>
-          </div>
         </div>
       )}
 
       {error && (
-        <p className="mt-1 text-[11px] text-red-500 flex items-center gap-1">
-          <span className="w-1 h-1 rounded-full bg-red-500" />
+        <p className="mt-1.5 text-[10px] text-rose-500 font-black flex items-center ml-1 uppercase tracking-wider">
+          <span className="w-1 h-1 rounded-full bg-rose-500 mr-2 animate-pulse" />
           {error}
         </p>
       )}

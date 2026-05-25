@@ -1,13 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Truck, Save, Plus, FileSpreadsheet, Search, Filter, 
+  Eye, Edit3, Trash2, AlertTriangle, Calendar, Calculator 
+} from 'lucide-react';
+
 import { useApp } from '../context/AppContext';
-import { VehicleArrival, PurchaseRow } from '../types';
-import { fmtDate } from '@/utils/format';
+
 import { VehicleSpreadsheet } from './VehicleSpreadsheet';
 import { VehiclePreviewModal } from './VehiclePreviewModal';
-import { Truck, Save, Plus, FileSpreadsheet, Search, Filter, Eye, Edit3, Trash2, AlertTriangle, Calendar, Calculator } from 'lucide-react';
 import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
+
+import { VehicleArrival, PurchaseRow } from '../types';
+import { fmtDate } from '@/utils/format';
 
 export const VehicleArrivalModule: React.FC = () => {
   const { vehicles, suppliers, fruits, saveVehicleArrival, deleteVehicleArrival, addFruit } = useApp();
@@ -277,10 +283,11 @@ export const VehicleArrivalModule: React.FC = () => {
               </div>
 
               {/* Fruit Type */}
-              <div>
+              <div className="flex-1">
                 <CommandSelect
                   id="arrival-fruit"
                   label="Fruit Category"
+                  variant="emerald"
                   value={fruitType}
                   onChange={(val) => {
                     const opt = fruitOptions.find(o => o.id === val || o.label === val);
@@ -494,14 +501,14 @@ export const VehicleArrivalModule: React.FC = () => {
             <table className="erp-table w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
                 <tr className="text-[11px]">
-                  <th className="py-3.5 px-4">Arrival # / Date</th>
-                  <th className="py-3.5 px-3">Vehicle Details</th>
-                  <th className="py-3.5 px-3">Fruit Item</th>
-                  <th className="py-3.5 px-3 text-right">Carets</th>
-                  <th className="py-3.5 px-3 text-right">Weight (KG)</th>
-                  <th className="py-3.5 px-4 text-right font-black text-emerald-500">Total Amount</th>
-                  <th className="py-3.5 px-3">Suppliers</th>
-                  <th className="py-3.5 px-4 text-center">Actions / View</th>
+                  <th className="py-3.5 px-4 col-text w-28">Arrival # / Date</th>
+                  <th className="py-3.5 px-3 col-text w-40">Vehicle Details</th>
+                  <th className="py-3.5 px-3 col-text w-32">Fruit Item</th>
+                  <th className="py-3.5 px-3 col-num w-28">Carets</th>
+                  <th className="py-3.5 px-3 col-num w-32">Weight (KG)</th>
+                  <th className="py-3.5 px-4 col-num font-black text-emerald-500 w-44">Total Amount</th>
+                  <th className="py-3.5 px-3 col-text">Suppliers</th>
+                  <th className="py-3.5 px-4 col-actions w-32">Actions / View</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80 dark:divide-slate-800/80 divide-slate-200 font-mono">
@@ -518,47 +525,46 @@ export const VehicleArrivalModule: React.FC = () => {
 
                     return (
                       <tr key={veh.id} className="hover:bg-slate-800/40 dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors group font-sans">
-                        <td className="py-4 px-4 font-mono">
+                        <td className="py-4 px-4 col-text font-mono">
                           <span className="font-bold dark:text-slate-200 text-slate-900 block text-sm">{veh.arrivalNo}</span>
                           <span className="text-[11px] dark:text-slate-400 text-slate-600 flex items-center mt-0.5 font-sans">
                             <Calendar className="w-3 h-3 mr-1 text-emerald-500" />
                             {fmtDate(veh.date)} ({veh.day})
                           </span>
                         </td>
-                        <td className="py-4 px-3 font-sans">
+                        <td className="py-4 px-3 col-text font-sans">
                           <span className="font-black font-mono dark:text-white text-slate-900 block uppercase tracking-wider text-sm">{veh.vehicleNo}</span>
                           <span className="dark:text-slate-400 text-slate-600 text-[11px] block truncate max-w-[180px]">{veh.vehicleName || 'Truck'}</span>
                         </td>
-                        <td className="py-4 px-3 font-bold text-emerald-500 font-sans text-sm">
+                        <td className="py-4 px-3 col-text font-bold text-emerald-500 font-sans text-sm">
                           {veh.fruitType}
                         </td>
-                        <td className="py-4 px-3 text-right font-mono font-semibold dark:text-slate-300 text-slate-800">
+                        <td className="py-4 px-3 col-num font-mono font-semibold dark:text-slate-300 text-slate-800">
                           {veh.totalCarets} <span className="text-[10px] dark:text-slate-500 text-slate-600 font-normal">CRT</span>
                         </td>
-                        <td className="py-4 px-3 text-right font-mono font-semibold dark:text-slate-300 text-slate-800">
+                        <td className="py-4 px-3 col-num font-mono font-semibold dark:text-slate-300 text-slate-800">
                           {veh.totalCalculatedWeight} <span className="text-[10px] dark:text-slate-500 text-slate-600 font-normal">KG</span>
                         </td>
-                        <td className="py-4 px-4 text-right font-black font-mono text-emerald-500 text-base bg-emerald-950/10">
+                        <td className="py-4 px-4 col-num font-black font-mono text-emerald-500 text-base bg-emerald-950/10">
                           ₹ {veh.totalAmount.toLocaleString('en-IN')}
                           {(veh.freightCharge || veh.hamaliCharge) ? (
                             <span className="block text-[10px] font-sans font-normal dark:text-slate-400 text-slate-600">+ Charges</span>
                           ) : null}
                         </td>
-                        <td className="py-4 px-3 max-w-[200px] font-sans">
+                        <td className="py-4 px-3 col-text max-w-[200px] font-sans">
                           <span className="truncate block dark:text-slate-200 text-slate-900 font-semibold" title={supplierListStr}>
                             {supplierListStr}
                           </span>
                           <span className="text-[10px] dark:text-slate-500 text-slate-600 block font-medium">{uniqueSuppliers.size} Party / Suppliers</span>
                         </td>
-                        <td className="py-4 px-4 text-center font-sans">
-                          <div className="flex items-center justify-center space-x-1.5">
+                        <td className="py-4 px-4 col-actions font-sans">
+                          <div className="flex items-center justify-center space-x-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => setPreviewVehicle(veh)}
-                              className="px-3 py-1.5 bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 rounded-lg text-xs font-bold flex items-center space-x-1 transition-all shadow cursor-pointer"
-                              title="View Billa / Print Billa"
+                              className="p-2 dark:text-slate-400 text-slate-600 hover:text-emerald-500 rounded-lg transition-colors cursor-pointer"
+                              title="View Billa"
                             >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View Billa</span>
+                              <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleEditVehicle(veh)}

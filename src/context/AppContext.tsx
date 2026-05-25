@@ -1059,7 +1059,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // ── Financial Year ──────────────────────────
-  const fyStartMD = settings.financial.financialYearStart || "04-01"; // MM-DD
+  const fyStartMD = settings?.financial?.financialYearStart ?? "04-01"; // MM-DD
   const fyOptions = useMemo(() => {
     const years: string[] = [];
     const now = new Date();

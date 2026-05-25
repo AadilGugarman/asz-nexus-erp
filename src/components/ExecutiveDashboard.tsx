@@ -454,7 +454,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
         {/* Customer receivable */}
         <button
-          onClick={() => setActiveTab('customers')}
+          onClick={() => setActiveTab('parties')}
           className="p-5 rounded-xl text-left transition-all duration-150 hover:-translate-y-0.5 cursor-pointer"
           style={{ background: D.cardBg, border: `1px solid ${D.cardBorder}`, boxShadow: D.cardShadow }}
           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = D.blueBorder; (e.currentTarget as HTMLButtonElement).style.boxShadow = D.cardShadowHover; }}
@@ -481,7 +481,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
         {/* Supplier payable */}
         <button
-          onClick={() => setActiveTab('suppliers')}
+          onClick={() => setActiveTab('parties')}
           className="p-5 rounded-xl text-left transition-all duration-150 hover:-translate-y-0.5 cursor-pointer"
           style={{ background: D.cardBg, border: `1px solid ${D.cardBorder}`, boxShadow: D.cardShadow }}
           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = D.emeraldBorder; (e.currentTarget as HTMLButtonElement).style.boxShadow = D.cardShadowHover; }}

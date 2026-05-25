@@ -4,8 +4,8 @@ import { Settings, Plus, Users, UserCheck, Apple, Tag } from 'lucide-react';
 import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useToast } from './ui/Toast';
 
-// Shared input class — light: white bg, dark: slate-800 bg, always readable
-const inputCls = 'w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl p-2.5 outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20';
+// Shared input class — production-grade: high contrast, compact sizing
+const inputCls = 'w-full bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm font-black tracking-tight outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 shadow-sm transition-all duration-300';
 
 export const MasterModule: React.FC = () => {
   const { fruits, suppliers, customers, addSupplier, addCustomer, addFruitVariety } = useApp();
@@ -172,6 +172,7 @@ export const MasterModule: React.FC = () => {
             <div>
               <CommandSelect
                 id="master-fruit"
+                variant="emerald"
                 label="Select Fruit Category"
                 value={selectedFruitId}
                 onChange={(val) => {

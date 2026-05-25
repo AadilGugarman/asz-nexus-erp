@@ -1,15 +1,15 @@
 /**
  * providers/DbProvider.tsx
- * Initialises the Drizzle DB service once at app startup.
+ * Structural provider placeholder for the DB layer.
  *
- * Wrap this around any subtree that needs DB access.
- * It is already included in Providers/index.tsx.
+ * DB initialisation happens in useStartupStore.initialize() (called from
+ * main.tsx before React mounts) so it runs as early as possible.
  *
- * - In Tauri: opens the SQLite connection and initialises all repositories.
- * - In browser dev mode: no-ops silently (isTauri = false).
+ * This provider exists as a named slot in the provider tree so that
+ * future DB-scoped context (e.g. a React context carrying the Drizzle
+ * instance) can be added here without touching Providers/index.tsx.
  *
- * Children render immediately — DB init is non-blocking.
- * Use the `useDb()` hook to wait for `ready === true` before querying.
+ * Children render immediately — DB readiness is tracked via useStartupStore.
  */
 
 import React from 'react';
