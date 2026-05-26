@@ -53,6 +53,7 @@ interface AppContextType {
   deleteInvoice: (id: string) => void;
   savePurchaseInvoice: (invoice: PurchaseInvoice) => void;
   deletePurchaseInvoice: (id: string) => void;
+  savePayment: (payment: PaymentReceipt) => void;
   addPayment: (payment: PaymentReceipt) => void;
   deletePayment: (id: string) => void;
   addSupplier: (supplier: Omit<Supplier, "id">) => void;
@@ -495,26 +496,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
+  const savePayment = (newPayment: PaymentReceipt) => {
+    const isUpdate = payments.some((p) => p.id === newPayment.id);
+    setPayments((prev) => {
+      const exists = prev.findIndex((p) => p.id === newPayment.id);
+      if (exists >= 0) {
+        const updated = [...prev];
+        updated[exists] = newPayment;
+        return updated;
+      }
+      return [newPayment, ...prev];
+    });
+
+    void safeDbWrite("payment.save", async () => {
+      const payload = {
+        id: newPayment.id,
+        date: newPayment.date,
+        partyType: newPayment.partyType,
+        partyId: newPayment.partyId,
+        partyName: newPayment.partyName,
+        amount: newPayment.amount,
+        paymentMode: newPayment.paymentMode,
+        referenceNo: newPayment.referenceNo,
+        notes: newPayment.notes,
+        companyId: cid,
+      };
+      if (isUpdate) {
+        await dbService.payments.update(newPayment.id, payload);
+      } else {
+        await dbService.payments.insert(payload);
+      }
+    });
+  };
+
   const addPayment = (payment: PaymentReceipt) => {
-    setPayments((prev) => [payment, ...prev]);
-    void safeDbWrite(
-      "payment.insert",
-      async () => {
-        await dbService.payments.insert({
-          id: payment.id,
-          date: payment.date,
-          partyType: payment.partyType,
-          partyId: payment.partyId,
-          partyName: payment.partyName,
-          amount: payment.amount,
-          paymentMode: payment.paymentMode,
-          referenceNo: payment.referenceNo,
-          notes: payment.notes,
-          companyId: cid,
-        });
-      },
-      () => setPayments((prev) => prev.filter((p) => p.id !== payment.id)),
-    );
+    savePayment(payment);
   };
 
   const deletePayment = (id: string) => {
@@ -1023,6 +1039,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteInvoice,
         savePurchaseInvoice,
         deletePurchaseInvoice,
+        savePayment,
         addPayment,
         deletePayment,
         addSupplier,

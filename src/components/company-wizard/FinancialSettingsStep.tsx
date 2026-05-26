@@ -8,6 +8,9 @@ import {
   Hash,
   Tag,
   FileText,
+  Landmark,
+  CreditCard,
+  Wallet,
 } from "lucide-react";
 import { SegmentedControl } from "../ui/SegmentedControl";
 
@@ -233,6 +236,107 @@ export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Banking & Payment Details */}
+      <div className="border-t border-slate-200/80 pt-3 space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1 bg-emerald-100 text-emerald-700 rounded">
+            <Landmark className="w-3.5 h-3.5" />
+          </div>
+          <h3 className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+            Banking & Payment Details
+          </h3>
+          <span className="text-[10px] text-slate-400 font-medium">(optional — shown on invoices)</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Bank Name */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              Bank Name
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <Landmark className="w-3.5 h-3.5" />
+              </div>
+              <input
+                type="text"
+                value={data.bankName}
+                onChange={(e) => onChange({ bankName: e.target.value })}
+                placeholder="e.g. State Bank of India"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs font-medium bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-100 focus:border-amber-500 transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Account Number */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              Account Number
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <CreditCard className="w-3.5 h-3.5" />
+              </div>
+              <input
+                type="text"
+                value={data.accountNo}
+                onChange={(e) => onChange({ accountNo: e.target.value.replace(/\D/g, "") })}
+                placeholder="e.g. 38920019283"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs font-mono font-bold bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-100 focus:border-amber-500 transition-all"
+              />
+            </div>
+          </div>
+
+          {/* IFSC */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              IFSC Code
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <Hash className="w-3.5 h-3.5" />
+              </div>
+              <input
+                type="text"
+                value={data.ifsc}
+                onChange={(e) => onChange({ ifsc: e.target.value.toUpperCase() })}
+                placeholder="e.g. SBIN0001234"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs font-mono font-bold bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-100 focus:border-amber-500 transition-all"
+              />
+            </div>
+          </div>
+
+          {/* UPI ID */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              UPI ID
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <Wallet className="w-3.5 h-3.5" />
+              </div>
+              <input
+                type="text"
+                value={data.upiId}
+                onChange={(e) => onChange({ upiId: e.target.value })}
+                placeholder="e.g. business@sbi"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 text-xs font-medium bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-100 focus:border-amber-500 transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Banking hint */}
+        {(data.bankName || data.accountNo || data.ifsc || data.upiId) && (
+          <div className="bg-emerald-50/60 rounded-lg border border-emerald-200/60 p-2.5 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <p className="text-[10px] text-emerald-700 font-medium">
+              Bank details will appear on invoices to enable direct transfers and UPI payments.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import React from 'react';
 import { PurchaseInvoice } from '../types';
 import { X, Printer, FileText } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { fmtDate, sumCurrency, roundCurrency } from '@/utils/format';
+import { fmtDate, sumCurrency, roundCurrency, getFruitPricingType } from '@/utils/format';
 
 interface PurchasePreviewModalProps {
   invoice: PurchaseInvoice | null;
@@ -91,22 +91,29 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
                   <th className="py-2.5 px-3 col-text">Variety</th>
                   <th className="py-2.5 px-3 col-num w-24">Carets</th>
                   <th className="py-2.5 px-3 col-num w-24">Weight</th>
-                  <th className="py-2.5 px-3 col-num w-24">Rate/KG</th>
+                  <th className="py-2.5 px-3 col-num w-24">Rate</th>
                   <th className="py-2.5 px-3 col-num rounded-tr-lg w-32">Amount (₹)</th>
                 </tr>
               </thead>
               <tbody>
-                {invoice.items.map((item, idx) => (
-                  <tr key={item.id} className={`border-b border-slate-200 ${idx % 2 ? 'bg-slate-50/60' : ''}`}>
-                    <td className="py-2 px-3 col-text text-slate-400 font-mono">{idx + 1}</td>
-                    <td className="py-2 px-3 col-text font-semibold text-slate-900">{item.fruit}</td>
-                    <td className="py-2 px-3 col-text font-medium text-slate-700">{item.variety}</td>
-                    <td className="py-2 px-3 col-num font-mono font-semibold">{item.caret}</td>
-                    <td className="py-2 px-3 col-num font-mono font-semibold">{item.weight}</td>
-                    <td className="py-2 px-3 col-num font-mono">{item.rate.toFixed(2)}</td>
-                    <td className="py-2 px-3 col-num font-mono font-bold text-slate-900">₹{(item.amount || 0).toLocaleString('en-IN')}</td>
-                  </tr>
-                ))}
+                {invoice.items.map((item, idx) => {
+                  const pricingType = item.pricingType ?? getFruitPricingType(item.fruitCategory || item.fruit || '');
+                  const isByKg = pricingType === 'kg';
+                  return (
+                    <tr key={item.id} className={`border-b border-slate-200 ${idx % 2 ? 'bg-slate-50/60' : ''}`}>
+                      <td className="py-2 px-3 col-text text-slate-400 font-mono">{idx + 1}</td>
+                      <td className="py-2 px-3 col-text font-semibold text-slate-900">{item.fruit}</td>
+                      <td className="py-2 px-3 col-text font-medium text-slate-700">{item.variety}</td>
+                      <td className="py-2 px-3 col-num font-mono font-semibold">{item.caret}</td>
+                      <td className="py-2 px-3 col-num font-mono font-semibold">{item.weight}</td>
+                      <td className="py-2 px-3 col-num font-mono">
+                        {item.rate.toFixed(2)}
+                        <span className="text-[9px] text-slate-400 ml-0.5">{isByKg ? '/KG' : '/Crt'}</span>
+                      </td>
+                      <td className="py-2 px-3 col-num font-mono font-bold text-slate-900">₹{(item.amount || 0).toLocaleString('en-IN')}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 

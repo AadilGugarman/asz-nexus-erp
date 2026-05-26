@@ -240,7 +240,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="flex-1 flex flex-col space-y-6 font-sans min-h-0">
 
       {/* ════════════════════════════════════════════════════════════════════
           HERO SECTION — deep navy-to-slate gradient

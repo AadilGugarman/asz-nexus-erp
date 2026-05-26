@@ -28,12 +28,16 @@ interface UIState {
   activeTab: TabId;
   sidebarCollapsed: boolean;
   isShortcutsOpen: boolean;
+  isCalculatorOpen: boolean;
 
   setActiveTab: (tab: TabId) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (v: boolean) => void;
   openShortcuts: () => void;
   closeShortcuts: () => void;
+  toggleCalculator: () => void;
+  openCalculator: () => void;
+  closeCalculator: () => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -42,6 +46,7 @@ export const useUIStore = create<UIState>()(
       activeTab: 'dashboard',
       sidebarCollapsed: false,
       isShortcutsOpen: false,
+      isCalculatorOpen: false,
 
       setActiveTab: (tab) => set({ activeTab: tab }),
       toggleSidebar: () =>
@@ -49,6 +54,9 @@ export const useUIStore = create<UIState>()(
       setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
       openShortcuts: () => set({ isShortcutsOpen: true }),
       closeShortcuts: () => set({ isShortcutsOpen: false }),
+      toggleCalculator: () => set((s) => ({ isCalculatorOpen: !s.isCalculatorOpen })),
+      openCalculator: () => set({ isCalculatorOpen: true }),
+      closeCalculator: () => set({ isCalculatorOpen: false }),
     }),
     {
       name: 'tfc-ui-store', // localStorage key

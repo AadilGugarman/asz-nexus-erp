@@ -240,7 +240,7 @@ export const CaretModule: React.FC = () => {
   const currentPending = currentSummary.given - currentSummary.returned;
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col space-y-3 font-sans overflow-hidden -mt-2">
+    <div className="flex-1 flex flex-col space-y-6 font-sans min-h-0">
       {/* Statement Preview Modal */}
       {selectedCustomer && (
         <StatementPreview

@@ -85,6 +85,12 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
             label="Toggle Shortcuts Guide"
             keys={<><Kbd>Alt</Kbd><span className="text-[var(--text-muted)] mx-1">+</span><Kbd>K</Kbd></>}
           />
+
+          <ShortcutRow
+            icon={<Hash className="w-4 h-4 text-indigo-500" />}
+            label="Quick Calculator"
+            keys={<><Kbd>Alt</Kbd><span className="text-[var(--text-muted)] mx-1">+</span><Kbd>C</Kbd></>}
+          />
         </div>
 
         <div className="pt-4 border-t border-[var(--card-border)] text-center">

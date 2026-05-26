@@ -150,52 +150,54 @@ interface TabContentProps {
 
 const TabContent = memo<TabContentProps>(({ activeTab, setActiveTab }) => (
   <Suspense fallback={<TabSkeleton />}>
-    {activeTab === "dashboard" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Dashboard" />}>
-        <TopFilterBar />
-        <ExecutiveDashboard setActiveTab={setActiveTab} />
-      </ErrorBoundary>
-    )}
-    {activeTab === "purchase" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Purchase Billing" />}>
-        <PurchaseBillingModule />
-      </ErrorBoundary>
-    )}
-    {activeTab === "sales" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Sales Billing" />}>
-        <SalesBillingModule />
-      </ErrorBoundary>
-    )}
-    {activeTab === "inventory" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Inventory" />}>
-        <InventoryModule />
-      </ErrorBoundary>
-    )}
-    {activeTab === "parties" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Parties" />}>
-        <PartiesModule />
-      </ErrorBoundary>
-    )}
-    {activeTab === "payments" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Payments" />}>
-        <PaymentsModule />
-      </ErrorBoundary>
-    )}
-    {activeTab === "reports" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Reports" />}>
-        <ReportsModule />
-      </ErrorBoundary>
-    )}
-    {activeTab === "carets" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Caret Management" />}>
-        <CaretModule />
-      </ErrorBoundary>
-    )}
-    {activeTab === "settings" && (
-      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Settings" />}>
-        <SettingsModule />
-      </ErrorBoundary>
-    )}
+    <div className="flex-1 flex flex-col min-h-0">
+      {activeTab === "dashboard" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Dashboard" />}>
+          <TopFilterBar />
+          <ExecutiveDashboard setActiveTab={setActiveTab} />
+        </ErrorBoundary>
+      )}
+      {activeTab === "purchase" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Purchase Billing" />}>
+          <PurchaseBillingModule />
+        </ErrorBoundary>
+      )}
+      {activeTab === "sales" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Sales Billing" />}>
+          <SalesBillingModule />
+        </ErrorBoundary>
+      )}
+      {activeTab === "inventory" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Inventory" />}>
+          <InventoryModule />
+        </ErrorBoundary>
+      )}
+      {activeTab === "parties" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Parties" />}>
+          <PartiesModule />
+        </ErrorBoundary>
+      )}
+      {activeTab === "payments" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Payments" />}>
+          <PaymentsModule />
+        </ErrorBoundary>
+      )}
+      {activeTab === "reports" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Reports" />}>
+          <ReportsModule />
+        </ErrorBoundary>
+      )}
+      {activeTab === "carets" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Caret Management" />}>
+          <CaretModule />
+        </ErrorBoundary>
+      )}
+      {activeTab === "settings" && (
+        <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Settings" />}>
+          <SettingsModule />
+        </ErrorBoundary>
+      )}
+    </div>
   </Suspense>
 ));
 TabContent.displayName = "TabContent";
@@ -220,6 +222,8 @@ export const AppShell: React.FC = () => {
     isShortcutsOpen,
     openShortcuts,
     closeShortcuts,
+    isCalculatorOpen,
+    toggleCalculator,
   } = useUIStore();
 
   // Failsafe: Ensure setupCompleted is true if we are in the shell and have a company
@@ -259,6 +263,9 @@ export const AppShell: React.FC = () => {
       if (e.altKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         isShortcutsOpen ? closeShortcuts() : openShortcuts();
+      } else if (e.altKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        toggleCalculator();
       } else if (e.key === "F1") {
         e.preventDefault();
         handleSetActiveTab("purchase");
@@ -297,7 +304,7 @@ export const AppShell: React.FC = () => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isShortcutsOpen]);
+  }, [isShortcutsOpen, isCalculatorOpen]);
 
   return (
     <div

@@ -27,6 +27,11 @@ export interface FinancialSettings {
   decimalPrecision: number;
   enableMultiTax: boolean;
   enableRoundOff: boolean;
+  // Banking & payment details
+  bankName: string;
+  accountNo: string;
+  ifsc: string;
+  upiId: string;
 }
 
 export interface CompanyFormData {

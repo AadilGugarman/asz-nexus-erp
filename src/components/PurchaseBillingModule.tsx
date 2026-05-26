@@ -16,25 +16,28 @@ import { DataTable, Pagination } from "./ui/table";
 import { PurchasePreviewModal } from "./PurchasePreviewModal";
 
 import { PurchaseInvoice, PurchaseInvoiceItem } from "../types";
-import { fmtDate, sumCurrency, roundCurrency } from "@/utils/format";
+import { fmtDate, sumCurrency, roundCurrency, getFruitPricingType, calcItemAmount } from "@/utils/format";
 import { getNextUniquePurchaseNumber } from "../utils/invoice-number";
 
 //        helpers
 // formatDateWithDay is now fmtDateWithDay from utils/format
 
 function makeBlankItem(
-  fruits: { name: string; varieties: string[] }[],
+  fruits: { name: string; varieties: string[]; pricingType?: 'kg' | 'caret' }[],
 ): PurchaseInvoiceItem {
+  const firstFruit = fruits[0];
+  const pricingType = getFruitPricingType(firstFruit?.name || 'Mango', firstFruit?.pricingType);
   return {
     id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-    fruitCategory: fruits[0]?.name || "Mango",
-    fruit: fruits[0]?.name || "Mango",
-    variety: fruits[0]?.varieties[0] || "Standard",
+    fruitCategory: firstFruit?.name || "Mango",
+    fruit: firstFruit?.name || "Mango",
+    variety: firstFruit?.varieties[0] || "Standard",
     caret: 0,
     weight: 0,
     rate: 0,
     amount: 0,
     rowNote: "",
+    pricingType,
   };
 }
 
@@ -168,17 +171,20 @@ export const PurchaseBillingModule: React.FC = () => {
       item.fruit = value;
       const fObj = fruits.find((f) => f.name === value);
       item.variety = fObj?.varieties[0] || "Standard";
+      // Update pricing type when fruit changes
+      item.pricingType = getFruitPricingType(value, fObj?.pricingType);
+      // Recalculate amount with new pricing type
+      const w = parseFloat(String(item.weight)) || 0;
+      const c = parseFloat(String(item.caret)) || 0;
+      const r = parseFloat(String(item.rate)) || 0;
+      item.amount = calcItemAmount(item.pricingType, w, c, r);
     } else if (field === "caret" || field === "weight" || field === "rate") {
       (item as any)[field] = value;
-      const w =
-        field === "weight"
-          ? parseFloat(value) || 0
-          : parseFloat(String(item.weight)) || 0;
-      const r =
-        field === "rate"
-          ? parseFloat(value) || 0
-          : parseFloat(String(item.rate)) || 0;
-      item.amount = Math.round(w * r);
+      const pricingType = item.pricingType ?? getFruitPricingType(item.fruitCategory || item.fruit || '');
+      const w = field === "weight" ? parseFloat(value) || 0 : parseFloat(String(item.weight)) || 0;
+      const c = field === "caret" ? parseFloat(value) || 0 : parseFloat(String(item.caret)) || 0;
+      const r = field === "rate" ? parseFloat(value) || 0 : parseFloat(String(item.rate)) || 0;
+      item.amount = calcItemAmount(pricingType, w, c, r);
     } else {
       (item as any)[field] = value;
     }
@@ -651,9 +657,9 @@ export const PurchaseBillingModule: React.FC = () => {
                     <th className="py-3 px-3 min-w-[150px] col-text">
                       Variety (Vakkal)
                     </th>
-                    <th className="py-3 px-3 w-24 col-num">Carets</th>
+                    <th className="py-3 px-3 w-24 col-num">Carets / Crt</th>
                     <th className="py-3 px-3 w-28 col-num">Weight (KG)</th>
-                    <th className="py-3 px-3 w-28 col-num">Rate / KG</th>
+                    <th className="py-3 px-3 w-28 col-num">Rate</th>
                     <th className="py-3 px-4 w-36 col-num font-black text-emerald-500 min-w-[130px]">
                       Amount
                     </th>
@@ -666,6 +672,8 @@ export const PurchaseBillingModule: React.FC = () => {
                       fruits.find((f) => f.name === it.fruitCategory) ||
                       fruits[0];
                     const varieties = fruitObj?.varieties || ["Standard"];
+                    const pricingType = it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '', fruitObj?.pricingType);
+                    const isByKg = pricingType === 'kg';
                     return (
                       <tr
                         key={it.id}
@@ -700,49 +708,64 @@ export const PurchaseBillingModule: React.FC = () => {
                             }}
                           />
                         </td>
-                        {/* Carets */}
+                        {/* Carets — primary qty for non-mango, secondary for mango */}
                         <td className="p-1.5 col-num">
-                          <input
-                            type="number"
-                            data-pinv-cell={`${idx}-2`}
-                            value={it.caret === 0 ? "" : it.caret}
-                            placeholder="0"
-                            onChange={(e) =>
-                              handleItemChange(idx, "caret", e.target.value)
-                            }
-                            onKeyDown={(e) => handleKeyDown(e, idx, 2)}
-                            className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold`}
-                          />
+                          <div className="relative">
+                            <input
+                              type="number"
+                              data-pinv-cell={`${idx}-2`}
+                              value={it.caret === 0 ? "" : it.caret}
+                              placeholder="0"
+                              onChange={(e) =>
+                                handleItemChange(idx, "caret", e.target.value)
+                              }
+                              onKeyDown={(e) => handleKeyDown(e, idx, 2)}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${!isByKg ? 'ring-2 ring-emerald-400/40 border-emerald-400/60' : ''}`}
+                            />
+                            {!isByKg && (
+                              <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">Caret</span>
+                            )}
+                          </div>
                         </td>
-                        {/* Weight */}
+                        {/* Weight — primary qty for mango, secondary for others */}
                         <td className="p-1.5 col-num">
-                          <input
-                            type="number"
-                            step="0.1"
-                            data-pinv-cell={`${idx}-3`}
-                            value={it.weight === 0 ? "" : it.weight}
-                            placeholder="0.0"
-                            onChange={(e) =>
-                              handleItemChange(idx, "weight", e.target.value)
-                            }
-                            onKeyDown={(e) => handleKeyDown(e, idx, 3)}
-                            className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold`}
-                          />
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.1"
+                              data-pinv-cell={`${idx}-3`}
+                              value={it.weight === 0 ? "" : it.weight}
+                              placeholder="0.0"
+                              onChange={(e) =>
+                                handleItemChange(idx, "weight", e.target.value)
+                              }
+                              onKeyDown={(e) => handleKeyDown(e, idx, 3)}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${isByKg ? 'ring-2 ring-emerald-400/40 border-emerald-400/60' : ''}`}
+                            />
+                            {isByKg && (
+                              <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">KG</span>
+                            )}
+                          </div>
                         </td>
-                        {/* Rate */}
+                        {/* Rate — label changes based on pricing type */}
                         <td className="p-1.5 col-num">
-                          <input
-                            type="number"
-                            step="0.5"
-                            data-pinv-cell={`${idx}-4`}
-                            value={it.rate === 0 ? "" : it.rate}
-                            placeholder="0.00"
-                            onChange={(e) =>
-                              handleItemChange(idx, "rate", e.target.value)
-                            }
-                            onKeyDown={(e) => handleKeyDown(e, idx, 4)}
-                            className={`w-full ${inp} p-2 text-right text-xs font-mono font-bold dark:text-emerald-300 text-emerald-700`}
-                          />
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.5"
+                              data-pinv-cell={`${idx}-4`}
+                              value={it.rate === 0 ? "" : it.rate}
+                              placeholder="0.00"
+                              onChange={(e) =>
+                                handleItemChange(idx, "rate", e.target.value)
+                              }
+                              onKeyDown={(e) => handleKeyDown(e, idx, 4)}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-bold dark:text-emerald-300 text-emerald-700`}
+                            />
+                            <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">
+                              {isByKg ? '₹/KG' : '₹/Crt'}
+                            </span>
+                          </div>
                         </td>
                         {/* Amount */}
                         <td className="p-2 px-4 col-num font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/8 text-sm">
@@ -793,12 +816,13 @@ export const PurchaseBillingModule: React.FC = () => {
                     <td
                       className={`py-3.5 px-3 col-num text-right ${muted} text-[10px]`}
                     >
-                      Avg ₹{" "}
-                      {(totalWeight > 0
-                        ? itemsSubtotal / totalWeight
-                        : 0
-                      ).toFixed(1)}
-                      /KG
+                      {(() => {
+                        const hasKg = items.some(it => (it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '')) === 'kg');
+                        const hasCaret = items.some(it => (it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '')) === 'caret');
+                        if (hasKg && !hasCaret) return `Avg ₹ ${totalWeight > 0 ? (itemsSubtotal / totalWeight).toFixed(1) : '0'}/KG`;
+                        if (hasCaret && !hasKg) return `Avg ₹ ${totalCarets > 0 ? (itemsSubtotal / totalCarets).toFixed(1) : '0'}/Crt`;
+                        return `Mixed Pricing`;
+                      })()}
                     </td>
                     <td className="py-3.5 px-4 col-num font-mono text-emerald-600 dark:text-emerald-400 font-black text-base bg-emerald-500/8 border-l border-emerald-500/20">
                       ₹ {itemsSubtotal.toLocaleString("en-IN")}

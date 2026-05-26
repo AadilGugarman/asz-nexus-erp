@@ -302,7 +302,7 @@ export const ReportsModule: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="flex-1 flex flex-col space-y-6 font-sans min-h-0">
 
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
@@ -341,14 +341,14 @@ export const ReportsModule: React.FC = () => {
           REPORT 1: DAILY SUMMARY
          ══════════════════════════════════════════════ */}
       {activeReport === 'DAILY' && (
-        <div className="space-y-5 animate-slide-up">
-          <div className="flex items-center space-x-3 no-print">
+        <div className="flex-1 flex flex-col space-y-5 animate-slide-up min-h-0">
+          <div className="flex items-center space-x-3 no-print shrink-0">
             <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">Select Date:</label>
             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
               className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 shrink-0">
             <C><Lbl>📥 Purchase Bills</Lbl><Big>{daily.pinv.length}</Big></C>
             <C><Lbl>📤 Sales Invoices</Lbl><Big>{daily.sinv.length}</Big></C>
             <C><Lbl>💰 Payments Made</Lbl><Big>{daily.pay.length}</Big></C>
@@ -357,7 +357,7 @@ export const ReportsModule: React.FC = () => {
             <C><Lbl>⚖️ Net Weight Change</Lbl><Big color={(daily.totalWeightIn - daily.totalWeightOut) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{(daily.totalWeightIn - daily.totalWeightOut >= 0 ? '+' : '') + (daily.totalWeightIn - daily.totalWeightOut).toLocaleString()} KG</Big></C>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
             <C><Lbl>📄 Purchase Amt</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {daily.totalPurchaseBill.toLocaleString('en-IN')}</Big></C>
             <C><Lbl>💵 Total Sales Amt</Lbl><Big color="text-emerald-600 dark:text-emerald-400">₹ {daily.totalSales.toLocaleString('en-IN')}</Big></C>
             <C><Lbl>⬆️ Cash Paid Out</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {daily.totalPaidOut.toLocaleString('en-IN')}</Big></C>
@@ -366,11 +366,13 @@ export const ReportsModule: React.FC = () => {
 
           {/* Transactions table for the day */}
           {isLoading ? (
-            <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={4} /></div>
+            <div className="erp-table-wrap rounded-xl shrink-0"><TableSkeleton rows={6} cols={4} /></div>
           ) : (daily.sinv.length > 0 || daily.pinv.length > 0 || daily.pay.length > 0) ? (
-            <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
-              <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">All Transactions — {selectedDate}</div>
+            <div className="flex-1 flex flex-col min-h-0 dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
+              <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider shrink-0">All Transactions — {selectedDate}</div>
               <DataTable
+                className="flex-1 min-h-0"
+                scrollClassName="flex-1"
                 footer={
                   <Pagination
                     page={dailyTable.page}
@@ -417,15 +419,15 @@ export const ReportsModule: React.FC = () => {
           REPORT 2: DATE RANGE
          ══════════════════════════════════════════════ */}
       {activeReport === 'DATERANGE' && (
-        <div className="space-y-5 animate-slide-up">
-          <div className="flex flex-wrap items-center gap-3 no-print">
+        <div className="flex-1 flex flex-col space-y-5 animate-slide-up min-h-0">
+          <div className="flex flex-wrap items-center gap-3 no-print shrink-0">
             <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">From:</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
             <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">To:</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 shrink-0">
             <C><Lbl>Total Purchase</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {rangeData.totalPurchase.toLocaleString('en-IN')}</Big><div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">{rangeData.pinvCount} bills</div></C>
             <C><Lbl>Total Sales</Lbl><Big color="text-emerald-600 dark:text-emerald-400">₹ {rangeData.totalSales.toLocaleString('en-IN')}</Big><div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">{rangeData.sinvCount} invoices</div></C>
             <C><Lbl>Cash Paid Out</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {rangeData.totalPaidOut.toLocaleString('en-IN')}</Big></C>
@@ -434,11 +436,13 @@ export const ReportsModule: React.FC = () => {
 
           {/* Day-wise breakdown table */}
           {isLoading ? (
-            <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={6} /></div>
+            <div className="erp-table-wrap rounded-xl shrink-0"><TableSkeleton rows={6} cols={6} /></div>
           ) : rangeData.days.length > 0 ? (
-            <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
-              <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">Day-wise Breakdown</div>
+            <div className="flex-1 flex flex-col min-h-0 dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
+              <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider shrink-0">Day-wise Breakdown</div>
               <DataTable
+                className="flex-1 min-h-0"
+                scrollClassName="flex-1"
                 footer={
                   <Pagination
                     page={rangeTable.page}

@@ -69,6 +69,7 @@ import { formatInvoiceNumber } from "../utils/invoice-number";
 import { fmtDate } from "../utils/format";
 import { InvoiceTemplateRenderer } from "./invoice/InvoiceTemplateRenderer";
 import { DataTable, Pagination } from "./ui/table";
+import { CompanyWizard } from "./company-wizard/CompanyWizard";
 
 type Section =
   | "COMPANIES"
@@ -268,6 +269,8 @@ export const SettingsModule: React.FC = () => {
 
   const location = useLocation();
   const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [showEditWizard, setShowEditWizard] = useState(false);
+  const [wizardEditCompanyId, setWizardEditCompanyId] = useState<string | null>(null);
   const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
 
   // ── Reusable Company Form State (Create & Edit) ──
@@ -332,31 +335,8 @@ export const SettingsModule: React.FC = () => {
   };
 
   const openEditCompany = (c: CompanyProfile) => {
-    setEditingCompanyId(c.id);
-    setCfName(c.company.name);
-    setCfTagline(c.company.tagline);
-    setCfGstin(c.company.gstin || "");
-    setCfPan(c.company.pan || "");
-    setCfAddress(c.company.address);
-    setCfCity(c.city || "");
-    setCfState(c.state || "Gujarat");
-    setCfPincode(c.pincode || "");
-    setCfPhone(c.company.phone);
-    setCfPhone2(c.company.phone2 || "");
-    setCfPhone3(c.company.phone3 || "");
-    setCfEmail(c.company.email);
-    setCfWebsite(c.company.website || "");
-    setCfCurrency(c.financial?.currency ?? "INR");
-    setCfInvPrefix(c.invoice?.salesPrefix ?? "INV");
-    setCfInvStart(c.invoice?.salesNextNo ?? 1001);
-    setCfBankName(c.company.bankName);
-    setCfAccountNo(c.company.accountNo);
-    setCfIfsc(c.company.ifsc);
-    setCfUpiId(c.company.upiId);
-    setCfLogo(c.company.logo || "");
-    setCfStep(1);
-    setCfSaving(false);
-    setShowCompanyModal(true);
+    setWizardEditCompanyId(c.id);
+    setShowEditWizard(true);
   };
 
   useEffect(() => {
@@ -2986,6 +2966,24 @@ export const SettingsModule: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* ══════════════════════════════════════════════
+          EDIT COMPANY WIZARD MODAL
+         ══════════════════════════════════════════════ */}
+      {showEditWizard && wizardEditCompanyId && (
+        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#f8fafc] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
+            <CompanyWizard
+              mode="edit"
+              companyId={wizardEditCompanyId}
+              onComplete={() => {
+                setShowEditWizard(false);
+                setWizardEditCompanyId(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════
           COMPANY FORM MODAL (Create & Edit)

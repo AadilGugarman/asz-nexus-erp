@@ -93,7 +93,7 @@ export const InventoryModule: React.FC = () => {
   }, [fruits]);
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="flex-1 flex flex-col space-y-6 font-sans min-h-0">
       {/* Top Header */}
       <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div>

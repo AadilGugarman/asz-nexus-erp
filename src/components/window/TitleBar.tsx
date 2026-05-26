@@ -11,12 +11,14 @@
  */
 
 import React, { useCallback } from 'react';
-import { Pin, PinOff, Maximize2, Minimize2, Sun, Moon, Keyboard } from 'lucide-react';
+import { Pin, PinOff, Maximize2, Minimize2, Sun, Moon, Keyboard, Calculator as CalculatorIcon } from 'lucide-react';
 import { WindowControls } from './WindowControls';
 import { useWindow } from '@/hooks';
 import { useAppearanceStore } from '@/store/appearance.store';
 import { useSettingsStore } from '@/store/settings.store';
+import { useUIStore } from '@/store/ui.store';
 import { APP_CONFIG } from '@/config';
+import { Calculator } from '../Calculator';
 
 interface TitleBarProps {
   pageTitle?: string;
@@ -56,6 +58,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
   const resolvedTheme = useAppearanceStore((s) => s.resolvedTheme);
   const toggleTheme   = useAppearanceStore((s) => s.toggleTheme);
   const companyName   = useSettingsStore((s) => s.settings.company?.name);
+  const { toggleCalculator } = useUIStore();
   const {
     startDrag,
     toggleMaximize,
@@ -128,6 +131,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
       <div className={`fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-12 px-4 border-b transition-colors duration-200 ${barBg}`}>
         <LeftContent />
         <div className="flex items-center gap-2">
+          <button onClick={toggleCalculator} className={`${primaryBtnBase} ${primaryBtnIdle}`} title="Calculator">
+            <CalculatorIcon size={16} strokeWidth={2} />
+            <span>Calc</span>
+          </button>
           <button onClick={onOpenShortcuts} className={`${primaryBtnBase} ${primaryBtnIdle}`} title="Keyboard shortcuts (Alt+K)">
             <Keyboard size={16} strokeWidth={2} />
             <span>Shortcuts</span>
@@ -139,6 +146,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
             }
           </button>
         </div>
+        <Calculator />
       </div>
     );
   }
@@ -163,6 +171,11 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
         onMouseDown={(e) => e.stopPropagation()}
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
+        <button className={`${primaryBtnBase} ${primaryBtnIdle}`} onClick={toggleCalculator} title="Quick Calculator" tabIndex={-1}>
+          <CalculatorIcon size={16} strokeWidth={2} />
+          <span>Calc</span>
+        </button>
+
         <button className={`${primaryBtnBase} ${primaryBtnIdle}`} onClick={onOpenShortcuts} title="Keyboard shortcuts (Alt+K)" tabIndex={-1}>
           <Keyboard size={16} strokeWidth={2} />
           <span>Shortcuts</span>
@@ -187,6 +200,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
         <div className={`w-px h-5 ${isDark ? 'bg-[rgba(30,48,72,0.9)]' : 'bg-slate-200'}`} />
         <WindowControls />
       </div>
+      <Calculator />
     </div>
   );
 };

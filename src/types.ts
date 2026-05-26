@@ -6,6 +6,8 @@ export interface Fruit {
   id: string;
   name: string;
   varieties: string[];
+  /** 'kg' = priced per KG (Mango), 'caret' = priced per Caret/Crate (all others) */
+  pricingType?: 'kg' | 'caret';
 }
 
 export interface Supplier {
@@ -76,6 +78,8 @@ export interface PurchaseInvoiceItem {
   rate: number;
   amount: number;
   rowNote?: string;       // per-row supplier note
+  /** Pricing mode: 'kg' = Weight × Rate/KG (Mango), 'caret' = Carets × Rate/Caret (others) */
+  pricingType?: 'kg' | 'caret';
 }
 
 export interface PurchaseInvoice {
@@ -128,6 +132,8 @@ export interface InvoiceItem {
   weight: number;
   rate: number;
   amount: number;
+  /** Pricing mode: 'kg' = Weight × Rate/KG (Mango), 'caret' = Carets × Rate/Caret (others) */
+  pricingType?: 'kg' | 'caret';
 }
 
 export interface Invoice {

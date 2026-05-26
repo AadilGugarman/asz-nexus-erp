@@ -59,6 +59,10 @@ const INITIAL_DATA: CompanyFormData = {
     decimalPrecision: 2,
     enableMultiTax: true,
     enableRoundOff: true,
+    bankName: "",
+    accountNo: "",
+    ifsc: "",
+    upiId: "",
   },
 };
 
@@ -76,6 +80,8 @@ function hasValidationErrors(errors: ValidationErrors): boolean {
 
 interface CompanyWizardProps {
   mode?: "create" | "edit";
+  /** Pass companyId directly when embedding in a modal (bypasses URL params). */
+  companyId?: string;
   onComplete?: () => void | Promise<void>;
   onSeedDemo?: () => void | Promise<void>;
 }
@@ -92,11 +98,14 @@ function generateInvoicePrefix(companyName: string): string {
 
 export const CompanyWizard: React.FC<CompanyWizardProps> = ({
   mode = "create",
+  companyId: companyIdProp,
   onComplete,
   onSeedDemo,
 }) => {
   const navigate = useNavigate();
-  const { companyId } = useParams<{ companyId: string }>();
+  const { companyId: companyIdParam } = useParams<{ companyId: string }>();
+  // Prefer the prop (modal embedding) over the URL param (routed page)
+  const companyId = companyIdProp ?? companyIdParam;
   const { addCompany, updateCompany, companies } = useSettingsStore();
   const toast = useToast();
 
@@ -141,6 +150,10 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             decimalPrecision: 2,
             enableMultiTax: true,
             enableRoundOff: true,
+            bankName: company.company.bankName ?? "",
+            accountNo: company.company.accountNo ?? "",
+            ifsc: company.company.ifsc ?? "",
+            upiId: company.company.upiId ?? "",
           },
         });
       }
@@ -349,6 +362,10 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             address: formData.details.address,
             phone: formData.details.phone,
             gstin: formData.details.gstin,
+            bankName: formData.financial.bankName,
+            accountNo: formData.financial.accountNo,
+            ifsc: formData.financial.ifsc,
+            upiId: formData.financial.upiId,
           },
           financial: {
             ...(existingCompany.financial ?? DEFAULT_FINANCIAL),
@@ -370,7 +387,11 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
           logo: formData.details.logoUrl,
         });
         toast.success("Company updated successfully");
-        goToCompaniesSettings(navigate, companyId);
+        if (onComplete) {
+          await Promise.resolve(onComplete());
+        } else {
+          goToCompaniesSettings(navigate, companyId);
+        }
       } else {
         const newCompanyId = `co-${Date.now()}`;
         const currentSettings = useSettingsStore.getState().settings;
@@ -383,10 +404,10 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             phone: formData.details.phone,
             email: "",
             gstin: formData.details.gstin,
-            bankName: "",
-            accountNo: "",
-            ifsc: "",
-            upiId: "",
+            bankName: formData.financial.bankName,
+            accountNo: formData.financial.accountNo,
+            ifsc: formData.financial.ifsc,
+            upiId: formData.financial.upiId,
             logo: formData.details.logoUrl,
           },
           financial: {
@@ -461,7 +482,11 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
           if (isDirty) {
             setShowUnsavedModal(true);
           } else if (mode === "edit") {
-            goToCompaniesSettings(navigate, companyId);
+            if (onComplete) {
+              void Promise.resolve(onComplete());
+            } else {
+              goToCompaniesSettings(navigate, companyId);
+            }
           } else {
             setShowListModal(true);
           }
@@ -538,11 +563,15 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
       <UnsavedChangesModal
         isOpen={showUnsavedModal}
         onClose={() => setShowUnsavedModal(false)}
-        onConfirm={() =>
-          mode === "edit"
-            ? goToCompaniesSettings(navigate, companyId)
-            : goToCompaniesSettings(navigate)
-        }
+        onConfirm={() => {
+          if (mode === "edit" && onComplete) {
+            void Promise.resolve(onComplete());
+          } else if (mode === "edit") {
+            goToCompaniesSettings(navigate, companyId);
+          } else {
+            goToCompaniesSettings(navigate);
+          }
+        }}
       />
 
       <SuccessModal

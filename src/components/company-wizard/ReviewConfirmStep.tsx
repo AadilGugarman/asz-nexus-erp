@@ -9,6 +9,7 @@ import {
   Coins,
   ShieldCheck,
   Database,
+  Landmark,
 } from "lucide-react";
 
 interface ReviewConfirmStepProps {
@@ -247,6 +248,47 @@ export const ReviewConfirmStep: React.FC<ReviewConfirmStepProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Banking review — only shown if any field is filled */}
+      {(formData.financial.bankName || formData.financial.accountNo || formData.financial.ifsc || formData.financial.upiId) && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-emerald-100 text-emerald-700 rounded">
+                <Landmark className="w-3.5 h-3.5" />
+              </div>
+              <h3 className="font-bold text-xs text-slate-900">
+                Banking & Payment
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => onEditStep(2)}
+              className="flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-white hover:bg-amber-50 px-2.5 py-1 rounded-lg border border-slate-200 transition-all cursor-pointer"
+            >
+              <Edit3 className="w-3 h-3" />
+              <span>Edit</span>
+            </button>
+          </div>
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Bank", value: formData.financial.bankName || "—" },
+              { label: "Account No", value: formData.financial.accountNo || "—", mono: true },
+              { label: "IFSC", value: formData.financial.ifsc || "—", mono: true },
+              { label: "UPI ID", value: formData.financial.upiId || "—", mono: true },
+            ].map(({ label, value, mono }) => (
+              <div key={label}>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                  {label}
+                </span>
+                <span className={`text-xs font-bold block truncate text-slate-900 ${mono ? "font-mono" : ""}`}>
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Submit */}
       <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between gap-4 border border-slate-800">

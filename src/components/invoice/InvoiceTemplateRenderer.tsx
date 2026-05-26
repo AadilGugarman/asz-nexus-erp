@@ -2,7 +2,7 @@ import React from 'react';
 import { QrCode, Phone, MapPin, Mail, Building2, User, Landmark } from 'lucide-react';
 import { CompanySettings, Invoice, InvoiceSettings } from '../../types';
 import { normalizeInvoiceTemplate } from '../../utils/invoice-number';
-import { fmtDate, sumCurrency, roundCurrency } from '../../utils/format';
+import { fmtDate, sumCurrency, roundCurrency, getFruitPricingType } from '../../utils/format';
 
 interface InvoiceTemplateRendererProps {
   invoice: Invoice;
@@ -146,17 +146,26 @@ const ModernItemTable: React.FC<{ invoice: Invoice; accent: string }> = ({ invoi
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
-          {invoice.items.map((item, idx) => (
-            <tr key={item.id} className="hover:bg-slate-50/30 transition-colors">
-              <td className="py-4 px-6 col-text text-slate-400 font-mono">{idx + 1}</td>
-              <td className="py-4 px-2 col-text font-black text-slate-900">{item.fruit}</td>
-              <td className="py-4 px-2 col-text text-slate-600 font-bold uppercase tracking-tight">{item.lotVariety}</td>
-              <td className="py-4 px-2 col-num font-mono font-black text-slate-700">{item.caret}</td>
-              <td className="py-4 px-2 col-num font-mono font-black text-slate-700">{item.weight} <span className="text-[9px] text-slate-400">KG</span></td>
-              <td className="py-4 px-2 col-num font-mono text-slate-600 font-bold">{currency(item.rate)}</td>
-              <td className="py-4 px-6 col-num font-mono font-black text-slate-900 text-[13px]">{currency(item.amount)}</td>
-            </tr>
-          ))}
+          {invoice.items.map((item, idx) => {
+            const pricingType = item.pricingType ?? getFruitPricingType(item.fruitCategory || item.fruit || '');
+            const isByKg = pricingType === 'kg';
+            return (
+              <tr key={item.id} className="hover:bg-slate-50/30 transition-colors">
+                <td className="py-4 px-6 col-text text-slate-400 font-mono">{idx + 1}</td>
+                <td className="py-4 px-2 col-text font-black text-slate-900">{item.fruit}</td>
+                <td className="py-4 px-2 col-text text-slate-600 font-bold uppercase tracking-tight">{item.lotVariety}</td>
+                <td className="py-4 px-2 col-num font-mono font-black text-slate-700">{item.caret}</td>
+                <td className="py-4 px-2 col-num font-mono font-black text-slate-700">
+                  {item.weight} <span className="text-[9px] text-slate-400">KG</span>
+                </td>
+                <td className="py-4 px-2 col-num font-mono text-slate-600 font-bold">
+                  {currency(item.rate)}
+                  <span className="text-[9px] text-slate-400 ml-0.5">{isByKg ? '/KG' : '/Crt'}</span>
+                </td>
+                <td className="py-4 px-6 col-num font-mono font-black text-slate-900 text-[13px]">{currency(item.amount)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -315,19 +324,25 @@ const ThermalTemplate: React.FC<{ invoice: Invoice; company: CompanySettings; se
             <span className="w-14 text-right">RATE</span>
             <span className="w-18 text-right">AMOUNT</span>
           </div>
-          {invoice.items.map((item, idx) => (
-            <div key={item.id} className="py-1.5 border-b border-slate-100 last:border-0">
-              <div className="flex items-start">
-                <div className="flex-1">
-                  <p className="font-black leading-none">{item.fruit}</p>
-                  <p className="text-[9px] text-slate-500 mt-1 uppercase">{item.lotVariety} · {item.caret} CRT</p>
+          {invoice.items.map((item) => {
+            const pricingType = item.pricingType ?? getFruitPricingType(item.fruitCategory || item.fruit || '');
+            const isByKg = pricingType === 'kg';
+            return (
+              <div key={item.id} className="py-1.5 border-b border-slate-100 last:border-0">
+                <div className="flex items-start">
+                  <div className="flex-1">
+                    <p className="font-black leading-none">{item.fruit}</p>
+                    <p className="text-[9px] text-slate-500 mt-1 uppercase">
+                      {item.lotVariety} · {isByKg ? `${item.weight} KG` : `${item.caret} CRT`}
+                    </p>
+                  </div>
+                  <span className="w-10 text-right font-black">{isByKg ? item.weight : item.caret}</span>
+                  <span className="w-14 text-right">{item.rate}<span className="text-[8px]">{isByKg ? '/KG' : '/Crt'}</span></span>
+                  <span className="w-18 text-right font-black">{item.amount.toLocaleString()}</span>
                 </div>
-                <span className="w-10 text-right font-black">{item.weight}</span>
-                <span className="w-14 text-right">{item.rate}</span>
-                <span className="w-18 text-right font-black">{item.amount.toLocaleString()}</span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="py-3 border-t-2 border-black space-y-1.5">

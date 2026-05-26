@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   Wallet, Plus, Search, Trash2, Eye, Calendar, ArrowUpRight, ArrowDownRight,
   DollarSign, CreditCard, Banknote, Smartphone, FileText,
-  Printer, X, Building2, Users, UserCheck, ArrowUpDown
+  Printer, X, Building2, Users, UserCheck, ArrowUpDown, Edit3
 } from 'lucide-react';
 
 import { useApp } from '@/context/AppContext';
@@ -28,7 +28,7 @@ const getPaymentModeMeta = (mode: string) =>
   PAYMENT_MODE_LABELS[mode] ?? { label: mode || 'Unknown', icon: <Wallet className="w-3.5 h-3.5" />, color: 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/30' };
 
 export const PaymentsModule: React.FC = () => {
-  const { payments, suppliers, customers, addPayment, deletePayment, settings, getSupplierLedger, getCustomerLedger } = useApp();
+  const { payments, suppliers, customers, addPayment, savePayment, deletePayment, settings, getSupplierLedger, getCustomerLedger } = useApp();
   const cs = settings.company;
   const toast = useToast();
   const dialog = useConfirmDialog();
@@ -38,10 +38,11 @@ export const PaymentsModule: React.FC = () => {
   const [isListLoading, setIsListLoading] = useState(false);
 
   // ── New Payment Form State ──────────
-  const [direction, setDirection] = useState<'PAID_TO_SUPPLIER' | 'RECEIVED_FROM_CUSTOMER'>('PAID_TO_SUPPLIER');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [direction, setDirection] = useState<'PAID_TO_SUPPLIER' | 'RECEIVED_FROM_CUSTOMER'>('RECEIVED_FROM_CUSTOMER');
   const [selectedPartyName, setSelectedPartyName] = useState('');
   const [amount, setAmount] = useState<number>(0);
-  const [paymentMode, setPaymentMode] = useState<'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI'>('BANK_TRANSFER');
+  const [paymentMode, setPaymentMode] = useState<'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI' | ''>('');
   const [referenceNo, setReferenceNo] = useState('');
   const [notes, setNotes] = useState('');
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
@@ -158,6 +159,10 @@ export const PaymentsModule: React.FC = () => {
       toast.error('Invalid Amount', 'Please enter a valid payment amount greater than zero.');
       return;
     }
+    if (!paymentMode) {
+      toast.error('Payment Mode Required', 'Please select a payment mode (Cash, Bank, etc.).');
+      return;
+    }
 
     const partyType: 'SUPPLIER' | 'CUSTOMER' = direction === 'PAID_TO_SUPPLIER' ? 'SUPPLIER' : 'CUSTOMER';
     let partyId = '';
@@ -168,7 +173,7 @@ export const PaymentsModule: React.FC = () => {
     }
 
     const payment: PaymentReceipt = {
-      id: `pay-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: editingId || `pay-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       date: payDate,
       partyType,
       partyId,
@@ -179,16 +184,36 @@ export const PaymentsModule: React.FC = () => {
       notes: notes.trim() || undefined,
     };
 
-    addPayment(payment);
+    savePayment(payment);
     const dirLabel = partyType === 'SUPPLIER' ? 'paid to' : 'received from';
-    toast.success('Payment Recorded!', `₹${Number(amount).toLocaleString('en-IN')} ${dirLabel} ${selectedPartyName}. Ledger updated.`);
+    toast.success(
+      editingId ? 'Payment Updated!' : 'Payment Recorded!',
+      `₹${Number(amount).toLocaleString('en-IN')} ${dirLabel} ${selectedPartyName}. Ledger updated.`
+    );
 
     // Reset form
+    setEditingId(null);
     setSelectedPartyName('');
     setAmount(0);
+    setPaymentMode('');
     setReferenceNo('');
     setNotes('');
     setActiveTab('LIST');
+  };
+
+  const handleEditPayment = (p: PaymentReceipt) => {
+    setEditingId(p.id);
+    setDirection(p.partyType === 'SUPPLIER' ? 'PAID_TO_SUPPLIER' : 'RECEIVED_FROM_CUSTOMER');
+    setSelectedPartyName(p.partyName);
+    setAmount(p.amount);
+    setPaymentMode(p.paymentMode as any);
+    setReferenceNo(p.referenceNo || '');
+    setNotes(p.notes || '');
+    setPayDate(p.date);
+    setActiveTab('NEW');
+    
+    // Scroll to top of form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeletePayment = async (p: PaymentReceipt) => {
@@ -205,7 +230,7 @@ export const PaymentsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="flex-1 flex flex-col space-y-6 font-sans min-h-0">
 
       {/* ── TOP HEADER ─────────────────────────────── */}
       <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
@@ -264,7 +289,7 @@ export const PaymentsModule: React.FC = () => {
           <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200">
             <h2 className="text-sm font-bold dark:text-white text-slate-900 flex items-center space-x-2">
               <DollarSign className="w-4 h-4 text-amber-500" />
-              <span>Record New Payment or Receipt</span>
+              <span>{editingId ? 'Edit Payment / Receipt' : 'Record New Payment or Receipt'}</span>
             </h2>
           </div>
 
@@ -278,7 +303,7 @@ export const PaymentsModule: React.FC = () => {
                   onClick={() => { setDirection('PAID_TO_SUPPLIER'); setSelectedPartyName(''); }}
                   className={`flex items-center justify-center space-x-2.5 p-4 rounded-xl border-2 transition-all cursor-pointer font-bold text-sm ${
                     direction === 'PAID_TO_SUPPLIER'
-                      ? 'border-rose-500 dark:bg-rose-500/10 bg-rose-50 text-rose-700 dark:text-rose-400 shadow-md shadow-rose-500/10'
+                      ? 'border-rose-500 bg-gradient-to-br from-rose-500/20 to-rose-600/10 text-rose-700 dark:text-rose-400 shadow-md shadow-rose-500/10'
                       : 'dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-600 dark:hover:border-slate-700 hover:border-slate-300'
                   }`}
                 >
@@ -293,7 +318,7 @@ export const PaymentsModule: React.FC = () => {
                   onClick={() => { setDirection('RECEIVED_FROM_CUSTOMER'); setSelectedPartyName(''); }}
                   className={`flex items-center justify-center space-x-2.5 p-4 rounded-xl border-2 transition-all cursor-pointer font-bold text-sm ${
                     direction === 'RECEIVED_FROM_CUSTOMER'
-                      ? 'border-emerald-500 dark:bg-emerald-500/10 bg-emerald-50 text-emerald-700 dark:text-emerald-400 shadow-md shadow-emerald-500/10'
+                      ? 'border-emerald-500 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 text-emerald-700 dark:text-emerald-400 shadow-md shadow-emerald-500/10'
                       : 'dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-600 dark:hover:border-slate-700 hover:border-slate-300'
                   }`}
                 >
@@ -457,7 +482,7 @@ export const PaymentsModule: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <button
                   type="button"
-                  onClick={() => { setSelectedPartyName(''); setAmount(0); setReferenceNo(''); setNotes(''); }}
+                  onClick={() => { setEditingId(null); setSelectedPartyName(''); setAmount(0); setPaymentMode(''); setReferenceNo(''); setNotes(''); }}
                   className="px-5 py-3 dark:bg-slate-800 bg-slate-100 dark:hover:bg-slate-700 hover:bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl font-bold text-xs cursor-pointer transition-colors"
                 >
                   Clear
@@ -465,10 +490,18 @@ export const PaymentsModule: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleSavePayment}
-                  className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-sm shadow-xl shadow-amber-500/20 cursor-pointer transition-all flex items-center space-x-2"
+                  className={`px-8 py-3 font-black rounded-xl text-sm shadow-xl cursor-pointer transition-all flex items-center space-x-2 ${
+                    direction === 'PAID_TO_SUPPLIER'
+                      ? 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white shadow-rose-500/20'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
+                  }`}
                 >
                   <Wallet className="w-5 h-5 stroke-[2.5]" />
-                  <span>SAVE PAYMENT & UPDATE LEDGER</span>
+                  <span>
+                    {editingId 
+                      ? (direction === 'PAID_TO_SUPPLIER' ? 'UPDATE SUPPLIER PAYMENT' : 'UPDATE CUSTOMER RECEIPT')
+                      : (direction === 'PAID_TO_SUPPLIER' ? 'CONFIRM SUPPLIER PAYMENT' : 'CONFIRM CUSTOMER RECEIPT')}
+                  </span>
                 </button>
               </div>
             </div>
@@ -480,8 +513,8 @@ export const PaymentsModule: React.FC = () => {
           TAB 2: PAYMENT REGISTER LIST
          ══════════════════════════════════════════════ */}
       {activeTab === 'LIST' && (
-        <div className="erp-table-wrap rounded-2xl animate-slide-up">
-          <div className="px-6 py-4 bg-[var(--surface-bg)] border-b border-[var(--card-border)] flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex-1 flex flex-col min-h-0 erp-table-wrap rounded-2xl animate-slide-up">
+          <div className="px-6 py-4 bg-[var(--surface-bg)] border-b border-[var(--card-border)] flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
             <div className="flex items-center space-x-2">
               <h2 className="text-sm font-semibold text-[var(--text-primary)]">Payment Register</h2>
               <span className="text-xs bg-[var(--surface-bg)] text-[var(--primary)] font-mono font-semibold px-2.5 py-0.5 rounded-full border border-[var(--card-border)]">{filteredPayments.length} entries</span>
@@ -527,6 +560,8 @@ export const PaymentsModule: React.FC = () => {
 
           {/* Table */}
           <DataTable
+            className="flex-1 min-h-0"
+            scrollClassName="flex-1"
             footer={
               <Pagination
                 page={paymentsTable.page}
@@ -637,6 +672,13 @@ export const PaymentsModule: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 col-actions sticky right-0 bg-[var(--card-bg)] z-[2] border-l border-[var(--table-border)]">
                           <div className="flex items-center justify-center space-x-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleEditPayment(p)}
+                              className="p-2 text-[var(--text-muted)] hover:text-indigo-500 hover:bg-[var(--surface-bg)] rounded-lg cursor-pointer transition-colors"
+                              title="Edit Payment"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => setPreviewPayment(p)}
                               className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-bg)] rounded-lg cursor-pointer transition-colors"

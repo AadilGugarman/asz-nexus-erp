@@ -371,7 +371,7 @@ export const PartiesModule: React.FC = () => {
                   className="flex items-center space-x-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-[11px] font-bold shadow-lg shadow-indigo-500/20 transition-all cursor-pointer active:scale-[0.98]"
                 >
                   <ArrowDownRight className="w-3.5 h-3.5" />
-                  <span>Receive</span>
+                  <span>Receive payment</span>
                 </button>
               )}
               {(p.type === 'SUPPLIER' || p.type === 'BOTH') && (
@@ -380,7 +380,7 @@ export const PartiesModule: React.FC = () => {
                   className="flex items-center space-x-1.5 px-3.5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl text-[11px] font-bold shadow-lg shadow-cyan-500/20 transition-all cursor-pointer active:scale-[0.98]"
                 >
                   <ArrowUpRight className="w-3.5 h-3.5" />
-                  <span>Pay</span>
+                  <span>Pay Supplier</span>
                 </button>
               )}
               
@@ -389,7 +389,7 @@ export const PartiesModule: React.FC = () => {
                 className="flex items-center space-x-1.5 px-3.5 py-2 dark:bg-slate-800 bg-white dark:text-slate-300 text-slate-700 rounded-xl text-[11px] font-bold border dark:border-slate-700 border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer active:scale-[0.98]"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Print</span>
+                <span>Print Statement</span>
               </button>
 
               <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-0.5"></div>
