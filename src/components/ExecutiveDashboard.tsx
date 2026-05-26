@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { useAppTranslation } from '@/hooks';
-import { fmtDate } from '@/utils/format';
+import { fmtDate, roundCurrency } from '@/utils/format';
 import {
   TrendingUp, DollarSign, Users, UserCheck,
   ArrowUpRight, ArrowDownRight, Sparkles, Download,
@@ -106,69 +106,58 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
   const resolvedTheme = useAppearanceStore(s => s.resolvedTheme);
   const D = useMemo(() => buildTokens(resolvedTheme === 'dark'), [resolvedTheme]);
 
-  const savedVehicles = (vehicles || []).filter(v => v?.status === 'SAVED');
+  const savedVehicles = [];
 
   // ── Financial calculations ────────────────────────────────────────────────
   const totalPurchase = useMemo(() => {
-    const vAmt = (savedVehicles || []).reduce((s, v) => s + (v?.totalAmount || 0), 0);
+    const vAmt = 0;
     const pAmt = (purchaseInvoices || []).reduce((s, i) => s + (i?.todayAmount || 0), 0);
-    return vAmt + pAmt;
-  }, [savedVehicles, purchaseInvoices]);
+    return roundCurrency(vAmt + pAmt);
+  }, [purchaseInvoices]);
 
   const totalSales = useMemo(() => {
-    return (invoices || []).reduce((s, i) => s + (i?.todayAmount || 0), 0);
+    return roundCurrency((invoices || []).reduce((s, i) => s + (i?.todayAmount || 0), 0));
   }, [invoices]);
 
   const totalSupplierPayable = useMemo(() => {
     const prev = (suppliers || []).reduce((s, sup) => s + (sup?.previousBalance || 0), 0);
     const paid = (payments || []).filter(p => p?.partyType === 'SUPPLIER').reduce((s, p) => s + (p?.amount || 0), 0);
-    return prev + totalPurchase - paid;
+    return roundCurrency(prev + totalPurchase - paid);
   }, [suppliers, totalPurchase, payments]);
 
   const totalCustomerReceivable = useMemo(() => {
     const prev = (customers || []).reduce((s, c) => s + (c?.previousBalance || 0), 0);
     const received = (payments || []).filter(p => p?.partyType === 'CUSTOMER').reduce((s, p) => s + (p?.amount || 0), 0);
-    return prev + totalSales - received;
+    return roundCurrency(prev + totalSales - received);
   }, [customers, totalSales, payments]);
 
   // ── Today's snapshot ──────────────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0];
   const todayStats = useMemo(() => {
-    const tVeh = (savedVehicles || []).filter(v => v?.date === today);
+    const tVeh = [];
     const tPinv = (purchaseInvoices || []).filter(i => i?.date === today);
     const tSinv = (invoices || []).filter(i => i?.date === today);
     const tPay = (payments || []).filter(p => p?.date === today);
     
     return {
       loads: tVeh.length + tPinv.length,
-      purchaseAmt: tVeh.reduce((s, v) => s + (v?.totalAmount || 0), 0) + tPinv.reduce((s, i) => s + (i?.todayAmount || 0), 0),
+      purchaseAmt: roundCurrency(tVeh.reduce((s, v: any) => s + (v?.totalAmount || 0), 0) + tPinv.reduce((s, i) => s + (i?.todayAmount || 0), 0)),
       salesCount: tSinv.length,
-      salesAmt: tSinv.reduce((s, i) => s + (i?.todayAmount || 0), 0),
+      salesAmt: roundCurrency(tSinv.reduce((s, i) => s + (i?.todayAmount || 0), 0)),
       paymentsCount: tPay.length,
-      cashIn: tPay.filter(p => p?.partyType === 'CUSTOMER').reduce((s, p) => s + (p?.amount || 0), 0),
-      cashOut: tPay.filter(p => p?.partyType === 'SUPPLIER').reduce((s, p) => s + (p?.amount || 0), 0),
-      weightIn: tVeh.reduce((s, v) => s + (v?.totalCalculatedWeight || 0), 0) + 
-                tPinv.reduce((s, i) => s + (i?.items || []).reduce((a, it) => a + (Number(it?.weight) || 0), 0), 0),
+      cashIn: roundCurrency(tPay.filter(p => p?.partyType === 'CUSTOMER').reduce((s, p) => s + (p?.amount || 0), 0)),
+      cashOut: roundCurrency(tPay.filter(p => p?.partyType === 'SUPPLIER').reduce((s, p) => s + (p?.amount || 0), 0)),
+      weightIn: roundCurrency(
+        tVeh.reduce((s, v: any) => s + (v?.totalCalculatedWeight || 0), 0) +
+        tPinv.reduce((s, i) => s + (i?.items || []).reduce((a, it) => a + (Number(it?.weight) || 0), 0), 0)
+      ),
     };
-  }, [today, savedVehicles, purchaseInvoices, invoices, payments]);
+  }, [today, purchaseInvoices, invoices, payments]);
 
   // ── Recent transactions ───────────────────────────────────────────────────
   const recentTx = useMemo(() => {
     const all: { id: string; date: string; type: string; ref: string; party: string; amount: number; isCredit: boolean }[] = [];
     
-    (savedVehicles || []).forEach(v => {
-      if (!v) return;
-      all.push({ 
-        id: v.id, 
-        date: v.date, 
-        type: `🚛 ${t('transactions.inward') || 'Inward'}`, 
-        ref: v.arrivalNo || '—', 
-        party: (v.rows || []).map(r => r?.supplierName).filter((x, i, a) => x && a.indexOf(x) === i).join(', ') || '—', 
-        amount: -(v.totalAmount || 0), 
-        isCredit: false 
-      });
-    });
-
     (purchaseInvoices || []).forEach(i => {
       if (!i) return;
       all.push({ 
@@ -236,7 +225,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
   // ── Quick actions ─────────────────────────────────────────────────────────
   const quickActions = [
-    { label: t('quickActions.arrival.label'),  desc: t('quickActions.arrival.desc'),  Icon: Truck,         tab: 'arrival',   iconBg: D.blueDim,    iconBorder: D.blueBorder,    iconColor: D.blue,        key: 'F1'    },
     { label: t('quickActions.purchase.label'), desc: t('quickActions.purchase.desc'), Icon: ShoppingBag,   tab: 'purchase',  iconBg: D.emeraldDim, iconBorder: D.emeraldBorder, iconColor: D.emerald,     key: 'Alt+2' },
     { label: t('quickActions.sales.label'),    desc: t('quickActions.sales.desc'),    Icon: ShoppingCart,  tab: 'sales',     iconBg: 'rgba(99,102,241,0.08)', iconBorder: 'rgba(99,102,241,0.18)', iconColor: '#4f46e5', key: 'F2'    },
     { label: t('quickActions.payment.label'),  desc: t('quickActions.payment.desc'),  Icon: Wallet,        tab: 'payments',  iconBg: D.amberDim,   iconBorder: D.amberBorder,   iconColor: D.amber,       key: 'Alt+5' },
@@ -246,7 +234,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
   // ── KPI cards — purchase & sales only ────────────────────────────────────
   const kpiCards = [
-    { label: t('kpi.totalPurchase'), value: totalPurchase, sub: `${savedVehicles.length + purchaseInvoices.length} ${t('kpi.loadsBills')}`, valueColor: D.roseText,    Icon: DollarSign, iconBg: D.roseDim,    iconBorder: 'rgba(225,29,72,0.15)',  iconColor: D.rose    },
+    { label: t('kpi.totalPurchase'), value: totalPurchase, sub: `${purchaseInvoices.length} ${t('kpi.loadsBills')}`, valueColor: D.roseText,    Icon: DollarSign, iconBg: D.roseDim,    iconBorder: 'rgba(225,29,72,0.15)',  iconColor: D.rose    },
     { label: t('kpi.totalSales'),    value: totalSales,    sub: `${invoices.length} ${t('kpi.invoices')}`,                                  valueColor: D.emeraldText, Icon: TrendingUp, iconBg: D.emeraldDim, iconBorder: D.emeraldBorder,         iconColor: D.emerald },
   ];
 
@@ -311,14 +299,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
               {/* CTA buttons */}
               <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                <button
-                  onClick={() => setActiveTab('arrival')}
-                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-150 hover:-translate-y-0.5 cursor-pointer"
-                  style={{ background: D.blue, color: '#fff', boxShadow: `0 4px 14px rgba(37,99,235,0.25)` }}
-                >
-                  <Truck className="w-4 h-4 stroke-[2.5]" />
-                  <span>{t('hero.newInward')}</span>
-                </button>
                 <button
                   onClick={() => setActiveTab('sales')}
                   className="flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-150 hover:-translate-y-0.5 cursor-pointer"

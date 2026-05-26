@@ -17,9 +17,9 @@ export const DataTable: React.FC<DataTableProps> = ({
   children,
 }) => {
   return (
-    <div className={cn('erp-table-wrap rounded-2xl', className)}>
+    <div className={cn('erp-table-wrap rounded-2xl flex flex-col', className)}>
       {toolbar}
-      <div className={cn('overflow-x-auto', scrollClassName)}>{children}</div>
+      <div className={cn('overflow-x-auto custom-scrollbar', scrollClassName)}>{children}</div>
       {footer}
     </div>
   );

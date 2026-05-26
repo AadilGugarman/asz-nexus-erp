@@ -9,7 +9,6 @@ import {
   Fruit,
   Supplier,
   Customer,
-  VehicleArrival,
   Invoice,
   PurchaseInvoice,
   InventoryItem,
@@ -23,6 +22,7 @@ import {
   CaretTransaction,
 } from "../types";
 import { STORAGE_KEYS } from "@/config";
+import { roundCurrency } from "@/utils/format";
 import { useAppearanceStore } from "@/store/appearance.store";
 import { useSettingsStore } from "@/store/settings.store";
 import {
@@ -32,7 +32,6 @@ import {
   useInvoices,
   usePurchaseInvoices,
   usePayments,
-  useVehicleArrivals,
   useCaretTransactions,
 } from "@/hooks/useDbHydration";
 import { dbService } from "@/db/services";
@@ -43,7 +42,6 @@ interface AppContextType {
   fruits: Fruit[];
   suppliers: Supplier[];
   customers: Customer[];
-  vehicles: VehicleArrival[];
   invoices: Invoice[];
   purchaseInvoices: PurchaseInvoice[];
   payments: PaymentReceipt[];
@@ -51,8 +49,6 @@ interface AppContextType {
   stockMovements: StockMovement[];
   getSupplierLedger: (supplierId: string) => SupplierLedgerEntry[];
   getCustomerLedger: (customerId: string) => CustomerLedgerEntry[];
-  saveVehicleArrival: (arrival: VehicleArrival) => void;
-  deleteVehicleArrival: (id: string) => void;
   saveInvoice: (invoice: Invoice) => void;
   deleteInvoice: (id: string) => void;
   savePurchaseInvoice: (invoice: PurchaseInvoice) => void;
@@ -99,7 +95,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const { data: dbFruits } = useFruits();
   const { data: dbSuppliers } = useSuppliers();
   const { data: dbCustomers } = useCustomers();
-  const { data: dbVehicles } = useVehicleArrivals();
   const { data: dbInvoices } = useInvoices();
   const { data: dbPurchaseInvoices } = usePurchaseInvoices();
   const { data: dbPayments } = usePayments();
@@ -109,21 +104,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [fruits, setFruits] = useState<Fruit[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [vehicles, setVehicles] = useState<VehicleArrival[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
   const [payments, setPayments] = useState<PaymentReceipt[]>([]);
   const [caretTxList, setCaretTxList] = useState<CaretTransaction[]>([]);
 
   // Sync local state when DB data loads or refreshes
-  useEffect(() => { setFruits(dbFruits); }, [dbFruits]);
-  useEffect(() => { setSuppliers(dbSuppliers); }, [dbSuppliers]);
-  useEffect(() => { setCustomers(dbCustomers); }, [dbCustomers]);
-  useEffect(() => { setVehicles(dbVehicles); }, [dbVehicles]);
-  useEffect(() => { setInvoices(dbInvoices); }, [dbInvoices]);
-  useEffect(() => { setPurchaseInvoices(dbPurchaseInvoices); }, [dbPurchaseInvoices]);
-  useEffect(() => { setPayments(dbPayments); }, [dbPayments]);
-  useEffect(() => { setCaretTxList(dbCaretTransactions); }, [dbCaretTransactions]);
+  useEffect(() => { if (dbFruits) setFruits(dbFruits); }, [dbFruits]);
+  useEffect(() => { if (dbSuppliers) setSuppliers(dbSuppliers); }, [dbSuppliers]);
+  useEffect(() => { if (dbCustomers) setCustomers(dbCustomers); }, [dbCustomers]);
+  useEffect(() => { if (dbInvoices) setInvoices(dbInvoices); }, [dbInvoices]);
+  useEffect(() => { if (dbPurchaseInvoices) setPurchaseInvoices(dbPurchaseInvoices); }, [dbPurchaseInvoices]);
+  useEffect(() => { if (dbPayments) setPayments(dbPayments); }, [dbPayments]);
+  useEffect(() => { if (dbCaretTransactions) setCaretTxList(dbCaretTransactions); }, [dbCaretTransactions]);
 
   const safeDbWrite = async (
     label: string,
@@ -131,6 +124,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     onRollback?: () => void,
   ) => {
     if (!dbService.isReady) return;
+    // Guard: never write to DB without a valid company context
+    if (!activeCompanyId) {
+      console.warn(`[AppContext] Blocked DB write (${label}): no active company`);
+      if (onRollback) onRollback();
+      return;
+    }
     try {
       await action();
     } catch (err) {
@@ -158,42 +157,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   // Convenience: current company id as a non-null string for DB writes
   const cid = activeCompanyId ?? "default";
 
+  // Derive the financial year start date from settings for opening balance entries
+  const fyStartDate = useMemo(() => {
+    const fyStart = settings?.financial?.financialYearStart ?? "04-01";
+    const [monthStr, dayStr] = fyStart.split("-");
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const baseYear = now.getMonth() + 1 >= month ? currentYear : currentYear - 1;
+    return `${baseYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }, [settings?.financial?.financialYearStart]);
+
   // Auto-calculated Inventory & Stock Movements
   const { inventory, stockMovements } = useMemo(() => {
     const itemsMap = new Map<string, InventoryItem>();
     const movements: StockMovement[] = [];
-
-    // Process Vehicle Arrivals (Stock IN)
-    vehicles
-      .filter((v) => v.status === "SAVED")
-      .forEach((v) => {
-        v.rows.forEach((r) => {
-          const key = `${v.fruitType}_${r.variety}`;
-          const current = itemsMap.get(key) || {
-            key,
-            fruit: v.fruitType,
-            variety: r.variety,
-            totalWeight: 0,
-            totalCarets: 0,
-          };
-          current.totalWeight += Number(r.weight) || 0;
-          current.totalCarets += Number(r.caret) || 0;
-          itemsMap.set(key, current);
-
-          movements.push({
-            id: `arr-${v.id}-${r.id}`,
-            date: v.date,
-            fruit: v.fruitType,
-            variety: r.variety,
-            type: "ARRIVAL",
-            reference: `Veh Inward: ${v.vehicleNo} (${r.supplierName})`,
-            weightChange: Number(r.weight) || 0,
-            caretChange: Number(r.caret) || 0,
-            resultingWeight: current.totalWeight,
-            resultingCarets: current.totalCarets,
-          });
-        });
-      });
 
     // Process Purchase Invoices (Stock IN)
     purchaseInvoices.forEach((inv) => {
@@ -262,7 +241,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       inventory: Array.from(itemsMap.values()),
       stockMovements: movements,
     };
-  }, [vehicles, purchaseInvoices, invoices]);
+  }, [purchaseInvoices, invoices]);
 
   // Supplier Ledger Calculation
   const getSupplierLedger = (supplierId: string): SupplierLedgerEntry[] => {
@@ -275,7 +254,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     entries.push({
       id: "opening",
       supplierId,
-      date: "2026-05-01",
+      date: fyStartDate,
       type: "OPENING",
       amount: supplier.previousBalance,
       note: "Opening Balance",
@@ -283,29 +262,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     const purchaseEntries: SupplierLedgerEntry[] = [];
-    vehicles
-      .filter((v) => v.status === "SAVED")
-      .forEach((v) => {
-        v.rows
-          .filter((r) => r.supplierId === supplierId)
-          .forEach((r) => {
-            purchaseEntries.push({
-              id: `p-${v.id}-${r.id}`,
-              supplierId,
-              date: v.date,
-              type: "PURCHASE_VEHICLE",
-              referenceId: v.id,
-              referenceNo: v.vehicleNo,
-              variety: `${v.fruitType} - ${r.variety}`,
-              weightKg: r.weight,
-              rate: r.rate,
-              amount: r.amount,
-              note: r.note || `Inward Load ${v.arrivalNo}`,
-              runningBalance: 0,
-            });
-          });
-      });
-
     purchaseInvoices
       .filter((i) => i.supplierId === supplierId)
       .forEach((inv) => {
@@ -356,7 +312,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
     combined.forEach((entry) => {
-      runningBalance += entry.amount;
+      runningBalance = roundCurrency(runningBalance + entry.amount);
       entry.runningBalance = runningBalance;
       entries.push(entry);
     });
@@ -374,7 +330,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     entries.push({
       id: "opening",
       customerId,
-      date: "2026-05-01",
+      date: fyStartDate,
       type: "OPENING",
       amount: customer.previousBalance,
       note: "Opening Balance",
@@ -431,7 +387,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
     combined.forEach((entry) => {
-      runningBalance += entry.amount;
+      runningBalance = roundCurrency(runningBalance + entry.amount);
       entry.runningBalance = runningBalance;
       entries.push(entry);
     });
@@ -439,58 +395,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     return entries.reverse();
   };
 
-  const saveVehicleArrival = (newArrival: VehicleArrival) => {
-    const isUpdate = vehicles.some((v) => v.id === newArrival.id);
-    setVehicles((prev) => {
-      const exists = prev.findIndex((v) => v.id === newArrival.id);
-      if (exists >= 0) {
-        const updated = [...prev];
-        updated[exists] = newArrival;
-        return updated;
-      }
-      return [newArrival, ...prev];
-    });
-
-    void safeDbWrite("vehicleArrival.save", async () => {
-      const entry = {
-        id: newArrival.id,
-        arrivalNo: newArrival.arrivalNo,
-        date: newArrival.date,
-        day: newArrival.day || "",
-        vehicleNo: newArrival.vehicleNo,
-        vehicleName: newArrival.vehicleName,
-        fruitType: newArrival.fruitType,
-        totalVehicleWeight: newArrival.totalVehicleWeight || 0,
-        driverName: newArrival.driverName,
-        notes: newArrival.notes,
-        rows: JSON.stringify(newArrival.rows || []),
-        totalCarets: newArrival.totalCarets || 0,
-        totalCalculatedWeight: newArrival.totalCalculatedWeight || 0,
-        totalAmount: newArrival.totalAmount || 0,
-        freightCharge: newArrival.freightCharge,
-        hamaliCharge: newArrival.hamaliCharge,
-        advancePaid: newArrival.advancePaid,
-        status: newArrival.status || "SAVED",
-        createdAt: newArrival.createdAt || new Date().toISOString(),
-        companyId: cid,
-      };
-      if (isUpdate) {
-        await dbService.vehicleArrivals.update(newArrival.id, entry);
-      } else {
-        await dbService.vehicleArrivals.insert(entry);
-      }
-    });
-  };
-
-  const deleteVehicleArrival = (id: string) => {
-    const previous = vehicles.find((v) => v.id === id);
-    setVehicles((prev) => prev.filter((v) => v.id !== id));
-    void safeDbWrite(
-      "vehicleArrival.delete",
-      async () => { await dbService.vehicleArrivals.delete(id); },
-      () => { if (previous) setVehicles((prev) => [previous, ...prev]); },
-    );
-  };
+  // ── Sales ───────────────────────────────────
 
   const saveInvoice = (newInvoice: Invoice) => {
     const isUpdate = invoices.some((i) => i.id === newInvoice.id);
@@ -559,6 +464,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         date: newInvoice.date,
         supplierId: newInvoice.supplierId,
         supplierName: newInvoice.supplierName,
+        vehicleNo: newInvoice.vehicleNo,
+        declaredWeight: newInvoice.declaredWeight,
         items: JSON.stringify(newInvoice.items || []),
         previousBalance: newInvoice.previousBalance || 0,
         todayAmount: newInvoice.todayAmount || 0,
@@ -633,8 +540,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           name: newSupplier.name,
           code: newSupplier.code || "",
           phone: newSupplier.phone || "",
+          email: newSupplier.email || "",
+          gstin: newSupplier.gstin || "",
           city: newSupplier.city || "",
+          state: newSupplier.state || "",
+          billingAddress: newSupplier.billingAddress || "",
+          shippingAddress: newSupplier.shippingAddress || "",
           previousBalance: newSupplier.previousBalance || 0,
+          creditLimit: newSupplier.creditLimit || 0,
+          notes: newSupplier.notes || "",
           companyId: cid,
         });
       },
@@ -654,8 +568,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           name: supplier.name,
           code: supplier.code || "",
           phone: supplier.phone || "",
+          email: supplier.email || "",
+          gstin: supplier.gstin || "",
           city: supplier.city || "",
+          state: supplier.state || "",
+          billingAddress: supplier.billingAddress || "",
+          shippingAddress: supplier.shippingAddress || "",
           previousBalance: supplier.previousBalance || 0,
+          creditLimit: supplier.creditLimit || 0,
+          notes: supplier.notes || "",
         });
       },
       () => {
@@ -691,8 +612,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           id: newCustomer.id,
           name: newCustomer.name,
           phone: newCustomer.phone || "",
+          email: newCustomer.email || "",
+          gstin: newCustomer.gstin || "",
           city: newCustomer.city || "",
+          state: newCustomer.state || "",
+          billingAddress: newCustomer.billingAddress || "",
+          shippingAddress: newCustomer.shippingAddress || "",
           previousBalance: newCustomer.previousBalance || 0,
+          creditLimit: newCustomer.creditLimit || 0,
+          notes: newCustomer.notes || "",
           companyId: cid,
         });
       },
@@ -711,8 +639,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         await dbService.customers.update(customer.id, {
           name: customer.name,
           phone: customer.phone || "",
+          email: customer.email || "",
+          gstin: customer.gstin || "",
           city: customer.city || "",
+          state: customer.state || "",
+          billingAddress: customer.billingAddress || "",
+          shippingAddress: customer.shippingAddress || "",
           previousBalance: customer.previousBalance || 0,
+          creditLimit: customer.creditLimit || 0,
+          notes: customer.notes || "",
         });
       },
       () => {
@@ -880,7 +815,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setFruits([]);
     setSuppliers([]);
     setCustomers([]);
-    setVehicles([]);
     setInvoices([]);
     setPurchaseInvoices([]);
     setPayments([]);
@@ -896,7 +830,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         fruits,
         suppliers,
         customers,
-        vehicles,
         invoices,
         purchaseInvoices,
         payments,
@@ -914,7 +847,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       if (data.fruits) setFruits(data.fruits);
       if (data.suppliers) setSuppliers(data.suppliers);
       if (data.customers) setCustomers(data.customers);
-      if (data.vehicles) setVehicles(data.vehicles);
       if (data.invoices) setInvoices(data.invoices);
       if (data.purchaseInvoices) setPurchaseInvoices(data.purchaseInvoices);
       if (data.payments) setPayments(data.payments);
@@ -1080,7 +1012,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         fruits,
         suppliers,
         customers,
-        vehicles,
         invoices,
         purchaseInvoices,
         payments,
@@ -1088,8 +1019,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         stockMovements,
         getSupplierLedger,
         getCustomerLedger,
-        saveVehicleArrival,
-        deleteVehicleArrival,
         saveInvoice,
         deleteInvoice,
         savePurchaseInvoice,
@@ -1131,6 +1060,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (!context) throw new Error("useApp must be used within an AppProvider");
+  if (!context) {
+    throw new Error(
+      "[useApp] Context is undefined. This usually means:\n" +
+      "  1. The component is rendered outside <AppProvider> — check your provider tree in providers/index.tsx\n" +
+      "  2. A module-casing mismatch caused AppContext to be bundled twice (two separate context instances)\n" +
+      "  3. The component is used in a lazy-loaded chunk that mounted before <AppProvider> was ready\n\n" +
+      "Fix: ensure every import of AppContext uses the exact path '@/context/AppContext' (matching case)."
+    );
+  }
   return context;
+};
+
+/**
+ * Safe variant — returns null instead of throwing when used outside the provider.
+ * Use this only in components that can genuinely render before the provider is ready
+ * (e.g. error screens, startup screens). Prefer useApp() everywhere else.
+ */
+export const useAppSafe = (): AppContextType | null => {
+  return useContext(AppContext) ?? null;
 };

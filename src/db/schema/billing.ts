@@ -12,6 +12,8 @@ export const purchaseInvoices = sqliteTable("purchase_invoices", {
   date:             text("date").notNull(),
   supplierId:       text("supplier_id").notNull(),
   supplierName:     text("supplier_name").notNull(),
+  vehicleNo:        text("vehicle_no"),
+  declaredWeight:   real("declared_weight"),
   items:            text("items").notNull().default("[]"),
   previousBalance:  real("previous_balance").notNull().default(0),
   todayAmount:      real("today_amount").notNull().default(0),
@@ -43,7 +45,6 @@ export const invoices = sqliteTable("invoices", {
   companyId:        text("company_id"),
 });
 
-// ── Inferred types ────────────────────────────────────────────────────────────
 export type DbPurchaseInvoice       = typeof purchaseInvoices.$inferSelect;
 export type DbPurchaseInvoiceInsert = typeof purchaseInvoices.$inferInsert;
 export type DbInvoice               = typeof invoices.$inferSelect;

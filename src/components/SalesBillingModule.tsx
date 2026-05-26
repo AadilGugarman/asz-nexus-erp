@@ -4,7 +4,7 @@ import {
   FileText, Calendar, Copy, ArrowUpDown
 } from "lucide-react";
 
-import { useApp } from "../context/AppContext";
+import { useApp } from "@/context/AppContext";
 import { useDataTable } from "../hooks/useDataTable";
 import { useAppTranslation } from "@/hooks";
 
@@ -17,7 +17,7 @@ import { InvoicePreviewModal } from "./InvoicePreviewModal";
 
 import { Invoice, InvoiceItem } from "../types";
 import { getNextUniqueInvoiceNumber } from "../utils/invoice-number";
-import { fmtDate } from "@/utils/format";
+import { fmtDate, sumCurrency, roundCurrency } from "@/utils/format";
 
 //        helpers
 // formatDateWithDay is now fmtDateWithDay from utils/format
@@ -148,22 +148,16 @@ export const SalesBillingModule: React.FC = () => {
   }, [settings.invoice, invoices, date]);
 
   //        calculations
-  const itemsSubtotal = items.reduce(
-    (s, it) => s + (parseFloat(String(it.amount)) || 0),
-    0,
-  );
-  const freight = parseFloat(String(freightInput)) || 0;
-  const todayAmount = itemsSubtotal + freight;
+  const itemsSubtotal = sumCurrency(items.map(it => parseFloat(String(it.amount)) || 0));
+  const freight = roundCurrency(parseFloat(String(freightInput)) || 0);
+  const todayAmount = roundCurrency(itemsSubtotal + freight);
   const previousBalance = selectedCustomer?.previousBalance ?? 0;
-  const remainingBalance = previousBalance + todayAmount;
+  const remainingBalance = roundCurrency(previousBalance + todayAmount);
   const totalCarets = items.reduce(
     (s, it) => s + (parseFloat(String(it.caret)) || 0),
     0,
   );
-  const totalWeight = items.reduce(
-    (s, it) => s + (parseFloat(String(it.weight)) || 0),
-    0,
-  );
+  const totalWeight = sumCurrency(items.map(it => parseFloat(String(it.weight)) || 0));
 
   //        item helpers
   const handleItemChange = (
@@ -428,10 +422,10 @@ export const SalesBillingModule: React.FC = () => {
 
   //        render
   return (
-    <div className="space-y-5 font-sans">
+    <div className="flex-1 flex flex-col gap-5 font-sans min-h-0">
       {/*        PAGE HEADER        */}
       <div
-        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${card} p-4`}
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${card} p-4 shrink-0`}
       >
         <div>
           <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2.5">
@@ -475,9 +469,9 @@ export const SalesBillingModule: React.FC = () => {
           NEW INVOICE FORM
                                                                                                                                                     */}
       {activeSubTab === "NEW_INVOICE" && (
-        <div className="space-y-4">
+        <div className="flex-1 flex flex-col gap-4 min-h-0">
           {/*        COMPACT FORM HEADER        */}
-          <div className={`${card} overflow-hidden`}>
+          <div className={`${card} overflow-hidden shrink-0`}>
             {/* Row 1: Invoice No    Date    Customer    Vehicle No    Freight */}
             <div className="grid grid-cols-[auto_1fr_1.5fr_1fr_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5 min-w-[150px]">
@@ -595,9 +589,9 @@ export const SalesBillingModule: React.FC = () => {
           </div>
 
           {/*        ITEMS TABLE        */}
-          <div className={`${card} overflow-hidden`}>
+          <div className={`${card} overflow-hidden flex-1 flex flex-col min-h-0`}>
             <div
-              className={`px-5 py-3.5 ${hdr} flex items-center justify-between`}
+              className={`px-5 py-3.5 ${hdr} flex items-center justify-between shrink-0`}
             >
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
@@ -622,11 +616,11 @@ export const SalesBillingModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="flex-1 overflow-auto custom-scrollbar">
               <table className="erp-table w-full text-left text-xs sm:text-sm">
                 <thead>
                   <tr
-                    className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none`}
+                    className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none sticky top-0 z-10`}
                   >
                     <th className="py-3 px-4 min-w-[150px] col-text">Fruit Category</th>
                     <th className="py-3 px-3 min-w-[150px] col-text">
@@ -755,7 +749,7 @@ export const SalesBillingModule: React.FC = () => {
                     );
                   })}
                 </tbody>
-                <tfoot>
+                <tfoot className="sticky bottom-0 z-10">
                   <tr
                     className={`${hdr} font-bold text-xs uppercase tracking-wider dark:text-slate-300 text-slate-800 font-sans border-t-2 dark:border-slate-700 border-slate-200`}
                   >
@@ -811,7 +805,7 @@ export const SalesBillingModule: React.FC = () => {
             </div>
 
             {/* Summary Strip: Previous | Today | Receivable */}
-            <div className="grid grid-cols-3 gap-0 divide-x dark:divide-slate-800 divide-slate-100 border-t dark:border-slate-800 border-slate-100">
+            <div className="grid grid-cols-3 gap-0 divide-x dark:divide-slate-800 divide-slate-100 border-t dark:border-slate-800 border-slate-100 shrink-0">
               <div className="px-5 py-3 flex items-center justify-between">
                 <span
                   className={`text-[11px] font-bold uppercase tracking-wider ${muted}`}
@@ -842,7 +836,7 @@ export const SalesBillingModule: React.FC = () => {
 
             {/*        FOOTER: notes + save        */}
             <div
-              className={`p-5 ${hdr} border-t flex flex-col sm:flex-row items-center justify-between gap-4`}
+              className={`p-5 ${hdr} border-t flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0`}
             >
               <div className="flex items-center gap-3 w-full sm:w-1/2">
                 <span
@@ -884,8 +878,8 @@ export const SalesBillingModule: React.FC = () => {
           INVOICE LIST
                                                                                                                                                     */}
       {activeSubTab === "LIST" && (
-        <div className={`${card} p-5 space-y-5`}>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b dark:border-slate-800 border-slate-100 pb-4">
+        <div className={`flex-1 flex flex-col gap-5 min-h-0 ${card} p-5`}>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b dark:border-slate-800 border-slate-100 pb-4 shrink-0">
             <h2 className="text-sm font-bold dark:text-white text-slate-900 flex items-center gap-2">
               <span>Sales Invoices</span>
               <span
@@ -908,6 +902,8 @@ export const SalesBillingModule: React.FC = () => {
           </div>
 
           <DataTable
+            className="flex-1 min-h-0"
+            scrollClassName="flex-1"
             footer={
               <Pagination
                 page={table.page}
@@ -924,7 +920,7 @@ export const SalesBillingModule: React.FC = () => {
             <table className="erp-table w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr
-                  className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider`}
+                  className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10`}
                 >
                   <th className="py-3.5 px-4 col-text">
                     <button

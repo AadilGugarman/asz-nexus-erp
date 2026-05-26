@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Search, Plus, User, Phone, MapPin, Sparkles, X, ChevronDown, Clock } from 'lucide-react';
+import { Check, Search, Plus, User, Phone, MapPin, X, ChevronDown, Clock } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -17,8 +17,8 @@ export interface CommandOption {
 }
 
 interface CommandSelectProps {
-  id?: string; // Used for persistence of recent items
-  value: string; // The selected option's ID or label
+  id?: string;
+  value: string;
   onChange: (value: string) => void;
   options: CommandOption[];
   placeholder?: string;
@@ -59,49 +59,93 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
   const v = useMemo(() => {
     const themes = {
       emerald: {
-        text: 'text-emerald-600 dark:text-emerald-400',
-        border: 'border-emerald-500/40 dark:border-emerald-400/30',
-        ring: 'ring-emerald-500/20 dark:ring-emerald-400/10',
-        active: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30',
-        selected: 'bg-emerald-50/90 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
-        check: 'bg-emerald-100 dark:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400',
-        plus: 'bg-emerald-100 dark:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400',
-        highlight: 'text-emerald-600 dark:text-emerald-300 font-bold',
-        isViolet: false,
+        accent: 'emerald',
+        triggerFocus: 'focus-within:border-emerald-400/60 dark:focus-within:border-emerald-500/40',
+        triggerRing: 'focus-within:ring-2 focus-within:ring-emerald-500/10 dark:focus-within:ring-emerald-500/8',
+        searchIcon: 'text-emerald-500/70 dark:text-emerald-400/60',
+        chevron: 'text-emerald-500/60 dark:text-emerald-400/50',
+        selectedBg: 'bg-emerald-500/6 dark:bg-emerald-500/8',
+        selectedBorder: 'border-emerald-400/20 dark:border-emerald-500/15',
+        selectedText: 'text-emerald-700 dark:text-emerald-300',
+        selectedSubtext: 'text-emerald-600/70 dark:text-emerald-400/70',
+        checkBg: 'bg-emerald-500/10 dark:bg-emerald-500/12',
+        checkColor: 'text-emerald-600 dark:text-emerald-400',
+        activeBg: 'bg-emerald-500/8 dark:bg-emerald-500/10',
+        activeBorder: 'border-emerald-400/15 dark:border-emerald-500/12',
+        highlightBg: 'bg-emerald-100/80 dark:bg-emerald-500/15',
+        highlightText: 'text-emerald-800 dark:text-emerald-200',
+        createBg: 'bg-emerald-500/5 dark:bg-emerald-500/6',
+        createBorder: 'border-emerald-400/20 dark:border-emerald-500/15',
+        createText: 'text-emerald-700 dark:text-emerald-300',
+        iconBg: 'bg-emerald-500/8 dark:bg-emerald-500/10',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
       },
       violet: {
-        text: 'text-violet-600 dark:text-violet-400',
-        border: 'border-violet-500/50 dark:border-violet-400/40',
-        ring: 'ring-violet-500/25 dark:ring-violet-400/20',
-        active: 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-600/40',
-        selected: 'bg-violet-50 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300',
-        check: 'bg-violet-100 dark:bg-violet-500/30 text-violet-600 dark:text-violet-400',
-        plus: 'bg-violet-100 dark:bg-violet-500/30 text-violet-600 dark:text-violet-400',
-        highlight: 'text-violet-700 dark:text-violet-300 font-bold',
-        isViolet: true,
+        accent: 'violet',
+        triggerFocus: 'focus-within:border-violet-400/60 dark:focus-within:border-violet-500/40',
+        triggerRing: 'focus-within:ring-2 focus-within:ring-violet-500/10 dark:focus-within:ring-violet-500/8',
+        searchIcon: 'text-violet-500/70 dark:text-violet-400/60',
+        chevron: 'text-violet-500/60 dark:text-violet-400/50',
+        selectedBg: 'bg-violet-500/6 dark:bg-violet-500/8',
+        selectedBorder: 'border-violet-400/20 dark:border-violet-500/15',
+        selectedText: 'text-violet-700 dark:text-violet-300',
+        selectedSubtext: 'text-violet-600/70 dark:text-violet-400/70',
+        checkBg: 'bg-violet-500/10 dark:bg-violet-500/12',
+        checkColor: 'text-violet-600 dark:text-violet-400',
+        activeBg: 'bg-violet-500/8 dark:bg-violet-500/10',
+        activeBorder: 'border-violet-400/15 dark:border-violet-500/12',
+        highlightBg: 'bg-violet-100/80 dark:bg-violet-500/15',
+        highlightText: 'text-violet-800 dark:text-violet-200',
+        createBg: 'bg-violet-500/5 dark:bg-violet-500/6',
+        createBorder: 'border-violet-400/20 dark:border-violet-500/15',
+        createText: 'text-violet-700 dark:text-violet-300',
+        iconBg: 'bg-violet-500/8 dark:bg-violet-500/10',
+        iconColor: 'text-violet-600 dark:text-violet-400',
       },
       sky: {
-        text: 'text-sky-600 dark:text-sky-400',
-        border: 'border-sky-500/40 dark:border-sky-400/30',
-        ring: 'ring-sky-500/20 dark:ring-sky-400/10',
-        active: 'bg-sky-600 text-white shadow-lg shadow-sky-600/30',
-        selected: 'bg-sky-50/90 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300',
-        check: 'bg-sky-100 dark:bg-sky-500/30 text-sky-600 dark:text-sky-400',
-        plus: 'bg-sky-100 dark:bg-sky-500/30 text-sky-600 dark:text-sky-400',
-        highlight: 'text-sky-600 dark:text-sky-300 font-bold',
-        isViolet: false,
+        accent: 'sky',
+        triggerFocus: 'focus-within:border-sky-400/60 dark:focus-within:border-sky-500/40',
+        triggerRing: 'focus-within:ring-2 focus-within:ring-sky-500/10 dark:focus-within:ring-sky-500/8',
+        searchIcon: 'text-sky-500/70 dark:text-sky-400/60',
+        chevron: 'text-sky-500/60 dark:text-sky-400/50',
+        selectedBg: 'bg-sky-500/6 dark:bg-sky-500/8',
+        selectedBorder: 'border-sky-400/20 dark:border-sky-500/15',
+        selectedText: 'text-sky-700 dark:text-sky-300',
+        selectedSubtext: 'text-sky-600/70 dark:text-sky-400/70',
+        checkBg: 'bg-sky-500/10 dark:bg-sky-500/12',
+        checkColor: 'text-sky-600 dark:text-sky-400',
+        activeBg: 'bg-sky-500/8 dark:bg-sky-500/10',
+        activeBorder: 'border-sky-400/15 dark:border-sky-500/12',
+        highlightBg: 'bg-sky-100/80 dark:bg-sky-500/15',
+        highlightText: 'text-sky-800 dark:text-sky-200',
+        createBg: 'bg-sky-500/5 dark:bg-sky-500/6',
+        createBorder: 'border-sky-400/20 dark:border-sky-500/15',
+        createText: 'text-sky-700 dark:text-sky-300',
+        iconBg: 'bg-sky-500/8 dark:bg-sky-500/10',
+        iconColor: 'text-sky-600 dark:text-sky-400',
       },
       amber: {
-        text: 'text-amber-600 dark:text-amber-400',
-        border: 'border-amber-500/40 dark:border-amber-400/30',
-        ring: 'ring-amber-500/20 dark:ring-amber-400/10',
-        active: 'bg-amber-600 text-white shadow-lg shadow-amber-600/30',
-        selected: 'bg-amber-50/90 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300',
-        check: 'bg-amber-100 dark:bg-amber-500/30 text-amber-600 dark:text-amber-400',
-        plus: 'bg-amber-100 dark:bg-amber-500/30 text-amber-600 dark:text-amber-400',
-        highlight: 'text-amber-600 dark:text-amber-300 font-bold',
-        isViolet: false,
-      }
+        accent: 'amber',
+        triggerFocus: 'focus-within:border-amber-400/60 dark:focus-within:border-amber-500/40',
+        triggerRing: 'focus-within:ring-2 focus-within:ring-amber-500/10 dark:focus-within:ring-amber-500/8',
+        searchIcon: 'text-amber-500/70 dark:text-amber-400/60',
+        chevron: 'text-amber-500/60 dark:text-amber-400/50',
+        selectedBg: 'bg-amber-500/6 dark:bg-amber-500/8',
+        selectedBorder: 'border-amber-400/20 dark:border-amber-500/15',
+        selectedText: 'text-amber-700 dark:text-amber-300',
+        selectedSubtext: 'text-amber-600/70 dark:text-amber-400/70',
+        checkBg: 'bg-amber-500/10 dark:bg-amber-500/12',
+        checkColor: 'text-amber-600 dark:text-amber-400',
+        activeBg: 'bg-amber-500/8 dark:bg-amber-500/10',
+        activeBorder: 'border-amber-400/15 dark:border-amber-500/12',
+        highlightBg: 'bg-amber-100/80 dark:bg-amber-500/15',
+        highlightText: 'text-amber-800 dark:text-amber-200',
+        createBg: 'bg-amber-500/5 dark:bg-amber-500/6',
+        createBorder: 'border-amber-400/20 dark:border-amber-500/15',
+        createText: 'text-amber-700 dark:text-amber-300',
+        iconBg: 'bg-amber-500/8 dark:bg-amber-500/10',
+        iconColor: 'text-amber-600 dark:text-amber-400',
+      },
     };
     return themes[variant];
   }, [variant]);
@@ -111,16 +155,12 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
   const listRef = useRef<HTMLDivElement>(null);
   const popoverId = useRef(`cmd-${Math.random().toString(36).substr(2, 6)}`).current;
 
-  // Load recent items from localStorage if id is provided
+  // Load recent items from localStorage
   useEffect(() => {
     if (id) {
       const saved = localStorage.getItem(`recent_${id}`);
       if (saved) {
-        try {
-          setRecentIds(JSON.parse(saved));
-        } catch (e) {
-          console.error('Failed to parse recent items', e);
-        }
+        try { setRecentIds(JSON.parse(saved)); } catch { /* ignore */ }
       }
     }
   }, [id]);
@@ -139,24 +179,23 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
     return options.find(opt => opt.id === value || opt.label === value);
   }, [options, value]);
 
-  // Sync query with selected option when not focused
+  // Reset query to empty on open, restore display label on close
   useEffect(() => {
-    if (!isOpen) {
-      setQuery(selectedOption?.label || '');
+    if (isOpen) {
+      setQuery('');
+      setTimeout(() => inputRef.current?.focus(), 10);
     }
-  }, [selectedOption, isOpen]);
+  }, [isOpen]);
 
   const filteredOptions = useMemo(() => {
     const q = query.toLowerCase().trim();
     if (!q) {
-      // Show recent items first if no query
       const recents = options.filter(opt => recentIds.includes(opt.id));
       const others = options.filter(opt => !recentIds.includes(opt.id));
       return [...recents, ...others];
     }
-    
-    return options.filter(opt => 
-      opt.label.toLowerCase().includes(q) || 
+    return options.filter(opt =>
+      opt.label.toLowerCase().includes(q) ||
       opt.subtitle?.toLowerCase().includes(q)
     );
   }, [options, query, recentIds]);
@@ -169,31 +208,26 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
   const totalCount = filteredOptions.length + (showCreateOption ? 1 : 0);
 
   const updatePosition = useCallback(() => {
-    if (containerRef.current) {
-      setRect(containerRef.current.getBoundingClientRect());
-    }
+    if (containerRef.current) setRect(containerRef.current.getBoundingClientRect());
   }, []);
 
   useEffect(() => {
     if (isOpen) {
       updatePosition();
-      
       const handleClickOutside = (event: MouseEvent) => {
         const popover = document.getElementById(popoverId);
         if (
-          containerRef.current && 
+          containerRef.current &&
           !containerRef.current.contains(event.target as Node) &&
-          popover && 
+          popover &&
           !popover.contains(event.target as Node)
         ) {
           setIsOpen(false);
         }
       };
-
       window.addEventListener('mousedown', handleClickOutside);
       window.addEventListener('scroll', updatePosition, true);
       window.addEventListener('resize', updatePosition);
-      
       return () => {
         window.removeEventListener('mousedown', handleClickOutside);
         window.removeEventListener('scroll', updatePosition, true);
@@ -202,15 +236,12 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
     }
   }, [isOpen, updatePosition, popoverId]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
+  useEffect(() => { setActiveIndex(0); }, [query]);
 
   const handleSelect = useCallback((option: CommandOption) => {
     onChange(option.id);
     saveRecent(option.id);
     setIsOpen(false);
-    setQuery(option.label);
     inputRef.current?.blur();
   }, [onChange, saveRecent]);
 
@@ -229,7 +260,6 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
       }
       return;
     }
-
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -274,98 +304,105 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
       width: rect.width,
       zIndex: 9999,
       ...(flipUp
-        ? { bottom: window.innerHeight - rect.top + 4 }
-        : { top: rect.bottom + 4 }
+        ? { bottom: window.innerHeight - rect.top + 6 }
+        : { top: rect.bottom + 6 }
       ),
     };
   }, [rect]);
 
   const highlightMatch = (text: string, q: string) => {
-    if (!q.trim()) return text;
-    const parts = text.split(new RegExp(`(${q})`, 'gi'));
+    if (!q.trim()) return <>{text}</>;
+    const parts = text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
     return (
       <>
-        {parts.map((part, i) => 
-          part.toLowerCase() === q.toLowerCase() 
-            ? v.isViolet
-              ? <span key={i} className="bg-violet-100 dark:bg-violet-500/25 text-violet-800 dark:text-violet-200 px-1 rounded-md shadow-sm ring-1 ring-violet-300/40 dark:ring-violet-500/30 font-black">{part}</span>
-              : <span key={i} className={cn("bg-amber-200 dark:bg-amber-500/30 text-amber-950 dark:text-amber-100 px-1 rounded-md shadow-sm ring-1 ring-amber-400/30 font-black", v.highlight)}>{part}</span>
+        {parts.map((part, i) =>
+          part.toLowerCase() === q.toLowerCase()
+            ? <mark key={i} className={cn('rounded px-0.5 not-italic font-semibold', v.highlightBg, v.highlightText)}>{part}</mark>
             : part
         )}
       </>
     );
   };
 
+  // Display label for the trigger button
+  const displayLabel = selectedOption?.label || (value || '');
+
   return (
-    <div className={cn("relative w-full font-sans", className)} ref={containerRef}>
+    <div className={cn('relative w-full font-sans', className)} ref={containerRef}>
       {label && (
-        <label className="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1.5 ml-1">
+        <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5 ml-0.5">
           {label}
         </label>
       )}
-      <div className="relative group">
-        <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none z-10">
+
+      {/* Trigger — shows selected value; becomes search input when open */}
+      <div className={cn(
+        'relative group flex items-center w-full rounded-lg border bg-white dark:bg-slate-950 transition-all duration-200',
+        'border-slate-200 dark:border-slate-800',
+        'shadow-sm',
+        isOpen
+          ? cn(v.triggerFocus, v.triggerRing, 'border-opacity-100')
+          : 'hover:border-slate-300 dark:hover:border-slate-700',
+        error ? 'border-rose-400/60 dark:border-rose-500/40' : '',
+        disabled ? 'opacity-50 cursor-not-allowed' : '',
+      )}>
+        {/* Search icon */}
+        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none z-10">
           <Search className={cn(
-            "w-4 h-4 transition-all duration-300",
-            isOpen
-              ? v.isViolet ? "text-violet-500 dark:text-violet-400 drop-shadow-[0_0_6px_rgba(139,92,246,0.6)]" : v.text
-              : v.isViolet ? "text-violet-400/70 dark:text-violet-500/60 group-hover:text-violet-500 dark:group-hover:text-violet-400" : "text-slate-400 group-hover:text-slate-500"
+            'w-3.5 h-3.5 transition-colors duration-200',
+            isOpen ? v.searchIcon : 'text-slate-400/70 dark:text-slate-500/60',
           )} />
         </div>
+
+        {/* Input — always empty on open, shows placeholder or selected label */}
         <input
           ref={inputRef}
           type="text"
-          value={query}
+          value={isOpen ? query : displayLabel}
           onChange={(e) => {
             setQuery(e.target.value);
             if (!isOpen) setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={isOpen ? placeholder : (displayLabel ? '' : placeholder)}
           disabled={disabled}
           autoFocus={autoFocus}
+          readOnly={!isOpen}
           className={cn(
-            "w-full bg-white dark:bg-slate-950 border-2 dark:border-slate-800 border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-sm font-bold shadow-sm transition-all duration-300 outline-none",
-            isOpen 
-              ? cn(
-                  "ring-4", v.ring, v.border, "border-opacity-100",
-                  v.isViolet
-                    ? "shadow-[0_0_0_4px_rgba(139,92,246,0.15),0_4px_20px_rgba(139,92,246,0.12)]"
-                    : "shadow-md"
-                )
-              : v.isViolet
-                ? "hover:border-violet-400/50 dark:hover:border-violet-500/40"
-                : "hover:border-slate-300 dark:hover:border-slate-700",
-            error ? "border-rose-500 ring-rose-500/10" : ""
+            'w-full bg-transparent pl-8 pr-8 py-2 text-sm outline-none cursor-pointer',
+            isOpen ? 'cursor-text' : '',
+            displayLabel && !isOpen
+              ? 'text-slate-800 dark:text-slate-100 font-medium'
+              : 'text-slate-400 dark:text-slate-500',
           )}
         />
-        <div className="absolute inset-y-0 right-3.5 flex items-center space-x-1.5 z-10">
-          {query && !disabled && (
+
+        {/* Right controls */}
+        <div className="absolute inset-y-0 right-2.5 flex items-center gap-1 z-10">
+          {value && !disabled && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setQuery('');
                 onChange('');
-                setIsOpen(true);
-                inputRef.current?.focus();
+                setIsOpen(false);
               }}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-400 hover:text-rose-500 transition-all"
+              className="p-1 rounded-md text-slate-400/60 hover:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3" />
             </button>
           )}
           <ChevronDown className={cn(
-            "w-4 h-4 text-slate-400 transition-all duration-300",
-            isOpen && cn("rotate-180", v.isViolet ? "text-violet-500 dark:text-violet-400" : v.text)
+            'w-3.5 h-3.5 transition-all duration-200',
+            isOpen ? cn('rotate-180', v.chevron) : 'text-slate-400/60 dark:text-slate-500/50',
           )} />
         </div>
       </div>
 
       {error && (
-        <p className="mt-1.5 text-[10px] text-rose-500 font-black flex items-center ml-1 uppercase tracking-wider">
-          <span className="w-1 h-1 rounded-full bg-rose-500 mr-2 animate-pulse" />
+        <p className="mt-1 text-[11px] text-rose-500 dark:text-rose-400 flex items-center gap-1.5 ml-0.5">
+          <span className="w-1 h-1 rounded-full bg-rose-500 dark:bg-rose-400 shrink-0" />
           {error}
         </p>
       )}
@@ -374,24 +411,26 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
         <div
           id={popoverId}
           style={popoverStyle}
-          onMouseDown={(e) => e.preventDefault()} // Prevent blur on click
+          onMouseDown={(e) => e.preventDefault()}
           className={cn(
-            "backdrop-blur-3xl rounded-2xl border-2 overflow-hidden animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-300 z-[9999]",
-            v.isViolet
-              ? "bg-white/98 dark:bg-[#1a1030] border-violet-200/60 dark:border-violet-500/20 shadow-[0_20px_60px_-10px_rgba(139,92,246,0.25),0_8px_24px_-4px_rgba(139,92,246,0.15)]"
-              : "dark:bg-slate-900 bg-white border-2 dark:border-slate-800 border-slate-200 shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)]"
+            'rounded-xl border overflow-hidden z-[9999]',
+            'bg-white/98 dark:bg-slate-950/98 backdrop-blur-xl',
+            'border-slate-200/80 dark:border-slate-800/80',
+            'shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),0_2px_8px_-2px_rgba(0,0,0,0.06)]',
+            'dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.4),0_2px_8px_-2px_rgba(0,0,0,0.2)]',
+            'animate-in fade-in slide-in-from-top-1 duration-150',
           )}
         >
-          {/* Violet variant: subtle top accent glow strip */}
-          {v.isViolet && (
-            <div className="h-0.5 w-full bg-gradient-to-r from-violet-500/0 via-violet-500/60 to-purple-500/0" />
-          )}
-          <div ref={listRef} className="max-h-80 overflow-y-auto p-2 scrollbar-none">
+          <div
+            ref={listRef}
+            className="max-h-72 overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent"
+          >
             {filteredOptions.length === 0 && !showCreateOption ? (
-              <div className="py-12 text-center">
-                <div className="text-3xl mb-3 opacity-50">🔍</div>
-                <div className={cn("text-sm font-black", v.isViolet ? "text-violet-900 dark:text-violet-100" : "text-slate-900 dark:text-white")}>No results for "{query}"</div>
-                <div className="text-[10px] text-slate-500 mt-1.5 uppercase tracking-widest font-black opacity-70">Try searching for something else</div>
+              <div className="py-8 text-center">
+                <div className="text-2xl mb-2 opacity-30">○</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  No results{query ? ` for "${query}"` : ''}
+                </div>
               </div>
             ) : (
               filteredOptions.map((opt, idx) => {
@@ -406,70 +445,72 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
                     onClick={() => handleSelect(opt)}
                     onMouseEnter={() => setActiveIndex(idx)}
                     className={cn(
-                      "group flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-200 mb-1 last:mb-0 border-2",
+                      'flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150 mb-0.5 last:mb-0 border',
                       isActive
-                        ? v.isViolet
-                          ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white scale-[1.01] border-white/10 shadow-[0_4px_16px_rgba(139,92,246,0.45)]"
-                          : cn(v.active, "scale-[1.01] border-white/10")
+                        ? cn(v.activeBg, v.activeBorder)
                         : isSelected
-                        ? v.isViolet
-                          ? "bg-violet-50 dark:bg-violet-500/10 border-violet-200/60 dark:border-violet-500/20 shadow-[inset_0_0_0_1px_rgba(139,92,246,0.15)]"
-                          : cn(v.selected, "border-current/10")
-                        : v.isViolet
-                          ? "hover:bg-violet-50/60 dark:hover:bg-violet-500/8 border-transparent hover:border-violet-200/40 dark:hover:border-violet-500/15 text-slate-900 dark:text-slate-100"
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-900 dark:text-slate-100 border-transparent"
+                        ? cn(v.selectedBg, v.selectedBorder)
+                        : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-900/60',
                     )}
                   >
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm border-2",
-                        isActive
-                          ? "bg-white/20 border-white/20"
-                          : isSelected && v.isViolet
-                            ? "bg-violet-100 dark:bg-violet-500/20 border-violet-200/60 dark:border-violet-500/25"
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group-hover:border-slate-300 dark:group-hover:border-slate-700 shadow-inner"
-                      )}>
-                        {opt.emoji ? (
-                          <span className="text-xl">{opt.emoji}</span>
-                        ) : opt.icon ? (
-                          <div className={cn("w-5 h-5", isActive ? "text-white" : v.text)}>{opt.icon}</div>
-                        ) : (
-                          <User className={cn("w-5 h-5", isActive ? "text-white" : v.isViolet ? "text-violet-500 dark:text-violet-400" : "text-slate-400")} />
-                        )}
-                      </div>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {/* Icon / Emoji */}
+                      {(opt.emoji || opt.icon || showEmoji) && (
+                        <div className={cn(
+                          'w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150',
+                          isSelected || isActive ? v.iconBg : 'bg-slate-100/80 dark:bg-slate-800/60',
+                        )}>
+                          {opt.emoji ? (
+                            <span className="text-sm leading-none">{opt.emoji}</span>
+                          ) : opt.icon ? (
+                            <div className={cn('w-3.5 h-3.5', isSelected || isActive ? v.iconColor : 'text-slate-400 dark:text-slate-500')}>
+                              {opt.icon}
+                            </div>
+                          ) : (
+                            <User className={cn('w-3.5 h-3.5', isSelected || isActive ? v.iconColor : 'text-slate-400 dark:text-slate-500')} />
+                          )}
+                        </div>
+                      )}
+
+                      {/* Text */}
                       <div className="min-w-0">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-1.5">
                           <span className={cn(
-                            "text-[13px] font-black truncate tracking-tight",
-                            isActive ? "text-white" : isSelected && v.isViolet ? "text-violet-700 dark:text-violet-300" : "text-slate-900 dark:text-white"
+                            'text-[13px] truncate leading-tight',
+                            isSelected
+                              ? cn('font-medium', v.selectedText)
+                              : isActive
+                              ? cn('font-medium', v.selectedText)
+                              : 'font-normal text-slate-700 dark:text-slate-200',
                           )}>
                             {highlightMatch(opt.label, query)}
                           </span>
                           {isRecent && (
-                            <Clock className={cn("w-3 h-3", isActive ? "text-white/70" : "text-slate-400")} />
+                            <Clock className="w-2.5 h-2.5 text-slate-400/60 dark:text-slate-500/60 shrink-0" />
                           )}
                         </div>
                         {opt.subtitle && (
                           <div className={cn(
-                            "text-[11px] font-bold truncate flex items-center mt-1 tracking-tight opacity-70",
-                            isActive ? "text-white/80" : isSelected && v.isViolet ? "text-violet-600 dark:text-violet-400" : "text-slate-500 dark:text-slate-400"
+                            'text-[11px] truncate flex items-center gap-1 mt-0.5 leading-tight',
+                            isSelected || isActive ? v.selectedSubtext : 'text-slate-400 dark:text-slate-500',
                           )}>
-                            {opt.subtitle.includes('@') || opt.subtitle.match(/\d{10}/) ? <Phone className="w-3 h-3 mr-1.5 shrink-0" /> : <MapPin className="w-3 h-3 mr-1.5 shrink-0" />}
+                            {opt.subtitle.includes('@') || opt.subtitle.match(/\d{10}/)
+                              ? <Phone className="w-2.5 h-2.5 shrink-0" />
+                              : <MapPin className="w-2.5 h-2.5 shrink-0" />
+                            }
                             {opt.subtitle}
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {/* Check mark */}
                     {isSelected && (
                       <div className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center shadow-sm border-2 transition-all shrink-0",
-                        isActive
-                          ? "bg-white/20 border-white/20"
-                          : v.isViolet
-                            ? "bg-violet-100 dark:bg-violet-500/25 border-violet-300/50 dark:border-violet-500/30"
-                            : cn(v.check, "border-current/10")
+                        'w-5 h-5 rounded-full flex items-center justify-center shrink-0 ml-2',
+                        v.checkBg,
                       )}>
-                        <Check className={cn("w-4 h-4 stroke-[3]", isActive ? "text-white" : v.text)} />
+                        <Check className={cn('w-3 h-3 stroke-2', v.checkColor)} />
                       </div>
                     )}
                   </div>
@@ -477,37 +518,32 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
               })
             )}
 
+            {/* Create option */}
             {showCreateOption && (
               <div
                 data-idx={filteredOptions.length}
                 onClick={handleCreate}
                 onMouseEnter={() => setActiveIndex(filteredOptions.length)}
                 className={cn(
-                  "flex items-center space-x-4 px-4 py-5 rounded-xl cursor-pointer mt-3 border-2 border-dashed transition-all duration-300",
+                  'flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer mt-1 border border-dashed transition-all duration-150',
                   activeIndex === filteredOptions.length
-                    ? v.isViolet
-                      ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white scale-[1.01] border-white/30 shadow-[0_4px_16px_rgba(139,92,246,0.45)]"
-                      : cn(v.active, "scale-[1.01] border-white/30")
-                    : v.isViolet
-                      ? "bg-violet-50/60 dark:bg-violet-500/8 border-violet-300/40 dark:border-violet-500/20 hover:border-violet-400/50 dark:hover:border-violet-500/30 shadow-sm"
-                      : "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm"
+                    ? cn(v.createBg, v.createBorder)
+                    : cn('border-slate-200/60 dark:border-slate-800/60 hover:border-slate-300/60 dark:hover:border-slate-700/60', v.createBg),
                 )}
               >
                 <div className={cn(
-                  "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-md border-2",
-                  activeIndex === filteredOptions.length ? "bg-white/20 border-white/20" : cn(v.plus, "border-current/10")
+                  'w-7 h-7 rounded-md flex items-center justify-center shrink-0',
+                  v.iconBg,
                 )}>
-                  <Plus className="w-6 h-6 stroke-[3]" />
+                  <Plus className={cn('w-3.5 h-3.5', v.iconColor)} />
                 </div>
                 <div>
-                  <div className={cn(
-                    "text-[15px] font-black tracking-tight",
-                    activeIndex === filteredOptions.length ? "text-white" : "text-slate-900 dark:text-white"
-                  )}>Add New "{query}"</div>
-                  <div className={cn(
-                    "text-[11px] font-black uppercase tracking-widest mt-0.5 opacity-60",
-                    activeIndex === filteredOptions.length ? "text-white/70" : v.text
-                  )}>Register as new entry</div>
+                  <div className={cn('text-[13px] font-medium', v.createText)}>
+                    Add "{query}"
+                  </div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Create new entry
+                  </div>
                 </div>
               </div>
             )}

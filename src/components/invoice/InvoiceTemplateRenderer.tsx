@@ -2,7 +2,7 @@ import React from 'react';
 import { QrCode, Phone, MapPin, Mail, Building2, User, Landmark } from 'lucide-react';
 import { CompanySettings, Invoice, InvoiceSettings } from '../../types';
 import { normalizeInvoiceTemplate } from '../../utils/invoice-number';
-import { fmtDate } from '../../utils/format';
+import { fmtDate, sumCurrency, roundCurrency } from '../../utils/format';
 
 interface InvoiceTemplateRendererProps {
   invoice: Invoice;
@@ -164,11 +164,11 @@ const ModernItemTable: React.FC<{ invoice: Invoice; accent: string }> = ({ invoi
 };
 
 const ModernTotals: React.FC<{ invoice: Invoice; settings: InvoiceSettings; accent: string }> = ({ invoice, settings, accent }) => {
-  const subtotal = invoice.items.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const subtotal = sumCurrency(invoice.items.map(i => Number(i.amount) || 0));
   const totalCarets = invoice.items.reduce((s, i) => s + (Number(i.caret) || 0), 0);
-  const totalWeight = invoice.items.reduce((s, i) => s + (Number(i.weight) || 0), 0);
-  const freight = Number(invoice.freight) || 0;
-  const hamali = Number(invoice.hamali) || 0;
+  const totalWeight = sumCurrency(invoice.items.map(i => Number(i.weight) || 0));
+  const freight = roundCurrency(Number(invoice.freight) || 0);
+  const hamali = roundCurrency(Number(invoice.hamali) || 0);
   
   return (
     <div className="mt-10 flex flex-col md:flex-row justify-between gap-10">
@@ -259,10 +259,10 @@ const ModernTotals: React.FC<{ invoice: Invoice; settings: InvoiceSettings; acce
 };
 
 const ThermalTemplate: React.FC<{ invoice: Invoice; company: CompanySettings; settings: InvoiceSettings }> = ({ invoice, company, settings }) => {
-  const subtotal = invoice.items.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const freight = Number(invoice.freight) || 0;
-  const hamali = Number(invoice.hamali) || 0;
-  const otherCharges = Number(invoice.otherCharges) || 0;
+  const subtotal = sumCurrency(invoice.items.map(i => Number(i.amount) || 0));
+  const freight = roundCurrency(Number(invoice.freight) || 0);
+  const hamali = roundCurrency(Number(invoice.hamali) || 0);
+  const otherCharges = roundCurrency(Number(invoice.otherCharges) || 0);
   const totalCarets = invoice.items.reduce((s, i) => s + (Number(i.caret) || 0), 0);
   const contacts = [company.phone, company.phone2, company.phone3].filter(Boolean);
   const accent = settings.brandColor || '#f97316'; // Default orange for thermal strip

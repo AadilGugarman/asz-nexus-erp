@@ -7,17 +7,16 @@ import {
   ArrowUpDown, ArrowLeft, ArrowUpRight, ArrowDownRight, Calendar
 } from 'lucide-react';
 
-import { useApp } from '../context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { DataTable, Pagination } from './ui/table';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import { StatementPreview } from './ui/StatementPreview';
-import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 
 import { PaymentReceipt } from '../types';
-import { fmtDate } from '@/utils/format';
+import { fmtDate, roundCurrency } from '@/utils/format';
 
 type PartyType = 'CUSTOMER' | 'SUPPLIER' | 'BOTH';
 type ViewMode = 'GRID' | 'LIST';
@@ -34,6 +33,35 @@ const emptyParty = (): UnifiedParty => ({
   id: '', name: '', type: 'CUSTOMER', phone: '', email: '', gstin: '', city: '', state: '',
   billingAddress: '', shippingAddress: '', balance: 0, balanceType: 'DEBIT', creditLimit: 0, notes: '', code: '', createdAt: new Date().toISOString(),
 });
+
+// ── Helpers ─────────────────────────────────
+const TypeBadge = ({ type }: { type: PartyType }) => {
+  const c = { CUSTOMER: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20', SUPPLIER: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', BOTH: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' };
+  return <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border font-mono ${c[type]}`}>{{ CUSTOMER: 'Customer', SUPPLIER: 'Supplier', BOTH: 'Both' }[type]}</span>;
+};
+const Av = ({ name, size = 'w-10 h-10 text-xs' }: { name: string; size?: string }) => <div className={`${size} rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-black shrink-0 shadow-sm`}>{name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}</div>;
+const Bal = ({ balance, className = "text-sm" }: { balance: number; className?: string }) => (<div className="flex items-center space-x-1">{balance >= 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> : <TrendingDown className="w-3.5 h-3.5 text-rose-500" />}<span className={`font-mono font-bold ${className} ${balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>₹{Math.abs(balance).toLocaleString('en-IN')}</span></div>);
+const Inp = ({ label, value, onChange, placeholder = '', mono = false, type = 'text', required = false, icon }: { label: string; value: string | number; onChange: (v: string) => void; placeholder?: string; mono?: boolean; type?: string; required?: boolean; icon?: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] ml-1">
+      {label}{required && <span className="text-rose-500 ml-1 font-black">*</span>}
+    </label>
+    <div className="relative group">
+      {icon && (
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-all duration-300 z-10">
+          {React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, { size: 14, strokeWidth: 3 })}
+        </div>
+      )}
+      <input 
+        type={type} 
+        value={value} 
+        onChange={e => onChange(e.target.value)} 
+        placeholder={placeholder} 
+        className={`w-full bg-white dark:bg-slate-950 border-2 dark:border-slate-800 border-slate-200 dark:text-white text-slate-900 rounded-xl py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm transition-all duration-300 ${icon ? 'pl-10 pr-3.5' : 'px-3.5'} ${mono ? 'font-mono font-black uppercase' : 'font-black tracking-tight'}`} 
+      />
+    </div>
+  </div>
+);
 
 export const PartiesModule: React.FC = () => {
   const { suppliers, customers, addSupplier, updateSupplier, deleteSupplier, addCustomer, updateCustomer, deleteCustomer, getSupplierLedger, getCustomerLedger, addPayment } = useApp();
@@ -67,11 +95,45 @@ export const PartiesModule: React.FC = () => {
     const list: UnifiedParty[] = [];
     customers.forEach(c => {
       const isBoth = suppliers.some(s => s.name.toLowerCase() === c.name.toLowerCase());
-      list.push({ id: c.id, name: c.name, type: isBoth ? 'BOTH' : 'CUSTOMER', phone: c.phone, email: '', gstin: '', city: c.city, state: '', billingAddress: '', shippingAddress: '', balance: c.previousBalance, balanceType: c.previousBalance >= 0 ? 'DEBIT' : 'CREDIT', creditLimit: 0, notes: '', code: '', createdAt: '' });
+      list.push({ 
+        id: c.id, 
+        name: c.name, 
+        type: isBoth ? 'BOTH' : 'CUSTOMER', 
+        phone: c.phone || '', 
+        email: c.email || '', 
+        gstin: c.gstin || '', 
+        city: c.city || '', 
+        state: c.state || '', 
+        billingAddress: c.billingAddress || '', 
+        shippingAddress: c.shippingAddress || '', 
+        balance: c.previousBalance, 
+        balanceType: c.previousBalance >= 0 ? 'DEBIT' : 'CREDIT', 
+        creditLimit: c.creditLimit || 0, 
+        notes: c.notes || '', 
+        code: '', 
+        createdAt: '' 
+      });
     });
     suppliers.forEach(s => {
       if (!list.some(p => p.name.toLowerCase() === s.name.toLowerCase())) {
-        list.push({ id: s.id, name: s.name, type: 'SUPPLIER', phone: s.phone || '', email: '', gstin: '', city: s.city, state: '', billingAddress: '', shippingAddress: '', balance: s.previousBalance, balanceType: s.previousBalance >= 0 ? 'DEBIT' : 'CREDIT', creditLimit: 0, notes: '', code: s.code, createdAt: '' });
+        list.push({ 
+          id: s.id, 
+          name: s.name, 
+          type: 'SUPPLIER', 
+          phone: s.phone || '', 
+          email: s.email || '', 
+          gstin: s.gstin || '', 
+          city: s.city || '', 
+          state: s.state || '', 
+          billingAddress: s.billingAddress || '', 
+          shippingAddress: s.shippingAddress || '', 
+          balance: s.previousBalance, 
+          balanceType: s.previousBalance >= 0 ? 'DEBIT' : 'CREDIT', 
+          creditLimit: s.creditLimit || 0, 
+          notes: s.notes || '', 
+          code: s.code, 
+          createdAt: '' 
+        });
       }
     });
     return list;
@@ -123,14 +185,53 @@ export const PartiesModule: React.FC = () => {
 
   const handleSave = () => {
     if (!formValid) { toast.error('Validation Error', 'Party name required (min 2 chars). Email must be valid.'); return; }
+
+    // Duplicate name check — prevent two parties with the same name (case-insensitive)
+    if (!isEditMode) {
+      const nameLower = form.name.trim().toLowerCase();
+      const isDuplicate = allParties.some(p => p.name.toLowerCase() === nameLower);
+      if (isDuplicate) {
+        toast.error('Duplicate Party', `A party named "${form.name}" already exists. Use a unique name.`);
+        return;
+      }
+    }
+
     const bal = form.balanceType === 'CREDIT' ? -Math.abs(form.balance) : Math.abs(form.balance);
+    
+    const commonFields = {
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      gstin: form.gstin,
+      city: form.city,
+      state: form.state,
+      billingAddress: form.billingAddress,
+      shippingAddress: form.shippingAddress,
+      previousBalance: bal,
+      creditLimit: form.creditLimit,
+      notes: form.notes,
+    };
+
     if (isEditMode) {
-      if (form.type === 'SUPPLIER' || form.type === 'BOTH') { const e = suppliers.find(s => s.id === form.id); if (e) updateSupplier({ ...e, name: form.name, code: form.code || e.code, phone: form.phone, city: form.city, previousBalance: bal }); }
-      if (form.type === 'CUSTOMER' || form.type === 'BOTH') { const e = customers.find(c => c.id === form.id); if (e) updateCustomer({ ...e, name: form.name, phone: form.phone, city: form.city, previousBalance: bal }); }
+      if (form.type === 'SUPPLIER' || form.type === 'BOTH') { 
+        const e = suppliers.find(s => s.id === form.id); 
+        if (e) updateSupplier({ ...e, ...commonFields, code: form.code || e.code }); 
+      }
+      if (form.type === 'CUSTOMER' || form.type === 'BOTH') { 
+        const e = customers.find(c => c.id === form.id); 
+        if (e) updateCustomer({ ...e, ...commonFields }); 
+      }
       toast.success('Party Updated', `${form.name} saved.`);
     } else {
-      if (form.type === 'SUPPLIER' || form.type === 'BOTH') addSupplier({ name: form.name, code: form.code || form.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 4) + '-01', phone: form.phone, city: form.city, previousBalance: bal });
-      if (form.type === 'CUSTOMER' || form.type === 'BOTH') addCustomer({ name: form.name, phone: form.phone, city: form.city, previousBalance: bal });
+      if (form.type === 'SUPPLIER' || form.type === 'BOTH') {
+        addSupplier({ 
+          ...commonFields, 
+          code: form.code || form.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 4) + '-01' 
+        });
+      }
+      if (form.type === 'CUSTOMER' || form.type === 'BOTH') {
+        addCustomer(commonFields);
+      }
       toast.success('Party Created', `${form.name} registered as ${form.type.toLowerCase()}.`);
     }
     closeModal();
@@ -182,35 +283,6 @@ export const PartiesModule: React.FC = () => {
     }
   };
 
-  // ── Helpers ─────────────────────────────────
-  const TypeBadge = ({ type }: { type: PartyType }) => {
-    const c = { CUSTOMER: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20', SUPPLIER: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', BOTH: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' };
-    return <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border font-mono ${c[type]}`}>{{ CUSTOMER: 'Customer', SUPPLIER: 'Supplier', BOTH: 'Both' }[type]}</span>;
-  };
-  const Av = ({ name, size = 'w-10 h-10 text-xs' }: { name: string; size?: string }) => <div className={`${size} rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-black shrink-0 shadow-sm`}>{name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}</div>;
-  const Bal = ({ balance }: { balance: number }) => (<div className="flex items-center space-x-1">{balance >= 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> : <TrendingDown className="w-3.5 h-3.5 text-rose-500" />}<span className={`font-mono font-bold text-sm ${balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>₹{Math.abs(balance).toLocaleString('en-IN')}</span></div>);
-  const Inp = ({ label, value, onChange, placeholder = '', mono = false, type = 'text', required = false, icon }: { label: string; value: string | number; onChange: (v: string) => void; placeholder?: string; mono?: boolean; type?: string; required?: boolean; icon?: React.ReactNode }) => (
-    <div className="space-y-1.5">
-      <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] ml-1">
-        {label}{required && <span className="text-rose-500 ml-1 font-black">*</span>}
-      </label>
-      <div className="relative group">
-        {icon && (
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-all duration-300 z-10">
-            {React.cloneElement(icon as React.ReactElement, { size: 14, strokeWidth: 3 })}
-          </div>
-        )}
-        <input 
-          type={type} 
-          value={value} 
-          onChange={e => onChange(e.target.value)} 
-          placeholder={placeholder} 
-          className={`w-full bg-white dark:bg-slate-950 border-2 dark:border-slate-800 border-slate-200 dark:text-white text-slate-900 rounded-xl py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm transition-all duration-300 ${icon ? 'pl-10 pr-3.5' : 'px-3.5'} ${mono ? 'font-mono font-black uppercase' : 'font-black tracking-tight'}`} 
-        />
-      </div>
-    </div>
-  );
-
   // ── Ledger data for detail view ─────────────
   const supLedger = useMemo(() => {
     if (!detailParty || (detailParty.type !== 'SUPPLIER' && detailParty.type !== 'BOTH')) return [];
@@ -228,8 +300,8 @@ export const PartiesModule: React.FC = () => {
     data: supLedger,
     initialSortBy: 'date',
     initialSortDir: 'desc',
-    initialPageSize: 10,
-    pageSizeOptions: [10, 20, 50],
+    initialPageSize: 50,
+    pageSizeOptions: [20, 50, 100],
     sortComparators: {
       date: (a, b) => a.date.localeCompare(b.date),
       amount: (a, b) => a.amount - b.amount,
@@ -242,8 +314,8 @@ export const PartiesModule: React.FC = () => {
     data: custLedger,
     initialSortBy: 'date',
     initialSortDir: 'desc',
-    initialPageSize: 10,
-    pageSizeOptions: [10, 20, 50],
+    initialPageSize: 50,
+    pageSizeOptions: [20, 50, 100],
     sortComparators: {
       date: (a, b) => a.date.localeCompare(b.date),
       amount: (a, b) => a.amount - b.amount,
@@ -257,140 +329,176 @@ export const PartiesModule: React.FC = () => {
   // ═══════════════════════════════════════════
   if (detailParty) {
     const p = detailParty;
-    const totalDebit = [...supLedger, ...custLedger].filter(e => e.amount > 0 && e.type !== 'OPENING').reduce((s, e) => s + e.amount, 0);
-    const totalCredit = [...supLedger, ...custLedger].filter(e => e.amount < 0).reduce((s, e) => s + Math.abs(e.amount), 0);
+    const totalDebit = roundCurrency([...supLedger, ...custLedger].filter(e => e.amount > 0 && e.type !== 'OPENING').reduce((s, e) => s + e.amount, 0));
+    const totalCredit = roundCurrency([...supLedger, ...custLedger].filter(e => e.amount < 0).reduce((s, e) => s + Math.abs(e.amount), 0));
     const outstandingBalance = p.type === 'CUSTOMER' ? (custLedger.length > 0 ? custLedger[0].runningBalance : p.balance) : (supLedger.length > 0 ? supLedger[0].runningBalance : p.balance);
 
     return (
-      <div className="space-y-6 font-sans animate-fade-in">
-        {/* Back + Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
-          <div className="flex items-center space-x-4">
-            <button onClick={() => setDetailParty(null)} className="p-2 dark:bg-slate-800 bg-slate-100 dark:text-slate-300 text-slate-600 rounded-xl cursor-pointer dark:hover:bg-slate-700 hover:bg-slate-200 transition-colors"><ArrowLeft className="w-5 h-5" /></button>
-            <Av name={p.name} size="w-12 h-12 text-sm" />
-            <div>
-              <div className="flex items-center space-x-2"><h1 className="text-lg font-black dark:text-white text-slate-900">{p.name}</h1><TypeBadge type={p.type} /></div>
-              <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] dark:text-slate-400 text-slate-500">
-                {p.phone && <span className="flex items-center space-x-1"><Phone className="w-3 h-3" /><span>{p.phone}</span></span>}
-                {p.city && <span className="flex items-center space-x-1"><MapPin className="w-3 h-3" /><span>{p.city}{p.state ? `, ${p.state}` : ''}</span></span>}
-                {p.gstin && <span className="font-mono font-bold">GSTIN: {p.gstin}</span>}
+      <div className="flex-1 flex flex-col gap-4 font-sans animate-fade-in min-h-0">
+        {/* Unified Header / Hero Section */}
+        <div className="dark:bg-slate-900 bg-white p-4 sm:p-5 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden group shrink-0">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] -mr-32 -mt-32 rounded-full pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-700"></div>
+          
+          <div className="flex items-start space-x-5 relative z-10">
+            <button onClick={() => setDetailParty(null)} className="mt-1 p-2 dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600 rounded-xl cursor-pointer dark:hover:bg-slate-700 hover:bg-slate-200 transition-all border dark:border-slate-700 border-slate-200 active:scale-90" title="Back to list"><ArrowLeft className="w-5 h-5" /></button>
+            <Av name={p.name} size="w-14 h-14 text-lg" />
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight">{p.name}</h1>
+                <TypeBadge type={p.type} />
+              </div>
+              <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider">
+                {p.city && <span className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-lg"><MapPin className="w-3 h-3 text-indigo-500" /><span>{p.city}{p.state ? `, ${p.state}` : ''}</span></span>}
+                {p.phone && <span className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-lg"><Phone className="w-3 h-3 text-indigo-500" /><span>{p.phone}</span></span>}
+                {p.gstin && <span className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-lg font-mono"><span className="text-indigo-500">GST:</span><span>{p.gstin}</span></span>}
               </div>
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
-            {(p.type === 'CUSTOMER' || p.type === 'BOTH') && (
+          <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch sm:items-center lg:items-end xl:items-center gap-4 relative z-10">
+            {/* Compact Highlight Balance */}
+            <div className="flex-1 lg:flex-none dark:bg-slate-950/50 bg-slate-50 px-5 py-2.5 rounded-2xl border-2 dark:border-slate-800 border-slate-100 text-right min-w-[180px] hover:border-indigo-500/30 transition-colors">
+              <div className="text-[9px] font-black uppercase tracking-[0.15em] dark:text-slate-500 text-slate-400 mb-0.5">Current Balance</div>
+              <div className="flex items-center justify-end space-x-2">
+                <Bal balance={outstandingBalance} className="text-lg" />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {(p.type === 'CUSTOMER' || p.type === 'BOTH') && (
+                <button 
+                  onClick={() => { setPaymentType('CUSTOMER'); setShowPaymentModal(true); }}
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-[11px] font-bold shadow-lg shadow-indigo-500/20 transition-all cursor-pointer active:scale-[0.98]"
+                >
+                  <ArrowDownRight className="w-3.5 h-3.5" />
+                  <span>Receive</span>
+                </button>
+              )}
+              {(p.type === 'SUPPLIER' || p.type === 'BOTH') && (
+                <button 
+                  onClick={() => { setPaymentType('SUPPLIER'); setShowPaymentModal(true); }}
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl text-[11px] font-bold shadow-lg shadow-cyan-500/20 transition-all cursor-pointer active:scale-[0.98]"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  <span>Pay</span>
+                </button>
+              )}
+              
               <button 
-                onClick={() => { setPaymentType('CUSTOMER'); setShowPaymentModal(true); }}
-                className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/20 transition-all cursor-pointer active:scale-[0.98]"
+                onClick={() => setShowStatement(true)}
+                className="flex items-center space-x-1.5 px-3.5 py-2 dark:bg-slate-800 bg-white dark:text-slate-300 text-slate-700 rounded-xl text-[11px] font-bold border dark:border-slate-700 border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer active:scale-[0.98]"
               >
-                <ArrowDownRight className="w-3.5 h-3.5" />
-                <span>Receive Payment</span>
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print</span>
               </button>
-            )}
-            {(p.type === 'SUPPLIER' || p.type === 'BOTH') && (
-              <button 
-                onClick={() => { setPaymentType('SUPPLIER'); setShowPaymentModal(true); }}
-                className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/20 transition-all cursor-pointer active:scale-[0.98]"
-              >
-                <ArrowUpRight className="w-3.5 h-3.5" />
-                <span>Pay Supplier</span>
-              </button>
-            )}
-            <button 
-              onClick={() => setShowStatement(true)}
-              className="flex items-center space-x-1.5 px-4 py-2 dark:bg-slate-800 bg-white dark:text-slate-300 text-slate-700 rounded-xl text-xs font-bold border dark:border-slate-700 border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer active:scale-[0.98]"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Statement</span>
-            </button>
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-            <button onClick={() => { openEdit(p); }} className="p-2 dark:bg-slate-800 bg-slate-100 dark:text-slate-300 text-slate-700 rounded-xl cursor-pointer dark:hover:bg-slate-700 hover:bg-slate-200 transition-colors border dark:border-slate-700 border-slate-300 active:scale-[0.95]"><Edit3 className="w-4 h-4" /></button>
-            <button onClick={() => handleDeleteParty(p)} className="p-2 dark:bg-slate-800 bg-slate-100 text-rose-600 dark:text-rose-400 rounded-xl cursor-pointer dark:hover:bg-rose-950/50 hover:bg-rose-50 transition-colors border dark:border-slate-700 border-slate-300 active:scale-[0.95]"><Trash2 className="w-4 h-4" /></button>
+
+              <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-0.5"></div>
+
+              <button onClick={() => { openEdit(p); }} className="p-2 dark:bg-slate-800 bg-slate-100 dark:text-slate-300 text-slate-700 rounded-xl cursor-pointer dark:hover:bg-slate-700 hover:bg-slate-200 transition-colors border dark:border-slate-700 border-slate-300 active:scale-[0.95]"><Edit3 className="w-3.5 h-3.5" /></button>
+              <button onClick={() => handleDeleteParty(p)} className="p-2 dark:bg-slate-800 bg-slate-100 text-rose-600 dark:text-rose-400 rounded-xl cursor-pointer dark:hover:bg-rose-950/50 hover:bg-rose-50 transition-colors border dark:border-slate-700 border-slate-300 active:scale-[0.95]"><Trash2 className="w-3.5 h-3.5" /></button>
+            </div>
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm"><div className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500 mb-1">Opening Balance</div><Bal balance={p.balance} /></div>
-          <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm"><div className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500 mb-1">Total Debit</div><span className="font-mono font-bold text-sm text-rose-600 dark:text-rose-400">₹{totalDebit.toLocaleString('en-IN')}</span></div>
-          <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm"><div className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500 mb-1">Total Credit</div><span className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">₹{totalCredit.toLocaleString('en-IN')}</span></div>
-          <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm"><div className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500 mb-1">Current Balance</div><Bal balance={outstandingBalance} /></div>
-        </div>
+        {/* Financial KPI Chips */}
+        <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar shrink-0">
+          <div className="flex-1 min-w-[140px] dark:bg-slate-900 bg-white p-2.5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm flex items-center space-x-3 hover:border-indigo-500/30 transition-all">
+            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+            </div>
+            <div>
+              <div className="text-[8px] font-black uppercase tracking-wider dark:text-slate-500 text-slate-400">Opening</div>
+              <Bal balance={p.balance} className="text-[11px] font-bold" />
+            </div>
+          </div>
+          
+          <div className="flex-1 min-w-[140px] dark:bg-slate-900 bg-white p-2.5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm flex items-center space-x-3 hover:border-rose-500/30 transition-all">
+            <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-3.5 h-3.5 text-rose-500" />
+            </div>
+            <div>
+              <div className="text-[8px] font-black uppercase tracking-wider dark:text-slate-500 text-slate-400">Total Debit</div>
+              <div className="font-mono font-bold text-[11px] text-rose-600 dark:text-rose-400">₹{totalDebit.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm space-y-3">
-            <div className="text-xs font-bold dark:text-white text-slate-900 uppercase tracking-wider border-b dark:border-slate-800 border-slate-200 pb-2">Contact & Identity</div>
-            {[{ l: 'Phone', v: p.phone, m: true }, { l: 'Email', v: p.email }, { l: 'GSTIN', v: p.gstin, m: true }, { l: 'Code', v: p.code, m: true }].filter(r => r.v).map((r, i) => (
-              <div key={i}><div className="text-[10px] font-bold uppercase dark:text-slate-500 text-slate-400">{r.l}</div><div className={`text-xs dark:text-white text-slate-900 font-semibold ${r.m ? 'font-mono' : ''}`}>{r.v}</div></div>
-            ))}
+          <div className="flex-1 min-w-[140px] dark:bg-slate-900 bg-white p-2.5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm flex items-center space-x-3 hover:border-emerald-500/30 transition-all">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+            <div>
+              <div className="text-[8px] font-black uppercase tracking-wider dark:text-slate-500 text-slate-400">Total Credit</div>
+              <div className="font-mono font-bold text-[11px] text-emerald-600 dark:text-emerald-400">₹{totalCredit.toLocaleString('en-IN')}</div>
+            </div>
           </div>
-          <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm space-y-3">
-            <div className="text-xs font-bold dark:text-white text-slate-900 uppercase tracking-wider border-b dark:border-slate-800 border-slate-200 pb-2">Address</div>
-            {[{ l: 'City', v: p.city }, { l: 'State', v: p.state }, { l: 'Billing Address', v: p.billingAddress }, { l: 'Shipping Address', v: p.shippingAddress }].filter(r => r.v).map((r, i) => (
-              <div key={i}><div className="text-[10px] font-bold uppercase dark:text-slate-500 text-slate-400">{r.l}</div><div className="text-xs dark:text-white text-slate-900 font-semibold">{r.v}</div></div>
-            ))}
-            {!p.city && !p.billingAddress && <div className="text-xs dark:text-slate-500 text-slate-400 italic">No address information</div>}
-          </div>
-          <div className="dark:bg-slate-900 bg-white p-5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm space-y-3">
-            <div className="text-xs font-bold dark:text-white text-slate-900 uppercase tracking-wider border-b dark:border-slate-800 border-slate-200 pb-2">Notes</div>
-            {p.notes ? <div className="text-xs dark:text-slate-300 text-slate-700 italic leading-relaxed">{p.notes}</div> : <div className="text-xs dark:text-slate-500 text-slate-400 italic">No notes</div>}
+
+          <div className="flex-1 min-w-[140px] dark:bg-slate-900 bg-white p-2.5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm flex items-center space-x-3 border-b-2 border-b-indigo-500/50 hover:border-indigo-500/30 transition-all">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
+              <IndianRupee className="w-3.5 h-3.5 text-indigo-500" />
+            </div>
+            <div>
+              <div className="text-[8px] font-black uppercase tracking-wider dark:text-slate-500 text-slate-400">Net Balance</div>
+              <Bal balance={outstandingBalance} className="text-[11px] font-bold" />
+            </div>
           </div>
         </div>
 
         {(p.type === 'SUPPLIER' || p.type === 'BOTH') && supLedger.length > 0 && (
-          <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-xs font-bold dark:text-emerald-400 text-emerald-700 uppercase tracking-wider"><Users className="w-4 h-4" /><span>Supplier Ledger</span><span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-1.5 py-0.5 rounded ml-auto">{supLedger.length}</span></div>
-            <DataTable footer={<Pagination page={supplierLedgerTable.page} totalPages={supplierLedgerTable.totalPages} totalRecords={supplierLedgerTable.totalRecords} pageSize={supplierLedgerTable.pageSize} pageSizeOptions={supplierLedgerTable.pageSizeOptions} onPageChange={supplierLedgerTable.setPage} onPageSizeChange={supplierLedgerTable.setPageSize} label="supplier ledger rows" />}>
-              <table className="erp-table text-left text-xs font-sans">
+          <div className="flex-1 flex flex-col dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden min-h-0">
+            <div className="px-4 py-2 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-[10px] font-black dark:text-emerald-400 text-emerald-700 uppercase tracking-[0.15em] shrink-0"><Users className="w-3.5 h-3.5" /><span>Supplier Ledger</span><span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-1.5 py-0.5 rounded ml-auto">{supLedger.length}</span></div>
+            <DataTable 
+              className="flex-1 min-h-0"
+              scrollClassName="flex-1"
+              footer={<Pagination page={supplierLedgerTable.page} totalPages={supplierLedgerTable.totalPages} totalRecords={supplierLedgerTable.totalRecords} pageSize={supplierLedgerTable.pageSize} pageSizeOptions={supplierLedgerTable.pageSizeOptions} onPageChange={supplierLedgerTable.setPage} onPageSizeChange={supplierLedgerTable.setPageSize} label="supplier ledger rows" />}
+            >
+              <table className="erp-table text-left text-[11px] font-sans">
                 <thead>
-                  <tr className="dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                    <th className="py-3 px-4 w-28 col-text">
+                  <tr className="dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 uppercase font-black text-[9px] border-b dark:border-slate-800 border-slate-200 tracking-wider">
+                    <th className="py-2 px-4 w-28 col-text">
                       <button type="button" onClick={() => supplierLedgerTable.toggleSort('date')} className="inline-flex items-center gap-1">
-                        Date <ArrowUpDown className="w-3 h-3" />
+                        Date <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
-                    <th className="py-3 px-3 w-32 col-text">Type</th>
-                    <th className="py-3 px-3 col-text">Bill # / Description</th>
-                    <th className="py-3 px-3 col-num text-rose-600 dark:text-rose-400 w-44">
+                    <th className="py-2 px-3 w-32 col-text">Type</th>
+                    <th className="py-2 px-3 col-text">Bill # / Description</th>
+                    <th className="py-2 px-3 col-num text-rose-600 dark:text-rose-400 w-44">
                       <button type="button" onClick={() => supplierLedgerTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
-                        Purchase Amount (Dr) <ArrowUpDown className="w-3 h-3" />
+                        Purchase (Dr) <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
-                    <th className="py-3 px-3 col-num text-emerald-600 dark:text-emerald-400 w-44">Payment Paid (Cr)</th>
-                    <th className="py-3 px-4 col-num font-black text-emerald-700 dark:text-emerald-400 w-44">
+                    <th className="py-2 px-3 col-num text-emerald-600 dark:text-emerald-400 w-44">Paid (Cr)</th>
+                    <th className="py-2 px-4 col-num font-black text-emerald-700 dark:text-emerald-400 w-44">
                       <button type="button" onClick={() => supplierLedgerTable.toggleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
-                        Running Balance <ArrowUpDown className="w-3 h-3" />
+                        Balance <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                   {supplierLedgerTable.pageRows.map(entry => {
-                    const isPurch = entry.type === 'PURCHASE_VEHICLE' || entry.type === 'PURCHASE_BILL';
+                    const isPurch = entry.type === 'PURCHASE_BILL';
                     const isPayment = entry.type === 'PAYMENT';
                     const isOpening = entry.type === 'OPENING';
 
                     return (
-                      <tr key={entry.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50 group font-sans">
-                        <td className="py-3 px-4 col-text font-mono font-medium text-[#64748b] text-xs">{fmtDate(entry.date)}</td>
-                        <td className="py-3 px-3 col-text font-sans">
-                          {isOpening && <span className="bg-[#f1f5f9] dark:bg-slate-800 text-[#475569] dark:text-slate-400 px-2.5 py-1 rounded-lg text-[10px] font-semibold font-mono uppercase">OPENING</span>}
-                          {isPurch && <span className="bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowUpRight className="w-3.5 h-3.5 mr-1 text-rose-600 dark:text-rose-400" /> PURCHASE</span>}
-                          {isPayment && <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowDownRight className="w-3.5 h-3.5 mr-1 text-emerald-600 dark:text-emerald-400" /> PAYMENT PAID</span>}
+                      <tr key={entry.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50 group font-sans transition-colors">
+                        <td className="py-2 px-4 col-text font-mono font-medium text-[#64748b] text-[10px]">{fmtDate(entry.date)}</td>
+                        <td className="py-2 px-3 col-text font-sans">
+                          {isOpening && <span className="bg-[#f1f5f9] dark:bg-slate-800 text-[#475569] dark:text-slate-400 px-2 py-0.5 rounded text-[9px] font-bold font-mono uppercase">OPENING</span>}
+                          {isPurch && <span className="bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded text-[9px] font-bold flex items-center w-max font-mono"><ArrowUpRight className="w-3 h-3 mr-1" /> PURCHASE</span>}
+                          {isPayment && <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[9px] font-bold flex items-center w-max font-mono"><ArrowDownRight className="w-3 h-3 mr-1" /> PAYMENT</span>}
                         </td>
-                        <td className="py-3 px-3 col-text max-w-[240px] font-sans">
-                          <span className="font-semibold dark:text-white text-[#0f172a] block text-sm">{entry.referenceNo || entry.variety || 'Account Balance'}</span>
-                          <span className="text-[11px] text-[#64748b] dark:text-slate-500 block truncate font-medium">{entry.note}</span>
+                        <td className="py-2 px-3 col-text max-w-[240px] font-sans">
+                          <span className="font-bold dark:text-white text-slate-900 block text-xs">{entry.referenceNo || entry.variety || 'Account Balance'}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-500 block truncate font-medium">{entry.note}</span>
                         </td>
-                        <td className="py-3 px-3 col-num font-mono font-semibold text-rose-700 dark:text-rose-400 text-sm">
+                        <td className="py-2 px-3 col-num font-mono font-bold text-rose-700 dark:text-rose-400 text-xs">
                           {isPurch ? `₹${entry.amount.toLocaleString('en-IN')}` : '—'}
                         </td>
-                        <td className="py-3 px-3 col-num font-mono font-semibold text-emerald-600 dark:text-emerald-400 text-sm">
+                        <td className="py-2 px-3 col-num font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
                           {isPayment ? `₹${Math.abs(entry.amount).toLocaleString('en-IN')}` : '—'}
                         </td>
-                        <td className="py-3 px-4 col-num font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-[rgba(16,185,129,0.06)] dark:bg-emerald-950/30 text-sm">
+                        <td className="py-2 px-4 col-num font-mono font-black text-emerald-700 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-500/10 text-xs">
                           ₹{entry.runningBalance.toLocaleString('en-IN')}
                         </td>
                       </tr>
@@ -403,28 +511,32 @@ export const PartiesModule: React.FC = () => {
         )}
 
         {(p.type === 'CUSTOMER' || p.type === 'BOTH') && custLedger.length > 0 && (
-          <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-xs font-bold dark:text-indigo-400 text-indigo-700 uppercase tracking-wider"><UserCheck className="w-4 h-4" /><span>Customer Ledger</span><span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-1.5 py-0.5 rounded ml-auto">{custLedger.length}</span></div>
-            <DataTable footer={<Pagination page={customerLedgerTable.page} totalPages={customerLedgerTable.totalPages} totalRecords={customerLedgerTable.totalRecords} pageSize={customerLedgerTable.pageSize} pageSizeOptions={customerLedgerTable.pageSizeOptions} onPageChange={customerLedgerTable.setPage} onPageSizeChange={customerLedgerTable.setPageSize} label="customer ledger rows" />}>
-              <table className="erp-table text-left text-xs font-sans">
+          <div className="flex-1 flex flex-col dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden min-h-0">
+            <div className="px-4 py-2 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2 text-[10px] font-black dark:text-indigo-400 text-indigo-700 uppercase tracking-[0.15em] shrink-0"><UserCheck className="w-3.5 h-3.5" /><span>Customer Ledger</span><span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-1.5 py-0.5 rounded ml-auto">{custLedger.length}</span></div>
+            <DataTable 
+              className="flex-1 min-h-0"
+              scrollClassName="flex-1"
+              footer={<Pagination page={customerLedgerTable.page} totalPages={customerLedgerTable.totalPages} totalRecords={customerLedgerTable.totalRecords} pageSize={customerLedgerTable.pageSize} pageSizeOptions={customerLedgerTable.pageSizeOptions} onPageChange={customerLedgerTable.setPage} onPageSizeChange={customerLedgerTable.setPageSize} label="customer ledger rows" />}
+            >
+              <table className="erp-table text-left text-[11px] font-sans">
                 <thead>
-                  <tr className="dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
-                    <th className="py-3 px-4 w-28 col-text">
+                  <tr className="dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 uppercase font-black text-[9px] border-b dark:border-slate-800 border-slate-200 tracking-wider">
+                    <th className="py-2 px-4 w-28 col-text">
                       <button type="button" onClick={() => customerLedgerTable.toggleSort('date')} className="inline-flex items-center gap-1">
-                        Date <ArrowUpDown className="w-3 h-3" />
+                        Date <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
-                    <th className="py-3 px-3 w-32 col-text">Type</th>
-                    <th className="py-3 px-3 col-text">Invoice # / Description</th>
-                    <th className="py-3 px-3 col-num text-indigo-600 dark:text-indigo-400 w-44">
+                    <th className="py-2 px-3 w-32 col-text">Type</th>
+                    <th className="py-2 px-3 col-text">Invoice # / Description</th>
+                    <th className="py-2 px-3 col-num text-indigo-600 dark:text-indigo-400 w-44">
                       <button type="button" onClick={() => customerLedgerTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
-                        Invoice Amount (Dr) <ArrowUpDown className="w-3 h-3" />
+                        Invoice (Dr) <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
-                    <th className="py-3 px-3 col-num text-emerald-600 dark:text-emerald-400 w-44">Payment Recd (Cr)</th>
-                    <th className="py-3 px-4 col-num font-black text-[#0369a1] dark:text-sky-400 w-44">
+                    <th className="py-2 px-3 col-num text-emerald-600 dark:text-emerald-400 w-44">Received (Cr)</th>
+                    <th className="py-2 px-4 col-num font-black text-[#0369a1] dark:text-sky-400 w-44">
                       <button type="button" onClick={() => customerLedgerTable.toggleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
-                        Running Balance <ArrowUpDown className="w-3 h-3" />
+                        Balance <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
                   </tr>
@@ -436,24 +548,24 @@ export const PartiesModule: React.FC = () => {
                     const isOpening = entry.type === 'OPENING';
 
                     return (
-                      <tr key={entry.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50 group font-sans">
-                        <td className="py-3 px-4 col-text font-mono font-medium text-[#64748b] text-xs">{fmtDate(entry.date)}</td>
-                        <td className="py-3 px-3 col-text font-sans">
-                          {isOpening && <span className="bg-[#f1f5f9] dark:bg-slate-800 text-[#475569] dark:text-slate-400 px-2.5 py-1 rounded-lg text-[10px] font-semibold font-mono uppercase">OPENING</span>}
-                          {isInvoice && <span className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowUpRight className="w-3.5 h-3.5 mr-1 text-sky-600 dark:text-sky-400" /> BILL INVOICE</span>}
-                          {isPayment && <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center w-max font-mono"><ArrowDownRight className="w-3.5 h-3.5 mr-1 text-emerald-600 dark:text-emerald-400" /> RECD PAYMENT</span>}
+                      <tr key={entry.id} className="dark:hover:bg-slate-800/30 hover:bg-slate-50 group font-sans transition-colors">
+                        <td className="py-2 px-4 col-text font-mono font-medium text-[#64748b] text-[10px]">{fmtDate(entry.date)}</td>
+                        <td className="py-2 px-3 col-text font-sans">
+                          {isOpening && <span className="bg-[#f1f5f9] dark:bg-slate-800 text-[#475569] dark:text-slate-400 px-2 py-0.5 rounded text-[9px] font-bold font-mono uppercase">OPENING</span>}
+                          {isInvoice && <span className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[9px] font-bold flex items-center w-max font-mono"><ArrowUpRight className="w-3 h-3 mr-1" /> INVOICE</span>}
+                          {isPayment && <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[9px] font-bold flex items-center w-max font-mono"><ArrowDownRight className="w-3 h-3 mr-1" /> RECEIVED</span>}
                         </td>
-                        <td className="py-3 px-3 col-text max-w-[240px] font-sans">
-                          <span className="font-semibold dark:text-white text-[#0f172a] block text-sm">{entry.referenceNo || 'Account Balance'}</span>
-                          <span className="text-[11px] text-[#64748b] dark:text-slate-500 block truncate font-medium">{entry.note}</span>
+                        <td className="py-2 px-3 col-text max-w-[240px] font-sans">
+                          <span className="font-bold dark:text-white text-slate-900 block text-xs">{entry.referenceNo || 'Account Balance'}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-500 block truncate font-medium">{entry.note}</span>
                         </td>
-                        <td className="py-3 px-3 col-num font-mono font-semibold text-sky-700 dark:text-sky-400 text-sm">
+                        <td className="py-2 px-3 col-num font-mono font-bold text-sky-700 dark:text-sky-400 text-xs">
                           {isInvoice ? `₹${entry.amount.toLocaleString('en-IN')}` : '—'}
                         </td>
-                        <td className="py-3 px-3 col-num font-mono font-semibold text-emerald-600 dark:text-emerald-400 text-sm">
+                        <td className="py-2 px-3 col-num font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
                           {isPayment ? `₹${Math.abs(entry.amount).toLocaleString('en-IN')}` : '—'}
                         </td>
-                        <td className="py-3 px-4 col-num font-mono font-bold text-[#0369a1] dark:text-sky-400 bg-[rgba(0,174,239,0.06)] dark:bg-sky-950/30 text-sm">
+                        <td className="py-2 px-4 col-num font-mono font-bold text-[#0369a1] dark:text-sky-400 bg-sky-500/5 dark:bg-sky-500/10 text-xs">
                           ₹{entry.runningBalance.toLocaleString('en-IN')}
                         </td>
                       </tr>
@@ -714,15 +826,15 @@ export const PartiesModule: React.FC = () => {
   // MAIN LIST/GRID VIEW
   // ═══════════════════════════════════════════
   return (
-    <div className="space-y-6 font-sans">
+    <div className="flex-1 flex flex-col gap-6 font-sans min-h-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm shrink-0">
         <div><h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5"><Users className="w-6 h-6 text-violet-500" /><span>PARTIES MANAGEMENT</span></h1><p className="text-xs dark:text-slate-400 text-slate-500 mt-0.5">Manage customers, suppliers & dual parties</p></div>
         <button onClick={openCreate} className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-indigo-500/20 cursor-pointer transition-all"><Plus className="w-4 h-4 stroke-[2.5]" /><span>New Party</span></button>
       </div>
 
       {/* Controls */}
-      <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm space-y-4">
+      <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm space-y-4 shrink-0">
         <div className="relative"><Search className="w-4 h-4 dark:text-slate-400 text-slate-500 absolute left-3 top-3" /><input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, email, GSTIN, city..." className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-10 pr-10 py-2.5 rounded-xl text-xs outline-none focus:border-indigo-500 transition-all" />{search && <button onClick={() => setSearch('')} className="absolute right-3 top-2.5 dark:text-slate-500 text-slate-400 cursor-pointer hover:text-rose-500"><X className="w-4 h-4" /></button>}</div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-1.5 flex-wrap gap-y-1.5">{([['ALL', 'All'], ['CUSTOMER', 'Customers'], ['SUPPLIER', 'Suppliers'], ['BOTH', 'Dual']] as [FilterTab, string][]).map(([key, label]) => (<button key={key} onClick={() => setFilterTab(key)} className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border ${filterTab === key ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'dark:bg-slate-950 bg-slate-50 dark:text-slate-300 text-slate-600 dark:border-slate-800 border-slate-200'}`}><span>{label}</span><span className={`text-[9px] font-mono px-1 py-0.5 rounded ${filterTab === key ? 'bg-white/20' : 'dark:bg-slate-800 bg-slate-200'}`}>{counts[key]}</span></button>))}</div>
@@ -731,13 +843,14 @@ export const PartiesModule: React.FC = () => {
       </div>
 
       {/* Empty */}
-      {partiesTable.totalRecords === 0 && (<div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 py-16 text-center animate-fade-in"><Users className="w-12 h-12 dark:text-slate-700 text-slate-300 mx-auto mb-4" /><div className="text-sm font-bold dark:text-slate-400 text-slate-500">{search ? `No parties matching "${search}"` : 'No parties yet'}</div><p className="text-xs dark:text-slate-500 text-slate-400 mt-1">{search ? 'Try a different search' : 'Create your first party'}</p>{!search && <button onClick={openCreate} className="mt-4 inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs cursor-pointer"><Plus className="w-3.5 h-3.5" /><span>Add First Party</span></button>}</div>)}
+      {partiesTable.totalRecords === 0 && (<div className="flex-1 dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 py-16 text-center animate-fade-in flex flex-col items-center justify-center"><Users className="w-12 h-12 dark:text-slate-700 text-slate-300 mx-auto mb-4" /><div className="text-sm font-bold dark:text-slate-400 text-slate-500">{search ? `No parties matching "${search}"` : 'No parties yet'}</div><p className="text-xs dark:text-slate-500 text-slate-400 mt-1">{search ? 'Try a different search' : 'Create your first party'}</p>{!search && <button onClick={openCreate} className="mt-4 inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs cursor-pointer"><Plus className="w-3.5 h-3.5" /><span>Add First Party</span></button>}</div>)}
 
       {/* GRID */}
       {partiesTable.totalRecords > 0 && viewMode === 'GRID' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+        <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
           {partiesTable.pageRows.map(p => (
-            <div key={p.id + p.type} className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md dark:hover:border-slate-700 hover:border-slate-300 transition-all group overflow-hidden">
+            <div key={p.id + p.type} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }} className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md dark:hover:border-slate-700 hover:border-slate-300 transition-all group overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3"><Av name={p.name} /><div className="min-w-0"><div className="text-sm font-bold dark:text-white text-slate-900 truncate">{p.name}</div><div className="flex items-center space-x-1.5 mt-0.5"><TypeBadge type={p.type} />{p.gstin && <span className="text-[9px] font-mono dark:text-slate-500 text-slate-400">{p.gstin}</span>}</div></div></div>
@@ -760,13 +873,15 @@ export const PartiesModule: React.FC = () => {
             </div>
           ))}
         </div>
-      )}
+      </div>
+    )}
 
       {/* LIST */}
       {partiesTable.totalRecords > 0 && viewMode === 'LIST' && (
-        <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-fade-in">
-          <div className="overflow-x-auto"><table className="erp-table w-full text-left text-xs">
-            <thead><tr className="dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200">
+        <div className="flex-1 dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-fade-in flex flex-col min-h-0">
+          <div className="flex-1 overflow-auto custom-scrollbar">
+            <table className="erp-table w-full text-left text-xs">
+              <thead><tr className="dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200 sticky top-0 z-10">
               <th className="py-3 px-4 col-text">Party</th>
               <th className="py-3 px-3 col-text w-32">Type</th>
               <th className="py-3 px-3 col-text w-48">Contact</th>
@@ -775,7 +890,7 @@ export const PartiesModule: React.FC = () => {
             </tr></thead>
             <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
               {partiesTable.pageRows.map(p => (
-                <tr key={p.id + p.type} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors group">
+                <tr key={p.id + p.type} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 52px' } as React.CSSProperties} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors group">
                   <td className="py-3.5 px-4 col-text"><div className="flex items-center space-x-3"><Av name={p.name} size="w-8 h-8 text-[10px]" /><div><div className="text-sm font-bold dark:text-white text-slate-900">{p.name}</div>{p.gstin && <div className="text-[10px] font-mono dark:text-slate-500 text-slate-400">{p.gstin}</div>}</div></div></td>
                   <td className="py-3.5 px-3 col-text"><TypeBadge type={p.type} /></td>
                   <td className="py-3.5 px-3 col-text text-[11px] dark:text-slate-400 text-slate-500 space-y-0.5">{p.phone && <div>{p.phone}</div>}{p.city && <div>{p.city}</div>}</td>
@@ -790,21 +905,24 @@ export const PartiesModule: React.FC = () => {
                 </tr>
               ))}
             </tbody>
-          </table></div>
+          </table>
+          </div>
         </div>
       )}
 
       {partiesTable.totalRecords > 0 && (
-        <Pagination
-          page={partiesTable.page}
-          totalPages={partiesTable.totalPages}
-          totalRecords={partiesTable.totalRecords}
-          pageSize={partiesTable.pageSize}
-          pageSizeOptions={partiesTable.pageSizeOptions}
-          onPageChange={partiesTable.setPage}
-          onPageSizeChange={partiesTable.setPageSize}
-          label="parties"
-        />
+        <div className="shrink-0">
+          <Pagination
+            page={partiesTable.page}
+            totalPages={partiesTable.totalPages}
+            totalRecords={partiesTable.totalRecords}
+            pageSize={partiesTable.pageSize}
+            pageSizeOptions={partiesTable.pageSizeOptions}
+            onPageChange={partiesTable.setPage}
+            onPageSizeChange={partiesTable.setPageSize}
+            label="parties"
+          />
+        </div>
       )}
 
       {/* Modal */}

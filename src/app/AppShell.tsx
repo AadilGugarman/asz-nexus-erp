@@ -24,18 +24,38 @@ import { TitleBar } from "@/components/window/TitleBar";
 import { Navbar } from "@/components/Navbar";
 import { TopFilterBar } from "@/components/TopFilterBar";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-//        Lazy module imports
+import { AlertTriangle, RefreshCcw } from "lucide-react";
+
+//        Per-module error fallback — less disruptive than full-screen crash
+const ModuleErrorFallback: React.FC<{ moduleName?: string }> = ({ moduleName }) => (
+  <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
+    <div className="w-14 h-14 rounded-2xl bg-rose-500/10 flex items-center justify-center">
+      <AlertTriangle className="w-7 h-7 text-rose-500" />
+    </div>
+    <div>
+      <p className="text-base font-bold dark:text-white text-slate-900">
+        {moduleName ? `${moduleName} failed to load` : "Module error"}
+      </p>
+      <p className="text-sm dark:text-slate-400 text-slate-500 mt-1">
+        An unexpected error occurred. Your data is safe.
+      </p>
+    </div>
+    <button
+      onClick={() => window.location.reload()}
+      className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all"
+    >
+      <RefreshCcw className="w-4 h-4" />
+      Reload App
+    </button>
+  </div>
+);
+
 // Each import() call becomes a separate Rollup chunk.
 // The chunk is only fetched when the user first visits that tab.
 
 const ExecutiveDashboard = lazy(() =>
   import("@/components/ExecutiveDashboard").then((m) => ({
     default: m.ExecutiveDashboard,
-  })),
-);
-const VehicleArrivalModule = lazy(() =>
-  import("@/components/VehicleArrivalModule").then((m) => ({
-    default: m.VehicleArrivalModule,
   })),
 );
 const PurchaseBillingModule = lazy(() =>
@@ -105,7 +125,6 @@ const TabSkeleton: React.FC = () => (
 
 const PATH_TO_TAB: Record<string, string> = {
   [ROUTES.dashboard]: "dashboard",
-  [ROUTES.arrival]: "arrival",
   [ROUTES.purchase]: "purchase",
   [ROUTES.sales]: "sales",
   [ROUTES.inventory]: "inventory",
@@ -132,20 +151,51 @@ interface TabContentProps {
 const TabContent = memo<TabContentProps>(({ activeTab, setActiveTab }) => (
   <Suspense fallback={<TabSkeleton />}>
     {activeTab === "dashboard" && (
-      <>
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Dashboard" />}>
         <TopFilterBar />
         <ExecutiveDashboard setActiveTab={setActiveTab} />
-      </>
+      </ErrorBoundary>
     )}
-    {activeTab === "arrival" && <VehicleArrivalModule />}
-    {activeTab === "purchase" && <PurchaseBillingModule />}
-    {activeTab === "sales" && <SalesBillingModule />}
-    {activeTab === "inventory" && <InventoryModule />}
-    {activeTab === "parties" && <PartiesModule />}
-    {activeTab === "payments" && <PaymentsModule />}
-    {activeTab === "reports" && <ReportsModule />}
-    {activeTab === "carets" && <CaretModule />}
-    {activeTab === "settings" && <SettingsModule />}
+    {activeTab === "purchase" && (
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Purchase Billing" />}>
+        <PurchaseBillingModule />
+      </ErrorBoundary>
+    )}
+    {activeTab === "sales" && (
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Sales Billing" />}>
+        <SalesBillingModule />
+      </ErrorBoundary>
+    )}
+    {activeTab === "inventory" && (
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Inventory" />}>
+        <InventoryModule />
+      </ErrorBoundary>
+    )}
+    {activeTab === "parties" && (
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Parties" />}>
+        <PartiesModule />
+      </ErrorBoundary>
+    )}
+    {activeTab === "payments" && (
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Payments" />}>
+        <PaymentsModule />
+      </ErrorBoundary>
+    )}
+    {activeTab === "reports" && (
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Reports" />}>
+        <ReportsModule />
+      </ErrorBoundary>
+    )}
+    {activeTab === "carets" && (
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Caret Management" />}>
+        <CaretModule />
+      </ErrorBoundary>
+    )}
+    {activeTab === "settings" && (
+      <ErrorBoundary fallback={<ModuleErrorFallback moduleName="Settings" />}>
+        <SettingsModule />
+      </ErrorBoundary>
+    )}
   </Suspense>
 ));
 TabContent.displayName = "TabContent";
@@ -211,7 +261,7 @@ export const AppShell: React.FC = () => {
         isShortcutsOpen ? closeShortcuts() : openShortcuts();
       } else if (e.key === "F1") {
         e.preventDefault();
-        handleSetActiveTab("arrival");
+        handleSetActiveTab("purchase");
       } else if (e.key === "F2") {
         e.preventDefault();
         handleSetActiveTab("sales");
@@ -220,29 +270,26 @@ export const AppShell: React.FC = () => {
         handleSetActiveTab("dashboard");
       } else if (e.altKey && e.key === "1") {
         e.preventDefault();
-        handleSetActiveTab("arrival");
+        handleSetActiveTab("purchase");
       } else if (e.altKey && e.key === "2") {
         e.preventDefault();
-        handleSetActiveTab("purchase");
+        handleSetActiveTab("sales");
       } else if (e.altKey && e.key === "3") {
         e.preventDefault();
-        handleSetActiveTab("sales");
+        handleSetActiveTab("carets");
       } else if (e.altKey && e.key === "4") {
         e.preventDefault();
-        handleSetActiveTab("carets");
+        handleSetActiveTab("payments");
       } else if (e.altKey && e.key === "5") {
         e.preventDefault();
-        handleSetActiveTab("payments");
+        handleSetActiveTab("parties");
       } else if (e.altKey && e.key === "6") {
         e.preventDefault();
-        handleSetActiveTab("parties");
+        handleSetActiveTab("inventory");
       } else if (e.altKey && e.key === "7") {
         e.preventDefault();
-        handleSetActiveTab("inventory");
-      } else if (e.altKey && e.key === "8") {
-        e.preventDefault();
         handleSetActiveTab("reports");
-      } else if (e.altKey && e.key === "9") {
+      } else if (e.altKey && e.key === "8") {
         e.preventDefault();
         handleSetActiveTab("settings");
       }
@@ -272,17 +319,21 @@ export const AppShell: React.FC = () => {
       />
 
       <div
-        className={`transition-all duration-300 ${
+        className={`flex-1 flex flex-col transition-all duration-300 ${
           sidebarCollapsed ? "lg:pl-[68px]" : "lg:pl-[240px]"
         }`}
       >
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-          <ErrorBoundary>
-            <TabContent
-              activeTab={activeTab}
-              setActiveTab={handleSetActiveTab}
-            />
-          </ErrorBoundary>
+        <main
+          className={`flex-1 flex flex-col w-full transition-all duration-300 ${
+            sidebarCollapsed
+              ? "px-3 sm:px-4 py-3 sm:py-4"
+              : "px-4 sm:px-6 lg:px-8 py-4 lg:py-6"
+          }`}
+        >
+          <TabContent
+            activeTab={activeTab}
+            setActiveTab={handleSetActiveTab}
+          />
         </main>
       </div>
 

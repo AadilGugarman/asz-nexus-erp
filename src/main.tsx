@@ -34,7 +34,7 @@ perf.mark("script-start");
 
 // Migrate storage from apex_* to tfc_erp_* namespace before any other initialization
 const migrationStats = runStorageMigration();
-console.info("[Init] Storage migration:", migrationStats);
+if (import.meta.env.DEV) console.info("[Init] Storage migration:", migrationStats);
 
 // In Tauri/production: purge any business data that was previously written to
 // localStorage. Business data lives exclusively in SQLite — localStorage is

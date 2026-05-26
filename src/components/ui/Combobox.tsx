@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronsUpDown, Search, Sparkles } from 'lucide-react';
+import { Check, ChevronsUpDown, Search, Plus } from 'lucide-react';
 
 const FRUIT_EMOJIS: Record<string, string> = {
   mango: '🥭', apple: '🍎', banana: '🍌', pomegranate: '🫐', grapes: '🍇',
@@ -39,7 +39,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   onChange,
   options,
   placeholder = 'Select...',
-  searchPlaceholder = 'Type to search...',
+  searchPlaceholder = 'Search...',
   creatable = true,
   onCreate,
   className = '',
@@ -71,14 +71,15 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const totalCount = filteredOptions.length + (showCreateOption ? 1 : 0);
 
   const updatePosition = useCallback(() => {
-    if (triggerRef.current) {
-      setRect(triggerRef.current.getBoundingClientRect());
-    }
+    if (triggerRef.current) setRect(triggerRef.current.getBoundingClientRect());
   }, []);
 
   useEffect(() => {
     if (isOpen) {
       updatePosition();
+      // Reset search on open
+      setQuery('');
+      setTimeout(() => inputRef.current?.focus(), 30);
       window.addEventListener('scroll', updatePosition, true);
       window.addEventListener('resize', updatePosition);
       return () => {
@@ -88,17 +89,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
     }
   }, [isOpen, updatePosition]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 30);
-    } else {
-      setQuery('');
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
+  useEffect(() => { setActiveIndex(0); }, [query]);
 
   const handleSelect = useCallback((selectedValue: string) => {
     onChange(selectedValue);
@@ -137,7 +128,6 @@ export const Combobox: React.FC<ComboboxProps> = ({
       }
       return;
     }
-
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -173,7 +163,6 @@ export const Combobox: React.FC<ComboboxProps> = ({
     activeItem?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, isOpen]);
 
-  // Compute popover position - smart flip when near bottom
   const popoverStyle = useMemo(() => {
     if (!rect) return {};
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -181,53 +170,72 @@ export const Combobox: React.FC<ComboboxProps> = ({
     return {
       position: 'fixed' as const,
       left: rect.left,
-      width: Math.max(rect.width, 220),
+      width: Math.max(rect.width, 200),
       zIndex: 999999,
       ...(flipUp
-        ? { bottom: window.innerHeight - rect.top + 4 }
-        : { top: rect.bottom + 4 }
+        ? { bottom: window.innerHeight - rect.top + 6 }
+        : { top: rect.bottom + 6 }
       ),
     };
   }, [rect]);
 
-  const emoji = showEmoji ? getEmoji(value) : null;
+  const emoji = showEmoji && value ? getEmoji(value) : null;
 
   return (
     <div className="relative w-full font-sans">
+      {/* Trigger button */}
       <button
         ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className={`group flex items-center justify-between w-full dark:bg-slate-950 bg-white border-2 dark:border-slate-800 border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-black shadow-sm hover:border-emerald-500/60 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all duration-300 text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${className}`}
+        className={[
+          'group flex items-center justify-between w-full',
+          'bg-white dark:bg-slate-950',
+          'border border-slate-200 dark:border-slate-800',
+          'rounded-lg px-3 py-2 text-sm shadow-sm',
+          'hover:border-slate-300 dark:hover:border-slate-700',
+          'focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-400/60 dark:focus:border-emerald-500/40',
+          'transition-all duration-200 text-left cursor-pointer',
+          'disabled:opacity-50 disabled:cursor-not-allowed',
+          className,
+        ].join(' ')}
         {...restProps}
       >
-        <span className="truncate flex items-center space-x-2">
-          {emoji && value && (
-            <div className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 flex items-center justify-center shrink-0 shadow-sm">
-              <span className="text-base leading-none">{emoji}</span>
-            </div>
+        <span className="truncate flex items-center gap-2">
+          {emoji && (
+            <span className="text-sm leading-none shrink-0">{emoji}</span>
           )}
           {value
-            ? <span className="dark:text-white text-slate-900 tracking-tight">{value}</span>
-            : <span className="dark:text-slate-500 text-slate-400 font-bold opacity-60">{placeholder}</span>
+            ? <span className="text-slate-800 dark:text-slate-100 font-medium">{value}</span>
+            : <span className="text-slate-400 dark:text-slate-500">{placeholder}</span>
           }
         </span>
-        <ChevronsUpDown className="w-3.5 h-3.5 ml-1.5 shrink-0 dark:text-slate-500 text-slate-400 group-hover:text-emerald-500 transition-all duration-300" />
+        <ChevronsUpDown className={[
+          'w-3.5 h-3.5 ml-2 shrink-0 transition-colors duration-200',
+          isOpen
+            ? 'text-emerald-500/70 dark:text-emerald-400/60'
+            : 'text-slate-400/60 dark:text-slate-500/50 group-hover:text-slate-500 dark:group-hover:text-slate-400',
+        ].join(' ')} />
       </button>
 
       {isOpen && rect && createPortal(
         <div
           id={popoverId}
           style={popoverStyle}
-          className="dark:bg-slate-900 bg-white backdrop-blur-3xl rounded-2xl border-2 dark:border-slate-800 border-slate-200 shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] overflow-hidden animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-300 ease-out font-sans"
+          className={[
+            'rounded-xl border overflow-hidden z-[999999]',
+            'bg-white/98 dark:bg-slate-950/98 backdrop-blur-xl',
+            'border-slate-200/80 dark:border-slate-800/80',
+            'shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),0_2px_8px_-2px_rgba(0,0,0,0.06)]',
+            'dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.4),0_2px_8px_-2px_rgba(0,0,0,0.2)]',
+            'animate-in fade-in slide-in-from-top-1 duration-150 ease-out font-sans',
+          ].join(' ')}
         >
-          {/* Search Input */}
-          <div className="p-2 border-b-2 dark:border-slate-800 border-slate-100 flex items-center space-x-2 dark:bg-slate-900/50 bg-slate-50/50">
-            <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-950 border dark:border-slate-800 flex items-center justify-center shrink-0 shadow-sm">
-              <Search className="w-3.5 h-3.5 dark:text-emerald-400 text-emerald-500" />
-            </div>
+          {/* Search input */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 dark:border-slate-800/80">
+            <Search className="w-3.5 h-3.5 text-slate-400/70 dark:text-slate-500/60 shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -235,23 +243,25 @@ export const Combobox: React.FC<ComboboxProps> = ({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={searchPlaceholder}
-              className="w-full bg-transparent border-none dark:text-white text-slate-900 text-xs outline-none focus:ring-0 py-1 dark:placeholder-slate-500 placeholder-slate-400 font-black tracking-tight"
+              className="w-full bg-transparent text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 outline-none py-0.5"
             />
             {query && (
-              <span className="text-[9px] bg-white dark:bg-slate-950 px-1.5 py-0.5 rounded-md border dark:border-slate-800 dark:text-slate-400 text-slate-500 font-black shrink-0 shadow-sm">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0 tabular-nums">
                 {filteredOptions.length}
               </span>
             )}
           </div>
 
-          {/* Options List */}
-          <div ref={listRef} className="max-h-72 overflow-y-auto p-2 scrollbar-none">
+          {/* Options list */}
+          <div
+            ref={listRef}
+            className="max-h-64 overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent"
+          >
             {filteredOptions.length === 0 && !showCreateOption ? (
-              <div className="py-8 text-center">
-                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-dashed border-slate-200 dark:border-slate-700">
-                  <Search className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+              <div className="py-7 text-center">
+                <div className="text-xs text-slate-400 dark:text-slate-500">
+                  No results{query ? ` for "${query}"` : ''}
                 </div>
-                <div className="text-xs font-black text-slate-900 dark:text-white">No results for "{query}"</div>
               </div>
             ) : (
               filteredOptions.map((opt, idx) => {
@@ -265,33 +275,31 @@ export const Combobox: React.FC<ComboboxProps> = ({
                     data-idx={idx}
                     onClick={() => handleSelect(opt)}
                     onMouseEnter={() => setActiveIndex(idx)}
-                    className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs cursor-pointer transition-all duration-300 mb-1 last:mb-0 border-2 ${
+                    className={[
+                      'flex items-center justify-between px-2.5 py-2 rounded-lg text-sm cursor-pointer transition-all duration-150 mb-0.5 last:mb-0 border',
                       isActive
-                        ? 'bg-emerald-600 text-white scale-[1.01] border-white/10 shadow-md shadow-emerald-600/20 z-10'
+                        ? 'bg-emerald-500/8 dark:bg-emerald-500/10 border-emerald-400/15 dark:border-emerald-500/12'
                         : isSelected
-                        ? 'dark:bg-emerald-500/10 bg-emerald-50 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-                        : 'dark:text-slate-200 text-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 border-transparent'
-                    }`}
+                        ? 'bg-emerald-500/6 dark:bg-emerald-500/8 border-emerald-400/20 dark:border-emerald-500/15'
+                        : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-900/60',
+                    ].join(' ')}
                   >
-                    <span className="flex items-center space-x-3 font-black tracking-tight truncate">
+                    <span className="flex items-center gap-2 truncate">
                       {optEmoji && (
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm border-2 ${
-                          isActive 
-                            ? "bg-white/20 border-white/20" 
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group-hover:border-slate-300 dark:group-hover:border-slate-700 shadow-inner"
-                        }`}>
-                          <span className="text-lg leading-none shrink-0">{optEmoji}</span>
-                        </div>
+                        <span className="text-sm leading-none shrink-0">{optEmoji}</span>
                       )}
-                      <span className="truncate">{opt}</span>
+                      <span className={[
+                        'truncate',
+                        isSelected || isActive
+                          ? 'font-medium text-emerald-700 dark:text-emerald-300'
+                          : 'font-normal text-slate-700 dark:text-slate-200',
+                      ].join(' ')}>
+                        {opt}
+                      </span>
                     </span>
                     {isSelected && (
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shadow-sm border-2 transition-all ${
-                        isActive ? "bg-white/20 border-white/20" : "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-500/20"
-                      }`}>
-                        <Check className={`w-3 h-3 stroke-[3] shrink-0 ${
-                          isActive ? 'text-white' : 'text-emerald-500'
-                        }`} />
+                      <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 ml-2 bg-emerald-500/10 dark:bg-emerald-500/12">
+                        <Check className="w-2.5 h-2.5 stroke-2 text-emerald-600 dark:text-emerald-400" />
                       </div>
                     )}
                   </div>
@@ -304,23 +312,22 @@ export const Combobox: React.FC<ComboboxProps> = ({
                 data-idx={filteredOptions.length}
                 onClick={handleCreate}
                 onMouseEnter={() => setActiveIndex(filteredOptions.length)}
-                className={`flex items-center space-x-3 px-3 py-4 rounded-xl cursor-pointer mt-3 border-2 border-dashed transition-all duration-300 ${
+                className={[
+                  'flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer mt-1 border border-dashed transition-all duration-150',
                   activeIndex === filteredOptions.length
-                    ? 'bg-emerald-600 text-white scale-[1.01] border-white/30 shadow-lg z-10'
-                    : 'dark:bg-emerald-500/5 bg-emerald-50/50 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                }`}
+                    ? 'bg-emerald-500/8 dark:bg-emerald-500/10 border-emerald-400/20 dark:border-emerald-500/15'
+                    : 'border-slate-200/60 dark:border-slate-800/60 hover:border-slate-300/60 dark:hover:border-slate-700/60 bg-emerald-500/5 dark:bg-emerald-500/6',
+                ].join(' ')}
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-md border-2 ${
-                  activeIndex === filteredOptions.length ? 'bg-white/20 border-white/20' : 'bg-emerald-100 dark:bg-emerald-500/20 border-emerald-500/20'
-                }`}>
-                  <Sparkles className="w-5 h-5 stroke-[3]" />
+                <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-emerald-500/8 dark:bg-emerald-500/10">
+                  <Plus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
-                  <div className={`text-sm font-black tracking-tight ${activeIndex === filteredOptions.length ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
-                    Create "{query.trim()}"
+                  <div className="text-[13px] font-medium text-emerald-700 dark:text-emerald-300">
+                    Add "{query.trim()}"
                   </div>
-                  <div className={`text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-60 ${activeIndex === filteredOptions.length ? 'text-white/70' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                    Add new master entry
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Create new entry
                   </div>
                 </div>
               </div>

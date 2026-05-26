@@ -30,6 +30,7 @@ import { IpcCallError } from '@/ipc';
 import { useBackupStore } from '@/store';
 import type { BackupFrequency } from '@/store';
 import { APP_CONFIG } from '@/config';
+import { invalidateStartupCache } from '@/store/settings.store';
 
 // ── Schedule intervals ────────────────────────────────────────────────────────
 
@@ -215,8 +216,15 @@ export const backupService = {
         description: result.message,
       });
 
+      // Invalidate the localStorage startup cache so the next cold start
+      // reads fresh data from the restored SQLite DB instead of stale cache.
+      invalidateStartupCache();
+
       // Reload backup list — restore creates a new PreRestore entry
       await backupService.loadBackups();
+
+      // Reload the app after a short delay so all stores re-hydrate from the restored DB
+      setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
       const msg = err instanceof IpcCallError ? err.message : 'Restore failed';
       s.setLastError(msg);

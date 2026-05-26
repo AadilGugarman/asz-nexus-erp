@@ -1,4 +1,4 @@
-import { Invoice, InvoiceSettings } from '../types';
+import { Invoice, PurchaseInvoice, InvoiceSettings } from '../types';
 
 export type ResolvedInvoiceTemplate = 'modern' | 'watermark' | 'thermal' | 'initials';
 
@@ -69,6 +69,47 @@ export const getNextUniqueInvoiceNumber = (
   while (existing.has(candidate)) {
     candidateSeed += 1;
     candidate = formatInvoiceNumber(settings, candidateSeed, dateIso, invoices);
+  }
+
+  return { invoiceNo: candidate, nextSeed: candidateSeed + 1 };
+};
+
+// ── Purchase invoice number helpers ──────────────────────────────────────────
+
+const formatPurchaseNumber = (
+  settings: InvoiceSettings,
+  nextSequentialNo: number,
+  dateIso: string,
+): string => {
+  const prefix = (settings.purchasePrefix || 'PUR').trim() || 'PUR';
+  const mode = settings.invoiceNumberMode || 'sequential';
+
+  if (mode === 'date_based') {
+    return `${prefix}-${toYmd(dateIso)}-${pad(nextSequentialNo, 3)}`;
+  }
+
+  if (mode === 'business_prefix') {
+    const businessPrefix = (settings.businessPrefix || prefix).trim() || prefix;
+    const year = dateIso.slice(0, 4);
+    return `${businessPrefix}-${year}-${pad(nextSequentialNo, 4)}`;
+  }
+
+  return `${prefix}-${pad(nextSequentialNo, 4)}`;
+};
+
+export const getNextUniquePurchaseNumber = (
+  settings: InvoiceSettings,
+  purchaseInvoices: PurchaseInvoice[],
+  dateIso: string,
+  seedNo: number,
+): { invoiceNo: string; nextSeed: number } => {
+  const existing = new Set(purchaseInvoices.map((i) => i.billNo));
+
+  let candidateSeed = seedNo;
+  let candidate = formatPurchaseNumber(settings, candidateSeed, dateIso);
+  while (existing.has(candidate)) {
+    candidateSeed += 1;
+    candidate = formatPurchaseNumber(settings, candidateSeed, dateIso);
   }
 
   return { invoiceNo: candidate, nextSeed: candidateSeed + 1 };

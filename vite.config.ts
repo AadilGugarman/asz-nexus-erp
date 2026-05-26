@@ -37,6 +37,13 @@ export default defineConfig(({ command, mode }) => {
 
     // ── Path aliases ─────────────────────────────────────────────────────────
     resolve: {
+      // Enforce case-sensitive module resolution on all platforms (including
+      // Windows where the filesystem is case-insensitive by default).
+      // This prevents Vite/Rollup from silently bundling the same file twice
+      // under two different module IDs when import paths differ only in casing,
+      // which would cause React context instances to be duplicated and break
+      // hooks like useApp() with "must be used within AppProvider" errors.
+      caseSensitive: true,
       alias: {
         '@': path.resolve(__dirname, 'src'),
         // In dev, alias Tauri packages to the mock shim so Vite doesn't error

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Search, MapPin, X } from "lucide-react";
+import { MapPin, X } from "lucide-react";
 
 export interface AutocompleteOption {
   city: string;
@@ -46,13 +46,12 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   const filteredOptions = useMemo(() => {
     if (!query || query.length < 1) return [];
     const q = query.toLowerCase().trim();
-    // Filter by city, state or pincode
     return options.filter(
       (opt) =>
         opt.city.toLowerCase().includes(q) ||
         opt.pincode.includes(q) ||
         opt.state.toLowerCase().includes(q)
-    ).slice(0, 8); // Limit to 8 suggestions for performance
+    ).slice(0, 8);
   }, [options, query]);
 
   useEffect(() => {
@@ -74,8 +73,6 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     onSelect(option);
     setQuery(option.city);
     setIsOpen(false);
-    
-    // Auto-focus next field if provided
     if (nextFieldRef?.current) {
       setTimeout(() => nextFieldRef.current?.focus(), 50);
     }
@@ -86,7 +83,6 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       if (e.key === "ArrowDown") setIsOpen(true);
       return;
     }
-
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
@@ -130,7 +126,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     <div className={`relative w-full ${className}`} ref={containerRef}>
       <div className="relative group">
         {icon && (
-          <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-amber-500 transition-colors z-10">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400/70 dark:text-slate-500/60 group-focus-within:text-amber-500/70 dark:group-focus-within:text-amber-400/60 transition-colors z-10">
             {React.cloneElement(icon as React.ReactElement, { size: 14 })}
           </div>
         )}
@@ -143,11 +139,16 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className={`w-full ${icon ? "pl-10" : "px-3.5"} pr-10 py-2.5 rounded-xl border-2 text-sm font-bold bg-white dark:bg-slate-950 shadow-sm focus:outline-none transition-all duration-300 ${
+          className={[
+            "w-full py-2 rounded-lg border text-sm bg-white dark:bg-slate-950 shadow-sm",
+            "text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500",
+            "outline-none transition-all duration-200",
+            icon ? "pl-9" : "pl-3",
+            "pr-9",
             error
-              ? "border-rose-500 ring-4 ring-rose-500/10"
-              : "border-slate-200 dark:border-slate-800 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 dark:focus:border-amber-400"
-          }`}
+              ? "border-rose-400/60 dark:border-rose-500/40 ring-2 ring-rose-500/10"
+              : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-amber-500/10 focus:border-amber-400/60 dark:focus:border-amber-500/40 hover:border-slate-300 dark:hover:border-slate-700",
+          ].join(" ")}
         />
         {query && (
           <button
@@ -157,47 +158,69 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
               onChange("");
               inputRef.current?.focus();
             }}
-            className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-rose-500 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg transition-all"
+            className="absolute inset-y-0 right-2.5 flex items-center p-1 rounded-md text-slate-400/60 hover:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3 h-3" />
           </button>
         )}
       </div>
 
       {isOpen && filteredOptions.length > 0 && (
-        <div className="absolute z-[9999] w-full mt-1.5 bg-white dark:bg-slate-900 backdrop-blur-3xl rounded-2xl border-2 dark:border-slate-800 border-slate-200 shadow-[0_20px_70px_-10px_rgba(0,0,0,0.3)] overflow-hidden animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-300 ease-out">
-          <ul className="max-h-72 overflow-y-auto p-2 scrollbar-none">
+        <div className={[
+          "absolute z-[9999] w-full mt-1.5 overflow-hidden rounded-xl border",
+          "bg-white/98 dark:bg-slate-950/98 backdrop-blur-xl",
+          "border-slate-200/80 dark:border-slate-800/80",
+          "shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),0_2px_8px_-2px_rgba(0,0,0,0.06)]",
+          "dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.4),0_2px_8px_-2px_rgba(0,0,0,0.2)]",
+          "animate-in fade-in slide-in-from-top-1 duration-150 ease-out",
+        ].join(" ")}>
+          <ul className="max-h-64 overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
             {filteredOptions.map((opt, idx) => (
               <li
                 key={`${opt.city}-${opt.pincode}`}
                 onClick={() => handleSelect(opt)}
                 onMouseEnter={() => setActiveIndex(idx)}
-                className={`group px-3.5 py-2.5 rounded-xl cursor-pointer flex items-center justify-between transition-all duration-300 mb-1 last:mb-0 border-2 ${
-                  idx === activeIndex 
-                    ? "bg-amber-600 text-white scale-[1.01] border-white/10 shadow-md shadow-amber-600/20 z-10" 
-                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border-transparent"
-                }`}
+                className={[
+                  "flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-all duration-150 mb-0.5 last:mb-0 border",
+                  idx === activeIndex
+                    ? "bg-amber-500/8 dark:bg-amber-500/10 border-amber-400/15 dark:border-amber-500/12"
+                    : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-900/60",
+                ].join(" ")}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm border-2 ${
-                    idx === activeIndex 
-                      ? "bg-white/20 border-white/20" 
-                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group-hover:border-slate-300 dark:group-hover:border-slate-700 shadow-inner"
-                  }`}>
-                    <MapPin className={`w-4 h-4 ${idx === activeIndex ? "text-white" : "text-amber-500"}`} />
+                <div className="flex items-center gap-2.5">
+                  <div className={[
+                    "w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150",
+                    idx === activeIndex
+                      ? "bg-amber-500/10 dark:bg-amber-500/12"
+                      : "bg-slate-100/80 dark:bg-slate-800/60",
+                  ].join(" ")}>
+                    <MapPin className={[
+                      "w-3.5 h-3.5",
+                      idx === activeIndex
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-slate-400 dark:text-slate-500",
+                    ].join(" ")} />
                   </div>
                   <div>
-                    <span className={`text-[13px] font-black tracking-tight block ${idx === activeIndex ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                    <span className={[
+                      "text-[13px] block leading-tight",
+                      idx === activeIndex
+                        ? "font-medium text-amber-700 dark:text-amber-300"
+                        : "font-normal text-slate-700 dark:text-slate-200",
+                    ].join(" ")}>
                       {opt.city}
                     </span>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 block opacity-70 ${idx === activeIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"}`}>
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5 leading-tight">
                       {opt.state}
                     </span>
                   </div>
                 </div>
-                <span className={`text-[10px] font-black font-mono px-1.5 py-0.5 rounded-lg border-2 ${
-                  idx === activeIndex ? "bg-white/20 border-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400"
-                }`}>
+                <span className={[
+                  "text-[10px] font-mono px-1.5 py-0.5 rounded-md border tabular-nums",
+                  idx === activeIndex
+                    ? "bg-amber-500/8 dark:bg-amber-500/10 border-amber-400/15 dark:border-amber-500/12 text-amber-700 dark:text-amber-300"
+                    : "bg-slate-100/80 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 text-slate-500 dark:text-slate-400",
+                ].join(" ")}>
                   {opt.pincode}
                 </span>
               </li>
@@ -207,8 +230,8 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       )}
 
       {error && (
-        <p className="mt-1.5 text-[10px] text-rose-500 font-black flex items-center ml-1 uppercase tracking-wider">
-          <span className="w-1 h-1 rounded-full bg-rose-500 mr-2 animate-pulse" />
+        <p className="mt-1 text-[11px] text-rose-500 dark:text-rose-400 flex items-center gap-1.5 ml-0.5">
+          <span className="w-1 h-1 rounded-full bg-rose-500 dark:bg-rose-400 shrink-0" />
           {error}
         </p>
       )}

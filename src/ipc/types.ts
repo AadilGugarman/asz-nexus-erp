@@ -135,7 +135,6 @@ export interface SeedTableCounts {
   fruits: number;
   suppliers: number;
   customers: number;
-  vehicle_arrivals: number;
   purchase_invoices: number;
   sales_invoices: number;
   payments: number;

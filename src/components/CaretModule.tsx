@@ -11,7 +11,7 @@ import {
   Phone, Edit3
 } from 'lucide-react';
 
-import { useApp } from '../context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { CommandSelect, CommandOption } from './ui/CommandSelect';
@@ -248,7 +248,7 @@ export const CaretModule: React.FC = () => {
           onClose={() => setShowPrintPreview(false)}
           title="Caret Statement"
           subtitle={`Ledger for ${selectedCustomer.name}`}
-          accentColor="#f59e0b"
+          accentColor="#06b6d4"
         >
           <div className="flex justify-between items-end mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-200">
             <div>
@@ -268,7 +268,7 @@ export const CaretModule: React.FC = () => {
                 </div>
                 <div className="border-l-2 border-slate-200 pl-8">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Balance</p>
-                  <p className="text-2xl font-black text-amber-600">{currentPending}</p>
+                  <p className="text-2xl font-black text-cyan-600">{currentPending}</p>
                 </div>
               </div>
             </div>
@@ -308,7 +308,7 @@ export const CaretModule: React.FC = () => {
       <div className="erp-panel shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 print:hidden">
         <div>
           <h1 className="erp-title text-[1rem] flex items-center space-x-2">
-            <Package className="w-5 h-5 text-amber-500" />
+            <Package className="w-5 h-5 text-cyan-500" />
             <span>CARET / CRATE MANAGEMENT</span>
           </h1>
           <p className="erp-subtitle text-[10px] mt-0.5">Customer-wise caret tracking — given, returned, and pending balance</p>
@@ -318,7 +318,7 @@ export const CaretModule: React.FC = () => {
           <button
             onClick={() => setShowReturnModal(true)}
             className="erp-btn-primary flex items-center space-x-1.5 px-4 py-2 text-xs"
-            style={{ background: '#f59e0b' }} // amber-500
+            style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }}
           >
             <RotateCcw className="w-4 h-4" />
             <span>Record Caret Return</span>
@@ -368,8 +368,9 @@ export const CaretModule: React.FC = () => {
                 <div
                   key={c.id}
                   onClick={() => setSelectedCustomerId(c.id)}
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: '0 56px' }}
                   className={`p-3 px-4 cursor-pointer transition-colors font-sans ${
-                    isHighlighted ? 'bg-amber-100/80 dark:bg-amber-900/20 border-l-4 border-amber-400' : isSelected ? 'bg-amber-500/10 border-l-4 border-amber-500' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    isHighlighted ? 'bg-cyan-100/80 dark:bg-cyan-900/20 border-l-4 border-cyan-400' : isSelected ? 'bg-cyan-500/10 border-l-4 border-cyan-500' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                   }`}
                   tabIndex={-1}
                 >
@@ -378,7 +379,7 @@ export const CaretModule: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between mt-1 text-[11px] dark:text-slate-400 text-slate-500 font-sans">
                     <span>{c.city}</span>
-                    <span className={`font-mono font-bold ${pending > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    <span className={`font-mono font-bold ${pending > 0 ? 'text-cyan-600 dark:text-cyan-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       {pending}
                     </span>
                   </div>
@@ -411,9 +412,9 @@ export const CaretModule: React.FC = () => {
                     <span className="text-[8px] font-bold uppercase tracking-tight dark:text-slate-500 text-[#64748b] block">Returned</span>
                     <span className="text-base font-bold font-mono block text-emerald-600 leading-tight">{currentSummary.returned}</span>
                   </div>
-                  <div className="dark:bg-slate-900 bg-white p-1.5 px-3 rounded-lg border dark:border-slate-800 border-[#e2e8f0] text-right min-w-[100px] shadow-sm border-b-2 border-b-amber-500">
+                  <div className="dark:bg-slate-900 bg-white p-1.5 px-3 rounded-lg border dark:border-slate-800 border-[#e2e8f0] text-right min-w-[100px] shadow-sm border-b-2 border-b-cyan-500">
                     <span className="text-[8px] font-bold uppercase tracking-tight dark:text-slate-500 text-[#64748b] block">Pending</span>
-                    <span className="text-lg font-black font-mono block text-amber-600 leading-tight">{currentPending}</span>
+                    <span className="text-lg font-black font-mono block text-cyan-600 leading-tight">{currentPending}</span>
                   </div>
                 </div>
               </div>
@@ -421,7 +422,7 @@ export const CaretModule: React.FC = () => {
               {/* Table Toolbar - Sticky */}
               <div className="shrink-0 flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-3.5 h-3.5 text-amber-500" />
+                  <FileText className="w-3.5 h-3.5 text-cyan-500" />
                   <span className="text-[10px] font-bold dark:text-slate-400 text-slate-600 uppercase tracking-widest">Transaction History</span>
                 </div>
               </div>
@@ -463,7 +464,7 @@ export const CaretModule: React.FC = () => {
                           </button>
                         </th>
                         <th className="py-3.5 px-3 col-num text-emerald-600 w-32">Return</th>
-                        <th className="py-3.5 px-4 col-num font-black text-amber-600 w-36">
+                        <th className="py-3.5 px-4 col-num font-black text-cyan-600 dark:text-cyan-400 w-36">
                           <button type="button" onClick={() => ledgerTable.toggleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
                             Running Balance <ArrowUpDown className="w-3.5 h-3.5" />
                           </button>
@@ -485,7 +486,7 @@ export const CaretModule: React.FC = () => {
                             />
                           </td>
                         </tr>
-                      ) : ledgerTable.data.map((entry) => {
+                      ) : ledgerTable.pageRows.map((entry: typeof ledgerEntries[number]) => {
                         const isGiven = entry.type === 'GIVEN';
                         return (
                           <tr key={entry.id} className="font-sans group">
@@ -514,7 +515,7 @@ export const CaretModule: React.FC = () => {
                             <td className="py-4 px-3 col-num font-mono font-semibold text-emerald-600 text-sm">
                               {!isGiven ? `-${entry.caretQty}` : '-'}
                             </td>
-                            <td className="py-4 px-4 col-num font-mono font-black text-amber-700 bg-amber-500/5 text-sm">
+                            <td className="py-4 px-4 col-num font-mono font-black text-cyan-600 dark:text-cyan-400 bg-cyan-500/5 text-sm">
                               {entry.runningBalance}
                             </td>
                             <td className="py-4 px-4 col-actions">
@@ -554,7 +555,7 @@ export const CaretModule: React.FC = () => {
           <div className="erp-panel rounded-2xl max-w-lg w-full overflow-hidden p-6 space-y-6">
             <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4 font-sans">
               <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center space-x-2">
-                {editingTx ? <Edit3 className="w-5 h-5 text-indigo-500" /> : <RotateCcw className="w-5 h-5 text-amber-500" />}
+                {editingTx ? <Edit3 className="w-5 h-5 text-indigo-500" /> : <RotateCcw className="w-5 h-5 text-cyan-500" />}
                 <span>{editingTx ? 'Edit Transaction' : 'Record Caret Return'}</span>
               </h3>
               <button onClick={() => { setShowReturnModal(false); setEditingTx(null); }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl cursor-pointer">✕</button>
@@ -582,7 +583,7 @@ export const CaretModule: React.FC = () => {
                   </label>
                   <input type="number" required min="1" value={returnQty === 0 ? '' : returnQty} placeholder="0" 
                     onChange={(e) => setReturnQty(parseInt(e.target.value) || 0)} 
-                    className={`erp-input w-full font-mono font-black text-lg ${editingTx?.type === 'GIVEN' ? 'text-rose-600' : 'text-amber-600'}`} />
+                    className={`erp-input w-full font-mono font-black text-lg ${editingTx?.type === 'GIVEN' ? 'text-rose-600' : 'text-cyan-600'}`} />
                   {!editingTx && <p className="text-[10px] text-slate-500 mt-1">Pending: {currentPending} carets</p>}
                 </div>
                 <div>
@@ -594,7 +595,7 @@ export const CaretModule: React.FC = () => {
 
               <div>
                 <CommandSelect
-                  variant="amber"
+                  variant="sky"
                   label="Fruit Name (Optional)"
                   value={returnFruit}
                   onChange={(val) => {
@@ -615,7 +616,7 @@ export const CaretModule: React.FC = () => {
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-[var(--card-border)]">
                 <button type="button" onClick={() => { setShowReturnModal(false); setEditingTx(null); }} className="erp-btn-secondary px-5 py-2.5">Cancel</button>
-                <button type="submit" className="erp-btn-primary px-6 py-2.5" style={{ background: editingTx ? '#6366f1' : '#f59e0b' }}>
+                <button type="submit" className="erp-btn-primary px-6 py-2.5" style={{ background: editingTx ? '#6366f1' : 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }}>
                   {editingTx ? 'Update Entry' : 'Save Return'}
                 </button>
               </div>

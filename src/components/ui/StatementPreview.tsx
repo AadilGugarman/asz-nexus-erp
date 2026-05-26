@@ -2,7 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer, Download, Share2, FileText } from 'lucide-react';
 
-import { useApp } from '../../context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { useAppearance } from '@/hooks';
 
 import { useToast } from './Toast';

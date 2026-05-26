@@ -4,7 +4,7 @@ import {
   Layers, AlertTriangle, RefreshCw, ArrowUpDown 
 } from 'lucide-react';
 
-import { useApp } from '../context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { DataTable, Pagination } from './ui/table';
@@ -101,7 +101,7 @@ export const InventoryModule: React.FC = () => {
             <Package className="w-6 h-6 text-[#00aeef]" />
             <span>LIVE INVENTORY SYSTEM</span>
           </h1>
-          <p className="erp-subtitle mt-1">Auto-generated from Gate Inward & Purchase Bills. Decremented by Sales Invoices.</p>
+          <p className="erp-subtitle mt-1">Auto-generated from Purchase Bills. Decremented by Sales Invoices.</p>
         </div>
 
         <div className="erp-surface flex items-center space-x-2 p-1.5">

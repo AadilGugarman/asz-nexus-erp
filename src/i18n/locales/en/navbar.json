@@ -7,7 +7,6 @@
   },
   "items": {
     "dashboard": "Dashboard",
-    "arrival": "Vehicle Inward",
     "purchase": "Purchase Billing",
     "sales": "Sales Billing",
     "payments": "Payments",

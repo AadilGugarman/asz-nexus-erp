@@ -134,8 +134,15 @@ function dbToSupplier(db: any): Supplier {
     name: db.name,
     code: db.code || "",
     phone: db.phone || "",
+    email: db.email || "",
+    gstin: db.gstin || "",
     city: db.city || "",
+    state: db.state || "",
+    billingAddress: db.billingAddress || "",
+    shippingAddress: db.shippingAddress || "",
     previousBalance: db.previousBalance || 0,
+    creditLimit: db.creditLimit || 0,
+    notes: db.notes || "",
   };
 }
 
@@ -154,8 +161,15 @@ function dbToCustomer(db: any): Customer {
     id: db.id,
     name: db.name,
     phone: db.phone || "",
+    email: db.email || "",
+    gstin: db.gstin || "",
     city: db.city || "",
+    state: db.state || "",
+    billingAddress: db.billingAddress || "",
+    shippingAddress: db.shippingAddress || "",
     previousBalance: db.previousBalance || 0,
+    creditLimit: db.creditLimit || 0,
+    notes: db.notes || "",
   };
 }
 
@@ -234,6 +248,8 @@ function dbToPurchaseInvoice(db: any): PurchaseInvoice {
     date: db.date,
     supplierId: db.supplierId,
     supplierName: db.supplierName,
+    vehicleNo: db.vehicleNo,
+    declaredWeight: db.declaredWeight,
     items,
     previousBalance: db.previousBalance || 0,
     todayAmount: db.todayAmount || 0,
@@ -276,45 +292,6 @@ export const usePayments = createDbLoader(
   "payments",
   // Browser dev fallback only — never written in Tauri/production
   STORAGE_KEYS.payments,
-);
-
-// ── Vehicle Arrivals ──────────────────────────────────────────────────────────
-
-function dbToVehicleArrival(db: any): VehicleArrival {
-  let rows: any[] = [];
-  try {
-    const parsed = JSON.parse(db.rows);
-    rows = Array.isArray(parsed) ? parsed : [];
-  } catch { /* ignore */ }
-  return {
-    id: db.id,
-    arrivalNo: db.arrivalNo,
-    date: db.date,
-    day: db.day || "",
-    vehicleNo: db.vehicleNo,
-    vehicleName: db.vehicleName,
-    fruitType: db.fruitType,
-    totalVehicleWeight: db.totalVehicleWeight || 0,
-    driverName: db.driverName,
-    notes: db.notes,
-    rows,
-    totalCarets: db.totalCarets || 0,
-    totalCalculatedWeight: db.totalCalculatedWeight || 0,
-    totalAmount: db.totalAmount || 0,
-    freightCharge: db.freightCharge,
-    hamaliCharge: db.hamaliCharge,
-    advancePaid: db.advancePaid,
-    status: db.status || "SAVED",
-    createdAt: db.createdAt,
-  };
-}
-
-export const useVehicleArrivals = createDbLoader(
-  (companyId) => dbService.vehicleArrivals.findAll(undefined, companyId ?? undefined),
-  dbToVehicleArrival,
-  "vehicleArrivals",
-  // Browser dev fallback only — never written in Tauri/production
-  STORAGE_KEYS.vehicles,
 );
 
 // ── Caret Transactions ────────────────────────────────────────────────────────

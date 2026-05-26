@@ -6,13 +6,11 @@
   },
   "hero": {
     "brandBadge": "ASZ Nexus ERP",
-    "summary": "Real-time sync across vehicle arrivals, customer billing, warehouse inventory, supplier ledgers & payments.",
-    "newInward": "New Inward Load",
+    "summary": "Real-time sync across customer billing, warehouse inventory, supplier ledgers & payments.",
     "newSales": "New Sales Bill",
     "backup": "Backup",
     "snapshotTitle": "Today's Live Snapshot",
     "snapshot": {
-      "inwardLoads": "Inward Loads",
       "purchaseValue": "Purchase Value",
       "salesBills": "Sales Bills",
       "salesValue": "Sales Value",
@@ -57,14 +55,10 @@
       "title": "Recent Transactions",
       "live": "Live",
       "fullReports": "Full Reports ->",
-      "empty": "No transactions yet. Start by recording a vehicle arrival!"
+      "empty": "No transactions yet. Start by recording a sales bill!"
     }
   },
   "quickActions": {
-    "arrival": {
-      "label": "Vehicle Inward",
-      "desc": "Gate entry & supplier allocation"
-    },
     "purchase": {
       "label": "Purchase Bill",
       "desc": "Direct supplier purchase entry"

@@ -171,6 +171,25 @@ function normalizeCompanies(raw: unknown): CompanyProfile[] {
 // activeFY) to localStorage. Business data (invoices, customers, etc.) is
 // NEVER written here — it lives exclusively in SQLite.
 
+// Cache version key — bump this whenever the DB schema changes or a restore
+// happens, so the next cold start always reads from SQLite instead of stale cache.
+const CACHE_VERSION_KEY = `${DB_KEY_SETTINGS}_cache_v`;
+const CURRENT_CACHE_VERSION = '2';
+
+function _isCacheStale(): boolean {
+  try {
+    return localStorage.getItem(CACHE_VERSION_KEY) !== CURRENT_CACHE_VERSION;
+  } catch {
+    return true;
+  }
+}
+
+function _stampCacheVersion(): void {
+  try {
+    localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
+  } catch { /* ignore */ }
+}
+
 function _writeStartupCache(
   s: AppSettings,
   companies: CompanyProfile[],
@@ -182,6 +201,7 @@ function _writeStartupCache(
     localStorage.setItem(DB_KEY_COMPANIES, JSON.stringify(companies));
     if (activeId) localStorage.setItem(DB_KEY_ACTIVE_COMPANY, activeId);
     if (activeFY) localStorage.setItem(DB_KEY_ACTIVE_FY, activeFY);
+    _stampCacheVersion();
   } catch (e) {
     console.warn("[SettingsStore] Startup cache write failed:", e);
   }
@@ -200,18 +220,23 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   loadFromDb: async () => {
     const isTauri = APP_CONFIG.isTauri;
 
-    // Always try to restore from localStorage first as a baseline/fallback
+    // Try to restore from localStorage as a baseline/fallback.
+    // If the cache version is stale (e.g. after a DB restore), skip it entirely
+    // so we always read fresh data from SQLite on the next cold start.
     let localData: Partial<AppSettings> | null = null;
     let localCompanies: CompanyProfile[] = [];
-    try {
-      const saved = localStorage.getItem(DB_KEY_SETTINGS);
-      if (saved) {
-        localData = JSON.parse(saved);
-        const companiesSaved = localStorage.getItem(DB_KEY_COMPANIES);
-        if (companiesSaved) localCompanies = normalizeCompanies(JSON.parse(companiesSaved));
+    const cacheIsValid = !_isCacheStale();
+    if (cacheIsValid) {
+      try {
+        const saved = localStorage.getItem(DB_KEY_SETTINGS);
+        if (saved) {
+          localData = JSON.parse(saved);
+          const companiesSaved = localStorage.getItem(DB_KEY_COMPANIES);
+          if (companiesSaved) localCompanies = normalizeCompanies(JSON.parse(companiesSaved));
+        }
+      } catch (e) {
+        console.warn("[SettingsStore] LocalStorage check failed:", e);
       }
-    } catch (e) {
-      console.warn("[SettingsStore] LocalStorage check failed:", e);
     }
 
     if (!isTauri) {
@@ -576,3 +601,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     _writeStartupCache(s, companies, activeId, activeFY);
   },
 }));
+
+/**
+ * Call this after a backup restore so the next cold start always reads
+ * fresh data from SQLite instead of the now-stale localStorage cache.
+ */
+export function invalidateStartupCache(): void {
+  try {
+    localStorage.removeItem(CACHE_VERSION_KEY);
+  } catch { /* ignore */ }
+}

@@ -317,9 +317,11 @@ export function logStorageState(): void {
     else otherKeys.push(key);
   }
 
-  console.log("New namespace (tfc_erp_):", newKeys);
-  console.log("Legacy namespace (apex_):", legacyKeys);
-  console.log("Other keys:", otherKeys);
+  if (import.meta.env.DEV) {
+    console.log("New namespace (tfc_erp_):", newKeys);
+    console.log("Legacy namespace (apex_):", legacyKeys);
+    console.log("Other keys:", otherKeys);
+  }
 
   console.groupEnd();
 }

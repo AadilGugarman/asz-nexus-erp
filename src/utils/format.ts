@@ -77,3 +77,20 @@ export function titleCase(str: string): string {
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+/**
+ * Round a currency value to 2 decimal places using banker's-safe arithmetic.
+ * Avoids floating-point drift like 0.1 + 0.2 = 0.30000000000000004.
+ * For INR (paise-level precision), this is sufficient.
+ */
+export function roundCurrency(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Sum an array of numbers with floating-point-safe rounding.
+ * Use this instead of .reduce((s, v) => s + v, 0) for currency totals.
+ */
+export function sumCurrency(values: number[]): number {
+  return roundCurrency(values.reduce((s, v) => s + (Number(v) || 0), 0));
+}

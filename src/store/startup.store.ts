@@ -6,8 +6,9 @@ import { dbService } from "@/db/services";
 import { useSettingsStore } from "./settings.store";
 
 /** Maximum time (ms) the startup sequence is allowed to run before we
- *  surface an error to the user instead of hanging on the splash screen. */
-const STARTUP_TIMEOUT_MS = 15_000;
+ *  surface an error to the user instead of hanging on the splash screen.
+ *  30s gives first-run DB migration enough headroom on slow hardware. */
+const STARTUP_TIMEOUT_MS = 30_000;
 
 /**
  * Minimum time (ms) the splash screen stays visible.

@@ -162,7 +162,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     {
       title: t("groups.transactions"),
       items: [
-        { id: "arrival",  label: t("items.arrival"),  icon: Truck,        badge: "IN" },
         { id: "purchase", label: t("items.purchase"), icon: ShoppingBag },
         { id: "sales",    label: t("items.sales"),    icon: ShoppingCart },
         { id: "carets",    label: "Caret Tracking",    icon: Box },

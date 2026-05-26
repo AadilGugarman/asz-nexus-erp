@@ -1,8 +1,8 @@
 import React from 'react';
 import { PurchaseInvoice } from '../types';
 import { X, Printer, FileText } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { fmtDate } from '@/utils/format';
+import { useApp } from '@/context/AppContext';
+import { fmtDate, sumCurrency, roundCurrency } from '@/utils/format';
 
 interface PurchasePreviewModalProps {
   invoice: PurchaseInvoice | null;
@@ -15,11 +15,11 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
   if (!invoice) return null;
 
   const totalCarets = invoice.items.reduce((s, i) => s + (Number(i.caret) || 0), 0);
-  const totalWeight = invoice.items.reduce((s, i) => s + (Number(i.weight) || 0), 0);
-  const freight = Number(invoice.freight) || 0;
-  const hamali = Number(invoice.hamali) || 0;
-  const itemsSubtotal = invoice.items.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const netTotal = itemsSubtotal + freight + hamali;
+  const totalWeight = sumCurrency(invoice.items.map(i => Number(i.weight) || 0));
+  const freight = roundCurrency(Number(invoice.freight) || 0);
+  const hamali = roundCurrency(Number(invoice.hamali) || 0);
+  const itemsSubtotal = sumCurrency(invoice.items.map(i => Number(i.amount) || 0));
+  const netTotal = roundCurrency(itemsSubtotal + freight + hamali);
 
   return (
     <div className="fixed inset-0 z-[99999] overflow-y-auto animate-fade-in custom-scrollbar">
@@ -60,24 +60,24 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
               </div>
               <div className="text-right shrink-0 ml-6">
                 <div className="inline-block border-2 border-teal-700 px-5 py-3 rounded-lg bg-teal-50">
-                  <div className="text-[9px] font-black tracking-[0.2em] uppercase text-teal-500">Direct Purchase Bill</div>
+                  <div className="text-[9px] font-black tracking-[0.2em] uppercase text-teal-500">Purchase Bill</div>
                   <div className="text-[22px] font-black font-mono text-teal-900 leading-tight mt-0.5">{invoice.billNo}</div>
                 </div>
                 <div className="text-[11px] font-mono text-slate-600 mt-2 font-semibold">{fmtDate(invoice.date)}</div>
               </div>
             </div>
 
-            {/* ── SUPPLIER INFO ──────────────────── */}
+            {/* ── SUPPLIER & VEHICLE INFO ──────────── */}
             <div className="border border-slate-300 rounded-lg overflow-hidden mb-6 flex">
               <div className="flex-1 p-3.5 bg-teal-50/50">
                 <div className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Purchased From — Supplier / Orchard</div>
                 <div className="text-[16px] font-black text-slate-950 mt-1">{invoice.supplierName}</div>
                 {invoice.notes && <div className="text-[10.5px] text-slate-500 mt-1 italic">Note: {invoice.notes}</div>}
               </div>
-              <div className="p-3.5 border-l border-slate-300 bg-white text-right shrink-0 min-w-[150px]">
-                <div className="text-[9px] font-bold uppercase text-slate-400">Supplier ID</div>
-                <div className="font-mono font-bold text-slate-700 text-[11px] mt-0.5">#{invoice.supplierId}</div>
-                <div className="text-[10px] text-slate-500 mt-1 font-semibold">Ledger: Creditor</div>
+              <div className="p-3.5 border-l border-slate-300 bg-white text-right shrink-0 min-w-[180px]">
+                <div className="text-[9px] font-bold uppercase text-slate-400">Vehicle Info</div>
+                <div className="font-mono font-bold text-slate-900 text-[12px] mt-0.5">{invoice.vehicleNo || "DIRECT"}</div>
+                {invoice.declaredWeight && <div className="text-[10px] text-slate-500 mt-0.5 font-bold">Wt: {invoice.declaredWeight} KG</div>}
               </div>
             </div>
 

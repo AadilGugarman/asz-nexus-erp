@@ -18,7 +18,6 @@ import { getDb } from "../client";
 import { FruitRepository } from "../repositories/fruit.repository";
 import { SupplierRepository } from "../repositories/supplier.repository";
 import { CustomerRepository } from "../repositories/customer.repository";
-import { VehicleArrivalRepository } from "../repositories/vehicle-arrival.repository";
 import {
   InvoiceRepository,
   PurchaseInvoiceRepository,
@@ -31,7 +30,6 @@ class DbService {
   private _fruits?: FruitRepository;
   private _suppliers?: SupplierRepository;
   private _customers?: CustomerRepository;
-  private _vehicleArrivals?: VehicleArrivalRepository;
   private _invoices?: InvoiceRepository;
   private _purchaseInvoices?: PurchaseInvoiceRepository;
   private _payments?: PaymentRepository;
@@ -46,7 +44,6 @@ class DbService {
     this._fruits = new FruitRepository(db);
     this._suppliers = new SupplierRepository(db);
     this._customers = new CustomerRepository(db);
-    this._vehicleArrivals = new VehicleArrivalRepository(db);
     this._invoices = new InvoiceRepository(db);
     this._purchaseInvoices = new PurchaseInvoiceRepository(db);
     this._payments = new PaymentRepository(db);
@@ -64,9 +61,6 @@ class DbService {
   }
   get customers(): CustomerRepository {
     return this._require(this._customers, "customers");
-  }
-  get vehicleArrivals(): VehicleArrivalRepository {
-    return this._require(this._vehicleArrivals, "vehicleArrivals");
   }
   get invoices(): InvoiceRepository {
     return this._require(this._invoices, "invoices");

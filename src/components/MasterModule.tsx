@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { Settings, Plus, Users, UserCheck, Apple, Tag } from 'lucide-react';
 import { CommandSelect, CommandOption } from './ui/CommandSelect';
 import { useToast } from './ui/Toast';
@@ -200,8 +200,8 @@ export const MasterModule: React.FC = () => {
           <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2 font-sans">
             <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block font-sans">Existing Varieties in Hierarchy:</span>
             <div className="flex flex-wrap gap-1.5 max-h-[200px] overflow-y-auto pr-1">
-              {(fruits.find(f => f.id === selectedFruitId)?.varieties || []).map((v, idx) => (
-                <span key={idx} className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-600 px-3 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 font-sans">
+              {(fruits.find(f => f.id === selectedFruitId)?.varieties || []).map((v) => (
+                <span key={v} className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-600 px-3 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 font-sans">
                   <Tag className="w-3 h-3 text-teal-600 dark:text-teal-400" />
                   <span>{v}</span>
                 </span>

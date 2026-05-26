@@ -4,7 +4,7 @@ import {
   FileText, Calendar, Copy, ArrowUpDown, Calculator
 } from "lucide-react";
 
-import { useApp } from "../context/AppContext";
+import { useApp } from "@/context/AppContext";
 import { useDataTable } from "../hooks/useDataTable";
 import { useAppTranslation } from "@/hooks";
 
@@ -16,7 +16,8 @@ import { DataTable, Pagination } from "./ui/table";
 import { PurchasePreviewModal } from "./PurchasePreviewModal";
 
 import { PurchaseInvoice, PurchaseInvoiceItem } from "../types";
-import { fmtDate } from "@/utils/format";
+import { fmtDate, sumCurrency, roundCurrency } from "@/utils/format";
+import { getNextUniquePurchaseNumber } from "../utils/invoice-number";
 
 //        helpers
 // formatDateWithDay is now fmtDateWithDay from utils/format
@@ -71,6 +72,8 @@ export const PurchaseBillingModule: React.FC = () => {
     deletePurchaseInvoice,
     addFruit,
     addFruitVariety,
+    settings,
+    updateSettings,
   } = useApp();
   const { t } = useAppTranslation("billing");
   const toast = useToast();
@@ -83,12 +86,13 @@ export const PurchaseBillingModule: React.FC = () => {
     null,
   );
   const [isListLoading, setIsListLoading] = useState(false);
-  const [showCharges, setShowCharges] = useState(false); // unused, kept for compat
+  const [showCharges, setShowCharges] = useState(true);
 
   //        form state
-  const [billNo, setBillNo] = useState(
-    `PUR-2026-${String(purchaseInvoices.length + 101).padStart(3, "0")}`,
-  );
+  const [billNo, setBillNo] = useState(() => {
+    const next = getNextUniquePurchaseNumber(settings.invoice, purchaseInvoices, new Date().toISOString().split("T")[0], settings.invoice.purchaseNextNo || 101);
+    return next.invoiceNo;
+  });
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedSupplierId, setSelectedSupplierId] = useState(
     suppliers[0]?.id || "",
@@ -127,24 +131,29 @@ export const PurchaseBillingModule: React.FC = () => {
     [selectedSupplierId, suppliers],
   );
 
+  // Auto-update bill number when date or purchaseInvoices change
+  useEffect(() => {
+    const next = getNextUniquePurchaseNumber(
+      settings.invoice,
+      purchaseInvoices,
+      date,
+      settings.invoice.purchaseNextNo || 101,
+    );
+    setBillNo(next.invoiceNo);
+  }, [date, purchaseInvoices.length, settings.invoice.purchaseNextNo]);
+
   //        calculations
-  const itemsSubtotal = items.reduce(
-    (s, it) => s + (parseFloat(String(it.amount)) || 0),
-    0,
-  );
-  const freight = parseFloat(String(freightInput)) || 0;
-  const hamali = parseFloat(String(hamaliInput)) || 0;
-  const todayAmount = itemsSubtotal + freight + hamali;
+  const itemsSubtotal = sumCurrency(items.map(it => parseFloat(String(it.amount)) || 0));
+  const freight = roundCurrency(parseFloat(String(freightInput)) || 0);
+  const hamali = roundCurrency(parseFloat(String(hamaliInput)) || 0);
+  const todayAmount = roundCurrency(itemsSubtotal + freight + hamali);
   const previousBalance = selectedSupplier?.previousBalance ?? 0;
-  const remainingBalance = previousBalance + todayAmount;
+  const remainingBalance = roundCurrency(previousBalance + todayAmount);
   const totalCarets = items.reduce(
     (s, it) => s + (parseFloat(String(it.caret)) || 0),
     0,
   );
-  const totalWeight = items.reduce(
-    (s, it) => s + (parseFloat(String(it.weight)) || 0),
-    0,
-  );
+  const totalWeight = sumCurrency(items.map(it => parseFloat(String(it.weight)) || 0));
 
   //        item helpers
   const handleItemChange = (
@@ -251,9 +260,13 @@ export const PurchaseBillingModule: React.FC = () => {
 
   //        reset / save
   const handleResetForm = () => {
-    setBillNo(
-      `PUR-2026-${String(purchaseInvoices.length + 101).padStart(3, "0")}`,
+    const next = getNextUniquePurchaseNumber(
+      settings.invoice,
+      purchaseInvoices,
+      date,
+      settings.invoice.purchaseNextNo || 101,
     );
+    setBillNo(next.invoiceNo);
     setItems([makeBlankItem(fruits)]);
     setVehicleNo("");
     setDeclaredWeight(0);
@@ -271,9 +284,27 @@ export const PurchaseBillingModule: React.FC = () => {
       toast.warning("Empty Bill", "Add at least one item with a value.");
       return;
     }
+
+    let resolvedNo = billNo.trim();
+    let nextSeed = settings.invoice.purchaseNextNo || 101;
+
+    if (!resolvedNo) {
+      toast.error("Missing Bill No", "Enter a bill number.");
+      return;
+    }
+    // Duplicate check
+    if (purchaseInvoices.some((i) => i.billNo === resolvedNo)) {
+      // Auto-resolve by bumping the seed
+      const next = getNextUniquePurchaseNumber(settings.invoice, purchaseInvoices, date, nextSeed);
+      resolvedNo = next.invoiceNo;
+      nextSeed = next.nextSeed;
+    } else {
+      nextSeed = nextSeed + 1;
+    }
+
     const inv: PurchaseInvoice = {
       id: `pinv-${Date.now()}`,
-      billNo,
+      billNo: resolvedNo,
       date,
       supplierId: selectedSupplier.id,
       supplierName: selectedSupplier.name,
@@ -290,9 +321,10 @@ export const PurchaseBillingModule: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
     savePurchaseInvoice(inv);
+    updateSettings({ invoice: { ...settings.invoice, purchaseNextNo: nextSeed } });
     toast.success(
       "Bill Saved",
-      `${billNo} - Rs.${todayAmount.toLocaleString("en-IN")} for ${selectedSupplier.name}`,
+      `${resolvedNo} - Rs.${todayAmount.toLocaleString("en-IN")} for ${selectedSupplier.name}`,
     );
     setTimeout(() => {
       setActiveSubTab("LIST");
@@ -419,7 +451,7 @@ export const PurchaseBillingModule: React.FC = () => {
                                                                                                                                                     */}
       {activeSubTab === "NEW_INVOICE" && (
         <div className="space-y-4">
-          {/* Lorry Charges Toggle (Vehicle Inward Style) */}
+          {/* Lorry Charges Toggle */}
           <div className="flex items-center justify-between px-1">
             <button
               type="button"
@@ -438,7 +470,7 @@ export const PurchaseBillingModule: React.FC = () => {
           {/*        COMPACT FORM HEADER        */}
           <div className={`${card} overflow-hidden`}>
             {/* Row 1: Bill No    Date    Supplier    Vehicle No    Declared Wt */}
-            <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr] gap-0 divide-x dark:divide-slate-800 divide-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-0 divide-y sm:divide-y-0 sm:divide-x dark:divide-slate-800 divide-slate-100">
               {/* Bill No */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5 min-w-[150px]">
                 <span
@@ -529,7 +561,7 @@ export const PurchaseBillingModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Advanced Lorry Charges Panel (Vehicle Inward Style) */}
+          {/* Advanced Lorry Charges Panel */}
           {showCharges && (
             <div
               className={`${card} p-4 bg-slate-50/50 dark:bg-slate-950/30 border-emerald-500/20`}

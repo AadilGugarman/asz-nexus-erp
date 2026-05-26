@@ -4,25 +4,33 @@ import {
   ArrowUpRight, ArrowDownRight, Package, Users, UserCheck, DollarSign, Layers, Banknote, ArrowUpDown
 } from 'lucide-react';
 
-import { useApp } from '../context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { DataTable, Pagination } from './ui/table';
 import { StatementPreview } from './ui/StatementPreview';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 
-import { fmtDate } from '@/utils/format';
+import { fmtDate, sumCurrency, roundCurrency } from '@/utils/format';
 
 type ReportTab = 'DAILY' | 'DATERANGE' | 'PARTY' | 'FRUIT' | 'OUTSTANDING' | 'PNL';
 
 export const ReportsModule: React.FC = () => {
-  const { vehicles, invoices, purchaseInvoices, payments, suppliers, customers, settings } = useApp();
+  const { invoices, purchaseInvoices, payments, suppliers, customers, settings } = useApp();
   const [showReportPreview, setShowReportPreview] = useState(false);
   const reportContentRef = useRef<HTMLDivElement>(null);
 
   const [activeReport, setActiveReport] = useState<ReportTab>('DAILY');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dateFrom, setDateFrom] = useState('2026-05-01');
+  const [dateFrom, setDateFrom] = useState(() => {
+    // Default to start of current financial year
+    const fyStart = settings?.financial?.financialYearStart ?? '04-01';
+    const [monthStr, dayStr] = fyStart.split('-');
+    const month = parseInt(monthStr, 10);
+    const now = new Date();
+    const baseYear = now.getMonth() + 1 >= month ? now.getFullYear() : now.getFullYear() - 1;
+    return `${baseYear}-${String(month).padStart(2, '0')}-${dayStr}`;
+  });
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,7 +47,8 @@ export const ReportsModule: React.FC = () => {
   const inRange = (d: string) => d >= dateFrom && d <= dateTo;
   const onDate = (d: string) => d === selectedDate;
 
-  const savedVehicles = vehicles.filter(v => v.status === 'SAVED');
+  // Vehicle arrivals removed — keep as empty array so report calculations still work
+  const savedVehicles: { date: string; totalAmount: number; totalCalculatedWeight: number; fruitType: string; rows: { supplierId: string; amount: number; variety: string }[]; freightCharge?: number; hamaliCharge?: number; arrivalNo: string; id: string }[] = [];
 
   useEffect(() => {
     setIsLoading(true);
@@ -51,28 +60,25 @@ export const ReportsModule: React.FC = () => {
   // REPORT 1: DAILY SUMMARY
   // ══════════════════════════════════════════════
   const daily = useMemo(() => {
-    const veh = savedVehicles.filter(v => onDate(v.date));
     const pinv = purchaseInvoices.filter(i => onDate(i.date));
     const sinv = invoices.filter(i => onDate(i.date));
     const pay = payments.filter(p => onDate(p.date));
 
-    const totalPurchaseVehicle = veh.reduce((s, v) => s + v.totalAmount, 0);
-    const totalPurchaseBill = pinv.reduce((s, i) => s + i.todayAmount, 0);
-    const totalSales = sinv.reduce((s, i) => s + i.todayAmount, 0);
-    const totalPaidOut = pay.filter(p => p.partyType === 'SUPPLIER').reduce((s, p) => s + p.amount, 0);
-    const totalReceived = pay.filter(p => p.partyType === 'CUSTOMER').reduce((s, p) => s + p.amount, 0);
-    const totalWeightIn = veh.reduce((s, v) => s + v.totalCalculatedWeight, 0) + pinv.reduce((s, i) => s + i.items.reduce((a, it) => a + (Number(it.weight) || 0), 0), 0);
-    const totalWeightOut = sinv.reduce((s, i) => s + i.items.reduce((a, it) => a + (Number(it.weight) || 0), 0), 0);
+    const totalPurchaseBill = roundCurrency(pinv.reduce((s, i) => s + i.todayAmount, 0));
+    const totalSales = roundCurrency(sinv.reduce((s, i) => s + i.todayAmount, 0));
+    const totalPaidOut = roundCurrency(pay.filter(p => p.partyType === 'SUPPLIER').reduce((s, p) => s + p.amount, 0));
+    const totalReceived = roundCurrency(pay.filter(p => p.partyType === 'CUSTOMER').reduce((s, p) => s + p.amount, 0));
+    const totalWeightIn = roundCurrency(pinv.reduce((s, i) => s + i.items.reduce((a, it) => a + (Number(it.weight) || 0), 0), 0));
+    const totalWeightOut = roundCurrency(sinv.reduce((s, i) => s + i.items.reduce((a, it) => a + (Number(it.weight) || 0), 0), 0));
 
-    return { veh, pinv, sinv, pay, totalPurchaseVehicle, totalPurchaseBill, totalSales, totalPaidOut, totalReceived, totalWeightIn, totalWeightOut };
-  }, [selectedDate, savedVehicles, purchaseInvoices, invoices, payments]);
+    return { pinv, sinv, pay, totalPurchaseBill, totalSales, totalPaidOut, totalReceived, totalWeightIn, totalWeightOut };
+  }, [selectedDate, purchaseInvoices, invoices, payments]);
 
   const dailyTransactions = useMemo(() => {
-    const veh = daily.veh.map(v => ({ id: `veh-${v.id}`, type: 'Vehicle Inward', reference: v.arrivalNo, party: v.rows.map(r => r.supplierName).filter((v2, i, a) => a.indexOf(v2) === i).join(', '), amount: v.totalAmount, direction: 'OUT' as const }));
     const pinv = daily.pinv.map(i => ({ id: `pinv-${i.id}`, type: 'Purchase Bill', reference: i.billNo, party: i.supplierName, amount: i.todayAmount, direction: 'OUT' as const }));
     const sinv = daily.sinv.map(i => ({ id: `sinv-${i.id}`, type: 'Sales Invoice', reference: i.invoiceNo, party: i.customerName, amount: i.todayAmount, direction: 'IN' as const }));
     const pay = daily.pay.map(p => ({ id: `pay-${p.id}`, type: `Payment ${p.partyType === 'SUPPLIER' ? 'Out' : 'In'}`, reference: p.referenceNo || '-', party: p.partyName, amount: p.amount, direction: p.partyType === 'SUPPLIER' ? 'OUT' as const : 'IN' as const }));
-    return [...veh, ...pinv, ...sinv, ...pay];
+    return [...pinv, ...sinv, ...pay];
   }, [daily]);
 
   const dailyTable = useDataTable<(typeof dailyTransactions)[number], 'type' | 'reference' | 'party' | 'amount'>({
@@ -99,10 +105,10 @@ export const ReportsModule: React.FC = () => {
     const sinv = invoices.filter(i => inRange(i.date));
     const pay = payments.filter(p => inRange(p.date));
 
-    const totalPurchase = veh.reduce((s, v) => s + v.totalAmount, 0) + pinv.reduce((s, i) => s + i.todayAmount, 0);
-    const totalSales = sinv.reduce((s, i) => s + i.todayAmount, 0);
-    const totalPaidOut = pay.filter(p => p.partyType === 'SUPPLIER').reduce((s, p) => s + p.amount, 0);
-    const totalReceived = pay.filter(p => p.partyType === 'CUSTOMER').reduce((s, p) => s + p.amount, 0);
+    const totalPurchase = roundCurrency(veh.reduce((s, v) => s + v.totalAmount, 0) + pinv.reduce((s, i) => s + i.todayAmount, 0));
+    const totalSales = roundCurrency(sinv.reduce((s, i) => s + i.todayAmount, 0));
+    const totalPaidOut = roundCurrency(pay.filter(p => p.partyType === 'SUPPLIER').reduce((s, p) => s + p.amount, 0));
+    const totalReceived = roundCurrency(pay.filter(p => p.partyType === 'CUSTOMER').reduce((s, p) => s + p.amount, 0));
 
     // Day-wise breakdown
     const dayMap = new Map<string, { purchase: number; sales: number; paidOut: number; received: number }>();
@@ -153,18 +159,24 @@ export const ReportsModule: React.FC = () => {
       let purchase = s.previousBalance;
       savedVehicles.forEach(v => v.rows.filter(r => r.supplierId === s.id).forEach(r => { purchase += r.amount; }));
       purchaseInvoices.filter(i => i.supplierId === s.id).forEach(i => { purchase += i.todayAmount; });
-      const paid = payments.filter(p => p.partyType === 'SUPPLIER' && p.partyId === s.id).reduce((a, p) => a + p.amount, 0)
-        + purchaseInvoices.filter(i => i.supplierId === s.id).reduce((a, i) => a + i.paidAmount, 0);
-      supMap.set(s.id, { name: s.name, purchase, paid, balance: purchase - paid });
+      const paid = roundCurrency(
+        payments.filter(p => p.partyType === 'SUPPLIER' && p.partyId === s.id).reduce((a, p) => a + p.amount, 0) +
+        purchaseInvoices.filter(i => i.supplierId === s.id).reduce((a, i) => a + i.paidAmount, 0)
+      );
+      purchase = roundCurrency(purchase);
+      supMap.set(s.id, { name: s.name, purchase, paid, balance: roundCurrency(purchase - paid) });
     });
 
     const custMap = new Map<string, { name: string; sales: number; received: number; balance: number }>();
     customers.forEach(c => {
       let sales = c.previousBalance;
       invoices.filter(i => i.customerId === c.id).forEach(i => { sales += i.todayAmount; });
-      const received = payments.filter(p => p.partyType === 'CUSTOMER' && p.partyId === c.id).reduce((a, p) => a + p.amount, 0)
-        + invoices.filter(i => i.customerId === c.id).reduce((a, i) => a + i.paidAmount, 0);
-      custMap.set(c.id, { name: c.name, sales, received, balance: sales - received });
+      const received = roundCurrency(
+        payments.filter(p => p.partyType === 'CUSTOMER' && p.partyId === c.id).reduce((a, p) => a + p.amount, 0) +
+        invoices.filter(i => i.customerId === c.id).reduce((a, i) => a + i.paidAmount, 0)
+      );
+      sales = roundCurrency(sales);
+      custMap.set(c.id, { name: c.name, sales, received, balance: roundCurrency(sales - received) });
     });
 
     return {
@@ -249,25 +261,32 @@ export const ReportsModule: React.FC = () => {
   // REPORT 5: OUTSTANDING
   // ══════════════════════════════════════════════
   const outstandingData = useMemo(() => {
-    const totalSupPayable = partyData.suppliers.reduce((s, x) => s + x.balance, 0);
-    const totalCustReceivable = partyData.customers.reduce((s, x) => s + x.balance, 0);
-    return { totalSupPayable, totalCustReceivable, net: totalCustReceivable - totalSupPayable };
+    const totalSupPayable = roundCurrency(partyData.suppliers.reduce((s, x) => s + x.balance, 0));
+    const totalCustReceivable = roundCurrency(partyData.customers.reduce((s, x) => s + x.balance, 0));
+    return { totalSupPayable, totalCustReceivable, net: roundCurrency(totalCustReceivable - totalSupPayable) };
   }, [partyData]);
 
   // ══════════════════════════════════════════════
   // REPORT 6: P&L
   // ══════════════════════════════════════════════
   const pnlData = useMemo(() => {
-    const totalPurchase = savedVehicles.reduce((s, v) => s + v.totalAmount, 0) + purchaseInvoices.reduce((s, i) => s + i.todayAmount, 0);
-    const totalSales = invoices.reduce((s, i) => s + i.todayAmount, 0);
-    const totalFreight = savedVehicles.reduce((s, v) => s + (v.freightCharge || 0), 0) + purchaseInvoices.reduce((s, i) => s + (i.freight || 0), 0);
-    const totalHamali = savedVehicles.reduce((s, v) => s + (v.hamaliCharge || 0), 0) + purchaseInvoices.reduce((s, i) => s + (i.hamali || 0), 0) + invoices.reduce((s, i) => s + (i.hamali || 0), 0);
-    const totalDiscount = invoices.reduce((s, i) => s + (i.discount || 0), 0);
-    const grossProfit = totalSales - totalPurchase;
-    const netProfit = grossProfit + totalHamali - totalFreight - totalDiscount;
-    const margin = totalSales > 0 ? ((grossProfit / totalSales) * 100) : 0;
+    const totalPurchase = roundCurrency(
+      purchaseInvoices.reduce((s, i) => s + i.todayAmount, 0)
+    );
+    const totalSales = roundCurrency(invoices.reduce((s, i) => s + i.todayAmount, 0));
+    const totalFreight = roundCurrency(
+      purchaseInvoices.reduce((s, i) => s + (i.freight || 0), 0)
+    );
+    const totalHamali = roundCurrency(
+      purchaseInvoices.reduce((s, i) => s + (i.hamali || 0), 0) +
+      invoices.reduce((s, i) => s + (i.hamali || 0), 0)
+    );
+    const totalDiscount = roundCurrency(invoices.reduce((s, i) => s + (i.discount || 0), 0));
+    const grossProfit = roundCurrency(totalSales - totalPurchase);
+    const netProfit = roundCurrency(grossProfit + totalHamali - totalFreight - totalDiscount);
+    const margin = totalSales > 0 ? roundCurrency((grossProfit / totalSales) * 100) : 0;
     return { totalPurchase, totalSales, totalFreight, totalHamali, totalDiscount, grossProfit, netProfit, margin };
-  }, [savedVehicles, purchaseInvoices, invoices]);
+  }, [purchaseInvoices, invoices]);
 
   // ── Cell helper ─────────────────────────────
   const C = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
@@ -329,8 +348,7 @@ export const ReportsModule: React.FC = () => {
               className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
-            <C><Lbl>🚛 Vehicle Loads</Lbl><Big>{daily.veh.length}</Big></C>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
             <C><Lbl>📥 Purchase Bills</Lbl><Big>{daily.pinv.length}</Big></C>
             <C><Lbl>📤 Sales Invoices</Lbl><Big>{daily.sinv.length}</Big></C>
             <C><Lbl>💰 Payments Made</Lbl><Big>{daily.pay.length}</Big></C>
@@ -339,9 +357,8 @@ export const ReportsModule: React.FC = () => {
             <C><Lbl>⚖️ Net Weight Change</Lbl><Big color={(daily.totalWeightIn - daily.totalWeightOut) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{(daily.totalWeightIn - daily.totalWeightOut >= 0 ? '+' : '') + (daily.totalWeightIn - daily.totalWeightOut).toLocaleString()} KG</Big></C>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <C><Lbl>🚛 Veh. Purchase Amt</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {daily.totalPurchaseVehicle.toLocaleString('en-IN')}</Big></C>
-            <C><Lbl>📄 Direct Purchase Amt</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {daily.totalPurchaseBill.toLocaleString('en-IN')}</Big></C>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <C><Lbl>📄 Purchase Amt</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {daily.totalPurchaseBill.toLocaleString('en-IN')}</Big></C>
             <C><Lbl>💵 Total Sales Amt</Lbl><Big color="text-emerald-600 dark:text-emerald-400">₹ {daily.totalSales.toLocaleString('en-IN')}</Big></C>
             <C><Lbl>⬆️ Cash Paid Out</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {daily.totalPaidOut.toLocaleString('en-IN')}</Big></C>
             <C><Lbl>⬇️ Cash Received</Lbl><Big color="text-emerald-600 dark:text-emerald-400">₹ {daily.totalReceived.toLocaleString('en-IN')}</Big></C>
@@ -350,7 +367,7 @@ export const ReportsModule: React.FC = () => {
           {/* Transactions table for the day */}
           {isLoading ? (
             <div className="erp-table-wrap rounded-xl"><TableSkeleton rows={6} cols={4} /></div>
-          ) : (daily.veh.length > 0 || daily.sinv.length > 0 || daily.pinv.length > 0 || daily.pay.length > 0) ? (
+          ) : (daily.sinv.length > 0 || daily.pinv.length > 0 || daily.pay.length > 0) ? (
             <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm">
               <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 text-xs font-bold dark:text-slate-300 text-slate-800 uppercase tracking-wider">All Transactions — {selectedDate}</div>
               <DataTable
@@ -409,7 +426,7 @@ export const ReportsModule: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <C><Lbl>Total Purchase</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {rangeData.totalPurchase.toLocaleString('en-IN')}</Big><div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">{rangeData.vehCount} loads + {rangeData.pinvCount} bills</div></C>
+            <C><Lbl>Total Purchase</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {rangeData.totalPurchase.toLocaleString('en-IN')}</Big><div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">{rangeData.pinvCount} bills</div></C>
             <C><Lbl>Total Sales</Lbl><Big color="text-emerald-600 dark:text-emerald-400">₹ {rangeData.totalSales.toLocaleString('en-IN')}</Big><div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-medium">{rangeData.sinvCount} invoices</div></C>
             <C><Lbl>Cash Paid Out</Lbl><Big color="text-rose-600 dark:text-rose-400">₹ {rangeData.totalPaidOut.toLocaleString('en-IN')}</Big></C>
             <C><Lbl>Cash Received</Lbl><Big color="text-emerald-600 dark:text-emerald-400">₹ {rangeData.totalReceived.toLocaleString('en-IN')}</Big></C>
@@ -493,7 +510,7 @@ export const ReportsModule: React.FC = () => {
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                   {supplierTable.pageRows.map(s => (
-                    <tr key={s.name} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
+                    <tr key={s.name} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 44px' } as React.CSSProperties} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
                       <td className="py-2.5 px-4 col-text font-bold dark:text-white text-slate-900">{s.name}</td>
                       <td className="py-2.5 px-3 col-num font-mono font-semibold text-rose-600 dark:text-rose-400">₹ {s.purchase.toLocaleString('en-IN')}</td>
                       <td className="py-2.5 px-3 col-num font-mono font-semibold text-emerald-600 dark:text-emerald-400">₹ {s.paid.toLocaleString('en-IN')}</td>
@@ -528,7 +545,7 @@ export const ReportsModule: React.FC = () => {
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                   {customerTable.pageRows.map(c => (
-                    <tr key={c.name} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
+                    <tr key={c.name} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 44px' } as React.CSSProperties} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
                       <td className="py-2.5 px-4 col-text font-bold dark:text-white text-slate-900">{c.name}</td>
                       <td className="py-2.5 px-3 col-num font-mono font-semibold text-indigo-600 dark:text-indigo-400">₹ {c.sales.toLocaleString('en-IN')}</td>
                       <td className="py-2.5 px-3 col-num font-mono font-semibold text-emerald-600 dark:text-emerald-400">₹ {c.received.toLocaleString('en-IN')}</td>
@@ -573,11 +590,11 @@ export const ReportsModule: React.FC = () => {
                   <th className="py-2.5 px-4 col-num w-36 font-black"><button type="button" onClick={() => fruitTable.toggleSort('stock')} className="inline-flex items-center gap-1 ml-auto">Stock (KG) <ArrowUpDown className="w-3 h-3" /></button></th>
                 </tr></thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
-                  {fruitTable.pageRows.map((f, i) => {
+                  {fruitTable.pageRows.map((f) => {
                     const avgBuy = f.purchased > 0 ? f.purchaseAmt / f.purchased : 0;
                     const avgSell = f.sold > 0 ? f.salesAmt / f.sold : 0;
                     return (
-                      <tr key={i} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
+                      <tr key={`${f.fruit}||${f.variety}`} className="dark:hover:bg-slate-800/40 hover:bg-slate-50 font-sans">
                         <td className="py-2.5 px-4 col-text font-bold dark:text-white text-slate-900">{f.fruit}</td>
                         <td className="py-2.5 px-3 col-text font-semibold dark:text-slate-200 text-slate-800">{f.variety}</td>
                         <td className="py-2.5 px-3 col-num font-mono font-semibold">{f.purchased.toLocaleString()}</td>

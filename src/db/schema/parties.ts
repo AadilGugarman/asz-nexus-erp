@@ -11,8 +11,15 @@ export const suppliers = sqliteTable('suppliers', {
   name:            text('name').notNull(),
   code:            text('code').notNull().default(''),
   phone:           text('phone').notNull().default(''),
+  email:           text('email').notNull().default(''),
+  gstin:           text('gstin').notNull().default(''),
   city:            text('city').notNull().default(''),
+  state:           text('state').notNull().default(''),
+  billingAddress:  text('billing_address').notNull().default(''),
+  shippingAddress: text('shipping_address').notNull().default(''),
   previousBalance: real('previous_balance').notNull().default(0),
+  creditLimit:     real('credit_limit').notNull().default(0),
+  notes:           text('notes').notNull().default(''),
   companyId:       text('company_id'),
 });
 
@@ -21,8 +28,15 @@ export const customers = sqliteTable('customers', {
   id:              text('id').primaryKey(),
   name:            text('name').notNull(),
   phone:           text('phone').notNull().default(''),
+  email:           text('email').notNull().default(''),
+  gstin:           text('gstin').notNull().default(''),
   city:            text('city').notNull().default(''),
+  state:           text('state').notNull().default(''),
+  billingAddress:  text('billing_address').notNull().default(''),
+  shippingAddress: text('shipping_address').notNull().default(''),
   previousBalance: real('previous_balance').notNull().default(0),
+  creditLimit:     real('credit_limit').notNull().default(0),
+  notes:           text('notes').notNull().default(''),
   companyId:       text('company_id'),
 });
 

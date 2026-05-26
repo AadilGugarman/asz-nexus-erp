@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useApp } from "../context/AppContext";
+import { useApp } from "@/context/AppContext";
 import { useToast } from "./ui/Toast";
 import { Building2, CalendarRange, Check, ChevronDown } from "lucide-react";
 

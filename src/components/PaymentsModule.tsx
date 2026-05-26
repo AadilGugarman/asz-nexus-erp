@@ -5,7 +5,7 @@ import {
   Printer, X, Building2, Users, UserCheck, ArrowUpDown
 } from 'lucide-react';
 
-import { useApp } from '../context/AppContext';
+import { useApp } from '@/context/AppContext';
 
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
@@ -15,7 +15,7 @@ import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
 
 import { PaymentReceipt } from '../types';
-import { fmtDate } from '@/utils/format';
+import { fmtDate, roundCurrency } from '@/utils/format';
 
 const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   CASH: { label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" />, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
@@ -28,7 +28,7 @@ const getPaymentModeMeta = (mode: string) =>
   PAYMENT_MODE_LABELS[mode] ?? { label: mode || 'Unknown', icon: <Wallet className="w-3.5 h-3.5" />, color: 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/30' };
 
 export const PaymentsModule: React.FC = () => {
-  const { payments, suppliers, customers, addPayment, deletePayment, settings } = useApp();
+  const { payments, suppliers, customers, addPayment, deletePayment, settings, getSupplierLedger, getCustomerLedger } = useApp();
   const cs = settings.company;
   const toast = useToast();
   const dialog = useConfirmDialog();
@@ -73,6 +73,25 @@ export const PaymentsModule: React.FC = () => {
       emoji: '👤'
     }));
   }, [direction, suppliers, customers]);
+
+  // ── Outstanding balance for selected party ──────────────────────────────
+  const outstandingBalance = useMemo(() => {
+    if (!selectedPartyName.trim()) return null;
+    if (direction === 'PAID_TO_SUPPLIER') {
+      const sup = suppliers.find(s => s.name === selectedPartyName);
+      if (!sup) return null;
+      const ledger = getSupplierLedger(sup.id);
+      // ledger is reversed (latest first) — first entry has the current running balance
+      return ledger.length > 0 ? ledger[0].runningBalance : sup.previousBalance;
+    } else {
+      const cust = customers.find(c => c.name === selectedPartyName);
+      if (!cust) return null;
+      const ledger = getCustomerLedger(cust.id);
+      return ledger.length > 0 ? ledger[0].runningBalance : cust.previousBalance;
+    }
+  }, [selectedPartyName, direction, suppliers, customers, getSupplierLedger, getCustomerLedger]);
+
+  const isOverpayment = outstandingBalance !== null && amount > 0 && amount > outstandingBalance && outstandingBalance > 0;
 
   // ── Filtered Payments ───────────────
   const filteredPayments = useMemo(() => {
@@ -394,6 +413,36 @@ export const PaymentsModule: React.FC = () => {
                 />
               </div>
             </div>
+
+            {/* Outstanding Balance Info + Overpayment Warning */}
+            {outstandingBalance !== null && (
+              <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-xs font-semibold transition-all ${
+                isOverpayment
+                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-700 dark:text-amber-400'
+                  : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+              }`}>
+                <div className="shrink-0 mt-0.5">
+                  {isOverpayment ? (
+                    <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                  ) : (
+                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                  )}
+                </div>
+                <div>
+                  {isOverpayment ? (
+                    <>
+                      <span className="font-black text-amber-700 dark:text-amber-400">Overpayment Warning — </span>
+                      Payment of <span className="font-mono font-black">₹{amount.toLocaleString('en-IN')}</span> exceeds the outstanding balance of <span className="font-mono font-black">₹{outstandingBalance.toLocaleString('en-IN')}</span>. The excess <span className="font-mono font-black">₹{roundCurrency(amount - outstandingBalance).toLocaleString('en-IN')}</span> will create a credit balance. Confirm if intentional.
+                    </>
+                  ) : (
+                    <>
+                      Outstanding balance: <span className="font-mono font-black dark:text-white text-slate-900">₹{outstandingBalance.toLocaleString('en-IN')}</span>
+                      {amount > 0 && <span className="ml-2 dark:text-slate-300 text-slate-700">→ After payment: <span className="font-mono font-black">₹{roundCurrency(outstandingBalance - amount).toLocaleString('en-IN')}</span></span>}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Submit */}
             <div className="flex items-center justify-between pt-4 border-t dark:border-slate-800 border-slate-200">

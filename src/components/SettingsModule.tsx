@@ -12,7 +12,7 @@ const getCompanyInitials = (name: string) => {
     .slice(0, 3)
     .toUpperCase();
 };
-import { useApp } from "../context/AppContext";
+import { useApp } from "@/context/AppContext";
 import { useAppearance, useAppTranslation } from "@/hooks";
 import { useDataTable } from "@/hooks/useDataTable";
 import { backupService } from "@/services/backup.service";
@@ -87,7 +87,6 @@ export const SettingsModule: React.FC = () => {
     resetAllData,
     importData,
     getExportData,
-    vehicles,
     invoices,
     purchaseInvoices,
     payments,
@@ -685,10 +684,9 @@ export const SettingsModule: React.FC = () => {
         total += (localStorage.getItem(key) || "").length;
     }
     return (total / 1024).toFixed(1);
-  }, [vehicles, invoices, purchaseInvoices, payments]);
+  }, [invoices, purchaseInvoices, payments]);
 
   const dataCounts = {
-    vehicles: vehicles.length,
     invoices: invoices.length,
     purchaseInvoices: purchaseInvoices.length,
     payments: payments.length,

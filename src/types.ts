@@ -13,15 +13,22 @@ export interface Supplier {
   name: string;
   code: string;
   phone: string;
+  email: string;
+  gstin: string;
   city: string;
+  state: string;
+  billingAddress: string;
+  shippingAddress: string;
   previousBalance: number;
+  creditLimit: number;
+  notes: string;
 }
 
 export interface SupplierLedgerEntry {
   id: string;
   supplierId: string;
   date: string;
-  type: "PURCHASE_VEHICLE" | "PURCHASE_BILL" | "PAYMENT" | "OPENING";
+  type: "PURCHASE_BILL" | "PAYMENT" | "OPENING";
   referenceId?: string;
   referenceNo?: string;
   variety?: string;
@@ -36,8 +43,15 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
+  email: string;
+  gstin: string;
   city: string;
+  state: string;
+  billingAddress: string;
+  shippingAddress: string;
   previousBalance: number;
+  creditLimit: number;
+  notes: string;
 }
 
 export interface CustomerLedgerEntry {
@@ -50,40 +64,6 @@ export interface CustomerLedgerEntry {
   amount: number; // positive for invoice (debit), negative for payment (credit)
   note?: string;
   runningBalance: number;
-}
-
-export interface PurchaseRow {
-  id: string;
-  supplierId: string;
-  supplierName: string;
-  variety: string; // Vakkal
-  caret: number;
-  weight: number;
-  rate: number;
-  amount: number;
-  note?: string;
-}
-
-export interface VehicleArrival {
-  id: string;
-  arrivalNo: string;
-  date: string;
-  day: string;
-  vehicleNo: string;
-  vehicleName?: string;
-  fruitType: string;
-  totalVehicleWeight: number;
-  driverName?: string;
-  notes?: string;
-  rows: PurchaseRow[];
-  totalCarets: number;
-  totalCalculatedWeight: number;
-  totalAmount: number;
-  freightCharge?: number; // Lorry freight
-  hamaliCharge?: number; // Unloading labour
-  advancePaid?: number; // Driver advance
-  status: "DRAFT" | "SAVED";
-  createdAt: string;
 }
 
 export interface PurchaseInvoiceItem {
@@ -131,7 +111,7 @@ export interface StockMovement {
   date: string;
   fruit: string;
   variety: string;
-  type: "ARRIVAL" | "PURCHASE_BILL" | "SALE" | "ADJUSTMENT";
+  type: "PURCHASE_BILL" | "SALE" | "ADJUSTMENT";
   reference: string;
   weightChange: number;
   caretChange: number;

@@ -7,7 +7,6 @@
 
 export * from './master';
 export * from './parties';
-export * from './inventory';
 export * from './billing';
 export * from './payments';
 export * from './settings';
