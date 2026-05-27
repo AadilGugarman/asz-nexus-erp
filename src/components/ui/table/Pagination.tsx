@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CommandSelect } from '../CommandSelect';
 
 interface PaginationProps {
   page: number;
@@ -11,6 +12,7 @@ interface PaginationProps {
   onPageSizeChange: (size: number) => void;
   className?: string;
   label?: string;
+  variant?: 'emerald' | 'violet' | 'sky' | 'amber';
 }
 
 const getVisiblePages = (page: number, totalPages: number): Array<number | '...'> => {
@@ -39,10 +41,16 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageSizeChange,
   className,
   label = 'records',
+  variant = 'sky',
 }) => {
   const visiblePages = useMemo(() => getVisiblePages(page, totalPages), [page, totalPages]);
   const firstRecord = totalRecords === 0 ? 0 : (page - 1) * pageSize + 1;
   const lastRecord = Math.min(totalRecords, page * pageSize);
+
+  const pageSizeOptionsFormatted = useMemo(() => 
+    pageSizeOptions.map(opt => ({ id: opt.toString(), label: opt.toString() })),
+    [pageSizeOptions]
+  );
 
   return (
     <div
@@ -72,21 +80,21 @@ export const Pagination: React.FC<PaginationProps> = ({
         <span>
           Showing {firstRecord}-{lastRecord} of {totalRecords} {label}
         </span>
-        <label className="inline-flex items-center gap-1">
-          <span className="text-[11px]">Rows:</span>
-          <select
-            value={pageSize}
-            onChange={(event) => onPageSizeChange(Number(event.target.value))}
-            className="erp-input min-h-0 rounded-lg px-2 py-1 text-xs font-semibold"
-            aria-label="Rows per page"
-          >
-            {pageSizeOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex items-center gap-1.5 ml-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Rows:</span>
+          <div className="w-28">
+            <CommandSelect
+              value={pageSize.toString()}
+              onChange={(val) => onPageSizeChange(Number(val))}
+              options={pageSizeOptionsFormatted}
+              creatable={false}
+              showEmoji={false}
+              variant={variant}
+              placeholder={pageSize.toString()}
+              size="sm"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-1 flex-wrap">

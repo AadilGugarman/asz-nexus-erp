@@ -49,16 +49,16 @@ const INITIAL_DATA: CompanyFormData = {
     logoUrl: "",
   },
   financial: {
-    fyStart: "",
-    fyEnd: "",
+    fyStartMonth: 4, // April — Indian accounting standard default
     currency: "INR",
     currencySymbol: "₹",
     taxType: "gst",
     invoicePrefix: "",
-    invoiceStartingNumber: "0001",
+    invoiceStartingNumber: "1001",
     decimalPrecision: 2,
     enableMultiTax: true,
     enableRoundOff: true,
+    // Banking kept in type but managed via Settings → Invoice & Numbering
     bankName: "",
     accountNo: "",
     ifsc: "",
@@ -117,16 +117,14 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
     if (mode === "edit" && companyId && companies.length > 0) {
       const company = companies.find((c) => c.id === companyId);
       if (company) {
-        const [month, day] = (company.financial?.financialYearStart ?? "04-01").split("-");
-        const currentYear = new Date().getFullYear();
-        const fyStart = `${currentYear}-${month}-${day}`;
-        const fyEnd = `${currentYear + 1}-${month}-${day}`;
+        const [monthStr] = (company.financial?.financialYearStart ?? "04-01").split("-");
+        const fyStartMonth = parseInt(monthStr, 10) || 4;
 
         setFormData({
           details: {
             companyName: company.company.name,
             legalName: company.company.name,
-            gstin: company.company.gstin,
+            gstin: company.company.gstin ?? "",
             panNumber: company.pan ?? "",
             address: company.company.address,
             city: company.city ?? "",
@@ -134,19 +132,17 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             pincode: company.pincode ?? "",
             country: "India",
             phone: company.company.phone,
+            phone2: company.company.phone2 ?? "",
+            phone3: company.company.phone3 ?? "",
             logoUrl: company.logo ?? "",
           },
           financial: {
-            fyStart,
-            fyEnd,
+            fyStartMonth,
             currency: company.financial?.currency ?? "INR",
             currencySymbol: "₹",
             taxType: "gst",
             invoicePrefix: company.invoice?.salesPrefix ?? "INV",
-            invoiceStartingNumber: String(company.invoice?.salesNextNo ?? 1001).padStart(
-              4,
-              "0",
-            ),
+            invoiceStartingNumber: String(company.invoice?.salesNextNo ?? 1001).padStart(4, "0"),
             decimalPrecision: 2,
             enableMultiTax: true,
             enableRoundOff: true,
@@ -239,16 +235,11 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
       }
 
       // Step 2: Financial Settings
-      if (!data.financial.currency)
-        newErrors.financial.currency = "Currency is required";
-      if (!data.financial.currencySymbol)
-        newErrors.financial.currencySymbol = "Currency symbol is required";
+      // currency is fixed to INR — no validation needed
 
       if (strict) {
-        if (!data.financial.fyStart)
-          newErrors.financial.fyStart = "Financial year start date is required";
-        if (!data.financial.fyEnd)
-          newErrors.financial.fyEnd = "Financial year end date is required";
+        if (!data.financial.fyStartMonth || data.financial.fyStartMonth < 1 || data.financial.fyStartMonth > 12)
+          newErrors.financial.fyStartMonth = "Financial year start month is required";
         if (!data.financial.invoicePrefix)
           newErrors.financial.invoicePrefix = "Invoice prefix is required";
         if (!data.financial.invoiceStartingNumber)
@@ -361,15 +352,16 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             name: formData.details.companyName,
             address: formData.details.address,
             phone: formData.details.phone,
+            phone2: formData.details.phone2 || undefined,
+            phone3: formData.details.phone3 || undefined,
+            email: formData.details.email ?? existingCompany.company.email,
+            website: formData.details.website ?? existingCompany.company.website,
             gstin: formData.details.gstin,
-            bankName: formData.financial.bankName,
-            accountNo: formData.financial.accountNo,
-            ifsc: formData.financial.ifsc,
-            upiId: formData.financial.upiId,
           },
           financial: {
             ...(existingCompany.financial ?? DEFAULT_FINANCIAL),
-            financialYearStart: formData.financial.fyStart.slice(5),
+            // Convert fyStartMonth (1-12) back to "MM-DD" format used in FinancialSettings
+            financialYearStart: `${String(formData.financial.fyStartMonth ?? 4).padStart(2, "0")}-01`,
           },
           invoice: {
             ...(existingCompany.invoice ?? DEFAULT_INVOICE),
@@ -402,17 +394,19 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             tagline: "",
             address: formData.details.address,
             phone: formData.details.phone,
-            email: "",
+            email: formData.details.email ?? "",
+            website: formData.details.website ?? "",
             gstin: formData.details.gstin,
-            bankName: formData.financial.bankName,
-            accountNo: formData.financial.accountNo,
-            ifsc: formData.financial.ifsc,
-            upiId: formData.financial.upiId,
+            bankName: "",
+            accountNo: "",
+            ifsc: "",
+            upiId: "",
             logo: formData.details.logoUrl,
           },
           financial: {
             ...currentSettings.financial,
-            financialYearStart: formData.financial.fyStart.slice(5),
+            // Convert fyStartMonth (1-12) back to "MM-DD" format used in FinancialSettings
+            financialYearStart: `${String(formData.financial.fyStartMonth ?? 4).padStart(2, "0")}-01`,
           },
           invoice: {
             ...currentSettings.invoice,
@@ -486,7 +480,12 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
               goToCompaniesSettings(navigate, companyId);
             }
           } else {
-            setShowListModal(true);
+            // create mode — just close/go back, no company list
+            if (onComplete) {
+              void Promise.resolve(onComplete());
+            } else {
+              goToCompaniesSettings(navigate);
+            }
           }
         }}
         lastSavedTime={lastSavedTime}
@@ -566,6 +565,8 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             void Promise.resolve(onComplete());
           } else if (mode === "edit") {
             goToCompaniesSettings(navigate, companyId);
+          } else if (onComplete) {
+            void Promise.resolve(onComplete());
           } else {
             goToCompaniesSettings(navigate);
           }

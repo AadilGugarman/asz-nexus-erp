@@ -11,11 +11,15 @@
     "backup": "Backup",
     "snapshotTitle": "Today's Live Snapshot",
     "snapshot": {
+      "purchaseBills": "Purchase Bills",
       "purchaseValue": "Purchase Value",
       "salesBills": "Sales Bills",
       "salesValue": "Sales Value",
       "weightIn": "Weight IN",
-      "cashInOut": "Cash IN / OUT"
+      "weightOut": "Weight OUT",
+      "cashInOut": "Cash IN / OUT",
+      "netCash": "Net Cash Flow",
+      "caretsOut": "Carets Sent"
     }
   },
   "sections": {

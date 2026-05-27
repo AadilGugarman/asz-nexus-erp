@@ -1,18 +1,14 @@
 import React, { useMemo } from "react";
 import { FinancialSettings } from "@/types/company";
-import { CURRENCIES } from "@/config";
 import {
-  Calendar,
   RefreshCw,
   AlertCircle,
   Hash,
   Tag,
   FileText,
-  Landmark,
-  CreditCard,
-  Wallet,
 } from "lucide-react";
 import { SegmentedControl } from "../ui/SegmentedControl";
+import { DatePicker } from "../ui/DatePicker";
 
 interface FinancialSettingsStepProps {
   data: FinancialSettings;
@@ -20,45 +16,64 @@ interface FinancialSettingsStepProps {
   errors: { [key: string]: string };
 }
 
+// Derive a display date string from fyStartMonth for the FY Start date input
+function fyStartMonthToDate(month: number): string {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const year = currentMonth >= month ? now.getFullYear() : now.getFullYear() - 1;
+  return `${year}-${String(month).padStart(2, "0")}-01`;
+}
+
+// Derive the FY end date from a start date string
+function fyEndFromStart(startDate: string): string {
+  if (!startDate) return "";
+  const [yearStr, monthStr] = startDate.split("-");
+  const year  = parseInt(yearStr,  10);
+  const month = parseInt(monthStr, 10);
+  const endMonth = month === 1 ? 12 : month - 1;
+  const endYear  = month === 1 ? year : year + 1;
+  const lastDay  = new Date(endYear, endMonth, 0).getDate();
+  return `${endYear}-${String(endMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
 export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
   data,
   onChange,
   errors,
 }) => {
-  const handleCurrencyChange = (code: string) => {
-    const found = CURRENCIES.find((c) => c.code === code);
-    if (found) {
-      onChange({ currency: code, currencySymbol: found.symbol });
-    } else {
-      onChange({ currency: code });
-    }
+  const handleAutoGenerateFY = () => {
+    onChange({ fyStartMonth: 4 });
   };
 
-  const handleAutoGenerateFY = () => {
-    const currentYear = new Date().getFullYear();
-    onChange({
-      fyStart: `${currentYear}-04-01`,
-      fyEnd: `${currentYear + 1}-03-31`,
-    });
+  // When user changes the FY Start date picker — extract month and store it
+  const handleFyStartChange = (dateStr: string) => {
+    if (!dateStr) return;
+    const month = parseInt(dateStr.split("-")[1], 10);
+    onChange({ fyStartMonth: isNaN(month) ? 4 : month });
   };
+
+  // Derive display values from fyStartMonth
+  const startMonth = data.fyStartMonth ?? 4;
+  const fyStartDisplay = useMemo(() => fyStartMonthToDate(startMonth), [startMonth]);
+  const fyEndDisplay   = useMemo(() => fyEndFromStart(fyStartDisplay), [fyStartDisplay]);
 
   const invoicePreview = useMemo(() => {
     const prefix = data.invoicePrefix || "";
-    const num = data.invoiceStartingNumber || "0001";
+    const num    = data.invoiceStartingNumber || "1001";
     return `${prefix}${num}`;
   }, [data.invoicePrefix, data.invoiceStartingNumber]);
-
-  const taxOptions = [
-    { label: "GST Registered", value: "gst" },
-    { label: "Unregistered", value: "none" },
-  ];
 
   const handleStartingNumberChange = (val: string) => {
     onChange({ invoiceStartingNumber: val.replace(/\D/g, "") });
   };
 
-  // Shared class builders
-  const inputBase = "w-full py-2 rounded-lg border text-xs font-medium bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 transition-all";
+  const taxOptions = [
+    { label: "GST Registered", value: "gst" },
+    { label: "Unregistered",   value: "none" },
+  ];
+
+  // Shared class builders — identical to original
+  const inputBase   = "w-full py-2 rounded-lg border text-xs font-medium bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 transition-all";
   const inputNormal = `${inputBase} border-slate-200 dark:border-slate-700 focus:ring-amber-100 dark:focus:ring-amber-500/10 focus:border-amber-500 dark:focus:border-amber-500/60`;
   const inputError  = `${inputBase} border-red-300 dark:border-red-500/50 focus:ring-red-100 dark:focus:ring-red-500/10 focus:border-red-500`;
   const labelClass  = "block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider";
@@ -74,7 +89,7 @@ export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* FY Start */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-1">
             <label className={labelClass}>
               FY Start <span className="text-red-500">*</span>
             </label>
@@ -87,62 +102,31 @@ export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
               <span>Auto April 1</span>
             </button>
           </div>
-          <div className="relative">
-            <div className={iconClass}><Calendar className="w-3.5 h-3.5" /></div>
-            <input
-              type="date"
-              value={data.fyStart}
-              onChange={(e) => onChange({ fyStart: e.target.value })}
-              className={`pl-8 pr-3 ${errors.fyStart ? inputError : inputNormal}`}
-            />
-          </div>
-          {errors.fyStart && (
-            <p className={errorMsg}><AlertCircle className="w-3 h-3 shrink-0" /><span>{errors.fyStart}</span></p>
-          )}
-        </div>
-
-        {/* FY End */}
-        <div className="space-y-1">
-          <label className={labelClass}>FY End <span className="text-red-500">*</span></label>
-          <div className="relative">
-            <div className={iconClass}><Calendar className="w-3.5 h-3.5" /></div>
-            <input
-              type="date"
-              value={data.fyEnd}
-              onChange={(e) => onChange({ fyEnd: e.target.value })}
-              className={`pl-8 pr-3 ${errors.fyEnd ? inputError : inputNormal}`}
-            />
-          </div>
-          {errors.fyEnd && (
-            <p className={errorMsg}><AlertCircle className="w-3 h-3 shrink-0" /><span>{errors.fyEnd}</span></p>
-          )}
-        </div>
-
-        {/* Currency */}
-        <div className="space-y-1">
-          <label className={labelClass}>Base Currency <span className="text-red-500">*</span></label>
-          <select
-            value={data.currency}
-            onChange={(e) => handleCurrencyChange(e.target.value)}
-            className={`px-3 ${inputNormal}`}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.code} - {c.name} ({c.symbol})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Currency Symbol */}
-        <div className="space-y-1">
-          <label className={labelClass}>Currency Symbol <span className="text-red-500">*</span></label>
-          <input
-            type="text"
-            value={data.currencySymbol}
-            onChange={(e) => onChange({ currencySymbol: e.target.value })}
-            className={`px-3 ${inputNormal}`}
+          <DatePicker
+            value={fyStartDisplay}
+            onChange={handleFyStartChange}
+            variant="amber"
           />
+          {errors.fyStartMonth && (
+            <p className={errorMsg}>
+              <AlertCircle className="w-3 h-3 shrink-0" />
+              <span>{errors.fyStartMonth}</span>
+            </p>
+          )}
+        </div>
+
+        {/* FY End — auto-computed, read-only */}
+        <div className="space-y-1">
+          <label className={labelClass + " mb-1"}>FY End</label>
+          <DatePicker
+            value={fyEndDisplay}
+            onChange={() => {}}
+            disabled={true}
+            variant="amber"
+          />
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+            Auto-calculated from FY start
+          </p>
         </div>
       </div>
 
@@ -162,7 +146,9 @@ export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Invoice Prefix */}
           <div className="space-y-1">
-            <label className={labelClass}>Invoice Prefix <span className="text-red-500">*</span></label>
+            <label className={labelClass}>
+              Invoice Prefix <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <div className={iconClass}><Tag className="w-3.5 h-3.5" /></div>
               <input
@@ -177,13 +163,18 @@ export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
               Auto-generated from company name
             </p>
             {errors.invoicePrefix && (
-              <p className={errorMsg}><AlertCircle className="w-3 h-3 shrink-0" /><span>{errors.invoicePrefix}</span></p>
+              <p className={errorMsg}>
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                <span>{errors.invoicePrefix}</span>
+              </p>
             )}
           </div>
 
           {/* Starting Number */}
           <div className="space-y-1">
-            <label className={labelClass}>Starting Number <span className="text-red-500">*</span></label>
+            <label className={labelClass}>
+              Starting Number <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <div className={iconClass}><Hash className="w-3.5 h-3.5" /></div>
               <input
@@ -195,7 +186,10 @@ export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
               />
             </div>
             {errors.invoiceStartingNumber && (
-              <p className={errorMsg}><AlertCircle className="w-3 h-3 shrink-0" /><span>{errors.invoiceStartingNumber}</span></p>
+              <p className={errorMsg}>
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                <span>{errors.invoiceStartingNumber}</span>
+              </p>
             )}
           </div>
         </div>
@@ -216,89 +210,7 @@ export const FinancialSettingsStep: React.FC<FinancialSettingsStepProps> = ({
         </div>
       </div>
 
-      {/* Banking & Payment Details */}
-      <div className="border-t border-slate-200/80 dark:border-slate-700/60 pt-3 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1 bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 rounded">
-            <Landmark className="w-3.5 h-3.5" />
-          </div>
-          <h3 className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-            Banking & Payment Details
-          </h3>
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">(optional — shown on invoices)</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Bank Name */}
-          <div className="space-y-1">
-            <label className={labelClass}>Bank Name</label>
-            <div className="relative">
-              <div className={iconClass}><Landmark className="w-3.5 h-3.5" /></div>
-              <input
-                type="text"
-                value={data.bankName}
-                onChange={(e) => onChange({ bankName: e.target.value })}
-                placeholder="e.g. State Bank of India"
-                className={`pl-8 pr-3 ${inputNormal}`}
-              />
-            </div>
-          </div>
-
-          {/* Account Number */}
-          <div className="space-y-1">
-            <label className={labelClass}>Account Number</label>
-            <div className="relative">
-              <div className={iconClass}><CreditCard className="w-3.5 h-3.5" /></div>
-              <input
-                type="text"
-                value={data.accountNo}
-                onChange={(e) => onChange({ accountNo: e.target.value.replace(/\D/g, "") })}
-                placeholder="e.g. 38920019283"
-                className={`pl-8 pr-3 font-mono font-bold ${inputNormal}`}
-              />
-            </div>
-          </div>
-
-          {/* IFSC */}
-          <div className="space-y-1">
-            <label className={labelClass}>IFSC Code</label>
-            <div className="relative">
-              <div className={iconClass}><Hash className="w-3.5 h-3.5" /></div>
-              <input
-                type="text"
-                value={data.ifsc}
-                onChange={(e) => onChange({ ifsc: e.target.value.toUpperCase() })}
-                placeholder="e.g. SBIN0001234"
-                className={`pl-8 pr-3 font-mono font-bold ${inputNormal}`}
-              />
-            </div>
-          </div>
-
-          {/* UPI ID */}
-          <div className="space-y-1">
-            <label className={labelClass}>UPI ID</label>
-            <div className="relative">
-              <div className={iconClass}><Wallet className="w-3.5 h-3.5" /></div>
-              <input
-                type="text"
-                value={data.upiId}
-                onChange={(e) => onChange({ upiId: e.target.value })}
-                placeholder="e.g. business@sbi"
-                className={`pl-8 pr-3 ${inputNormal}`}
-              />
-            </div>
-          </div>
-        </div>
-
-        {(data.bankName || data.accountNo || data.ifsc || data.upiId) && (
-          <div className="bg-emerald-50/60 dark:bg-emerald-500/5 rounded-lg border border-emerald-200/60 dark:border-emerald-500/20 p-2.5 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
-              Bank details will appear on invoices to enable direct transfers and UPI payments.
-            </p>
-          </div>
-        )}
-      </div>
+      {/* Banking & Payment Details — moved to Settings → Invoice & Numbering */}
     </div>
   );
 };

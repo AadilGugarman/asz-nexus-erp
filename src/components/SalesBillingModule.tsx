@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
-  ShoppingCart, Plus, Save, Search, Eye, Trash2,
+  ShoppingCart, Plus, Save, Search, Eye, Trash2, Edit2,
   FileText, Calendar, Copy, ArrowUpDown
 } from "lucide-react";
 
@@ -9,6 +9,7 @@ import { useDataTable } from "../hooks/useDataTable";
 import { useAppTranslation } from "@/hooks";
 
 import { CommandSelect, CommandOption } from "./ui/CommandSelect";
+import { DatePicker } from "./ui/DatePicker";
 import { useToast } from "./ui/Toast";
 import { useConfirmDialog } from "./ui/ConfirmDialog";
 import { DataTable, Pagination } from "./ui/table";
@@ -75,15 +76,42 @@ export const SalesBillingModule: React.FC = () => {
     settings,
     updateSettings,
     addCaretTransaction,
+    activeFY,
+    companies,
+    activeCompanyId,
   } = useApp();
   const { t } = useAppTranslation("billing");
   const toast = useToast();
   const dialog = useConfirmDialog();
 
+  // Derive FY start month from active company
+  const fyStartMonth = useMemo(() => {
+    const activeCompany = companies.find((c) => c.id === activeCompanyId);
+    const fyStartMD = activeCompany?.financial?.financialYearStart
+      ?? settings?.financial?.financialYearStart
+      ?? "04-01";
+    return parseInt(fyStartMD.split("-")[0], 10) || 4;
+  }, [companies, activeCompanyId, settings?.financial?.financialYearStart]);
+
+  // FY date range for list filtering
+  const { fyStartDate, fyEndDate } = useMemo(() => {
+    const [startYearStr] = (activeFY ?? "").split("-");
+    const startYear = parseInt(startYearStr, 10) || new Date().getFullYear();
+    const endMonth = fyStartMonth === 1 ? 12 : fyStartMonth - 1;
+    const endYear  = fyStartMonth === 1 ? startYear : startYear + 1;
+    const lastDay  = new Date(endYear, endMonth, 0).getDate();
+    const p = (n: number) => String(n).padStart(2, "0");
+    return {
+      fyStartDate: `${startYear}-${p(fyStartMonth)}-01`,
+      fyEndDate:   `${endYear}-${p(endMonth)}-${lastDay}`,
+    };
+  }, [activeFY, fyStartMonth]);
+
   const [activeSubTab, setActiveSubTab] = useState<"NEW_INVOICE" | "LIST">(
     "NEW_INVOICE",
   );
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   //        form state
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -97,8 +125,6 @@ export const SalesBillingModule: React.FC = () => {
   const [items, setItems] = useState<InvoiceItem[]>(() => [
     makeBlankItem(fruits),
   ]);
-
-  const dateRef = useRef<HTMLInputElement>(null);
 
   const customerOptions: CommandOption[] = useMemo(() => {
     return customers.map(c => ({
@@ -132,6 +158,8 @@ export const SalesBillingModule: React.FC = () => {
           invoices,
           date,
           settings.invoice.salesNextNo || 1001,
+          activeFY,
+          fyStartMonth,
         );
         setInvoiceNo(p.invoiceNo);
       }
@@ -142,9 +170,11 @@ export const SalesBillingModule: React.FC = () => {
       invoices,
       date,
       settings.invoice.salesNextNo || 1001,
+      activeFY,
+      fyStartMonth,
     );
     setInvoiceNo(next.invoiceNo);
-  }, [settings.invoice, invoices, date]);
+  }, [settings.invoice, invoices, date, activeFY, fyStartMonth]);
 
   //        calculations
   const itemsSubtotal = sumCurrency(items.map(it => parseFloat(String(it.amount)) || 0));
@@ -262,11 +292,14 @@ export const SalesBillingModule: React.FC = () => {
 
   //        reset / save
   const handleResetForm = () => {
+    setEditingInvoiceId(null);
     const next = getNextUniqueInvoiceNumber(
       settings.invoice,
       invoices,
       date,
       settings.invoice.salesNextNo || 1001,
+      activeFY,
+      fyStartMonth,
     );
     setInvoiceNo(next.invoiceNo);
     setSelectedCustomerId("");
@@ -276,6 +309,22 @@ export const SalesBillingModule: React.FC = () => {
     setFreightInput(0);
     setCaretInput(0);
     setNotes("");
+  };
+
+  const handleEditInvoice = (inv: Invoice) => {
+    setEditingInvoiceId(inv.id);
+    setInvoiceNo(inv.invoiceNo);
+    setDate(inv.date);
+    setSelectedCustomerId(inv.customerId);
+    setNotes(inv.notes || "");
+    setVehicleNo(inv.vehicleNo || "");
+    setDeclaredWeight(inv.declaredWeight || 0);
+    setFreightInput(inv.freight || 0);
+    // For editing, we don't automatically add carets again unless modified
+    setCaretInput(0); 
+    setItems(inv.items.length > 0 ? inv.items : [makeBlankItem(fruits)]);
+    setActiveSubTab("NEW_INVOICE");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSaveInvoice = () => {
@@ -291,12 +340,14 @@ export const SalesBillingModule: React.FC = () => {
     let resolvedNo = invoiceNo.trim();
     let nextSeed = settings.invoice.salesNextNo || 1001;
 
-    if (settings.invoice.autoInvoiceNo) {
+    if (settings.invoice.autoInvoiceNo && !editingInvoiceId) {
       const next = getNextUniqueInvoiceNumber(
         settings.invoice,
         invoices,
         date,
         nextSeed,
+        activeFY,
+        fyStartMonth,
       );
       resolvedNo = next.invoiceNo;
       nextSeed = next.nextSeed;
@@ -305,15 +356,17 @@ export const SalesBillingModule: React.FC = () => {
         toast.error("Missing Invoice No", "Enter an invoice number.");
         return;
       }
-      if (invoices.some((i) => i.invoiceNo === resolvedNo)) {
+      if (!editingInvoiceId && invoices.some((i) => i.invoiceNo === resolvedNo)) {
         toast.error("Duplicate Invoice No", "This number already exists.");
         return;
       }
-      nextSeed = nextSeed + 1;
+      if (!editingInvoiceId) {
+        nextSeed = nextSeed + 1;
+      }
     }
 
     const inv: Invoice = {
-      id: `inv-${Date.now()}`,
+      id: editingInvoiceId || `inv-${Date.now()}`,
       invoiceNo: resolvedNo,
       date,
       customerId: selectedCustomer.id,
@@ -327,32 +380,39 @@ export const SalesBillingModule: React.FC = () => {
       remainingBalance,
       notes: notes || undefined,
       items,
-      createdAt: new Date().toISOString(),
+      createdAt: editingInvoiceId 
+        ? (invoices.find(i => i.id === editingInvoiceId)?.createdAt || new Date().toISOString()) 
+        : new Date().toISOString(),
     };
     saveInvoice(inv);
-    updateSettings({ invoice: { ...settings.invoice, salesNextNo: nextSeed } });
+    
+    if (!editingInvoiceId) {
+      updateSettings({ invoice: { ...settings.invoice, salesNextNo: nextSeed } });
+    }
 
     // Auto-create GIVEN caret transaction if carets were given
-    const totalCaretsGiven = caretInput > 0
-      ? caretInput
-      : items.reduce((s, it) => s + (Number(it.caret) || 0), 0);
-    if (totalCaretsGiven > 0 && selectedCustomer) {
-      const fruitNames = [...new Set(items.map(it => it.fruitCategory || it.fruit).filter(Boolean))].join(', ');
-      addCaretTransaction({
-        date,
-        customerId: selectedCustomer.id,
-        customerName: selectedCustomer.name,
-        type: 'GIVEN',
-        fruitName: fruitNames || 'Mixed',
-        caretQty: totalCaretsGiven,
-        note: `Auto from Invoice ${resolvedNo}`,
-        billId: inv.id,
-        billNo: resolvedNo,
-      });
+    if (!editingInvoiceId) {
+      const totalCaretsGiven = caretInput > 0
+        ? caretInput
+        : items.reduce((s, it) => s + (Number(it.caret) || 0), 0);
+      if (totalCaretsGiven > 0 && selectedCustomer) {
+        const fruitNames = [...new Set(items.map(it => it.fruitCategory || it.fruit).filter(Boolean))].join(', ');
+        addCaretTransaction({
+          date,
+          customerId: selectedCustomer.id,
+          customerName: selectedCustomer.name,
+          type: 'GIVEN',
+          fruitName: fruitNames || 'Mixed',
+          caretQty: totalCaretsGiven,
+          note: `Auto from Invoice ${resolvedNo}`,
+          billId: inv.id,
+          billNo: resolvedNo,
+        });
+      }
     }
 
     toast.success(
-      "Invoice Saved",
+      editingInvoiceId ? "Invoice Updated" : "Invoice Saved",
       `${resolvedNo} - Rs.${todayAmount.toLocaleString("en-IN")} for ${selectedCustomer.name}`,
     );
     setTimeout(() => {
@@ -367,18 +427,20 @@ export const SalesBillingModule: React.FC = () => {
 
   const filteredInvoices = useMemo(
     () =>
-      invoices.filter(
-        (inv) =>
-          inv.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          inv.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (inv.vehicleNo || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          inv.items.some((it) =>
-            it.fruit.toLowerCase().includes(searchTerm.toLowerCase()),
-          ),
-      ),
-    [invoices, searchTerm],
+      invoices
+        .filter((inv) => inv.date >= fyStartDate && inv.date <= fyEndDate)
+        .filter(
+          (inv) =>
+            inv.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            inv.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (inv.vehicleNo || "")
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            inv.items.some((it) =>
+              it.fruit.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
+        ),
+    [invoices, searchTerm, fyStartDate, fyEndDate],
   );
 
   const table = useDataTable<
@@ -431,7 +493,7 @@ export const SalesBillingModule: React.FC = () => {
         className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${card} p-4 shrink-0`}
       >
         <div>
-          <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-xl font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-2.5">
             <ShoppingCart className="w-6 h-6 text-indigo-500" />
             <span>SALES BILLING</span>
           </h1>
@@ -498,28 +560,12 @@ export const SalesBillingModule: React.FC = () => {
                 )}
               </div>
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
-                >
-                  Date
-                </span>
-                <div className="relative">
-                  <input
-                    ref={dateRef}
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className={`${inp} px-2 py-1 text-xs font-mono font-bold w-full pr-20`}
-                  />
-                  {date && (
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-200 dark:border-slate-700 pointer-events-none leading-tight">
-                      {new Date(`${date}T00:00:00`).toLocaleDateString(
-                        "en-IN",
-                        { weekday: "long" },
-                      )}
-                    </span>
-                  )}
-                </div>
+                <DatePicker
+                  label="Date"
+                  value={date}
+                  onChange={(val) => setDate(val)}
+                  variant="violet"
+                />
               </div>
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
                 <CommandSelect
@@ -850,7 +896,7 @@ export const SalesBillingModule: React.FC = () => {
                 >
                   Previous Balance
                 </span>
-                <span className="text-sm font-black font-mono dark:text-slate-200 text-slate-900">
+                <span className="text-sm font-bold font-mono dark:text-slate-200 text-slate-900">
                   ₹ {previousBalance.toLocaleString("en-IN")}
                 </span>
               </div>
@@ -858,7 +904,7 @@ export const SalesBillingModule: React.FC = () => {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                   + Today's Bill
                 </span>
-                <span className="text-sm font-black font-mono text-indigo-600 dark:text-indigo-400">
+                <span className="text-sm font-bold font-mono text-indigo-600 dark:text-indigo-400">
                   ₹ {todayAmount.toLocaleString("en-IN")}
                 </span>
               </div>
@@ -866,7 +912,7 @@ export const SalesBillingModule: React.FC = () => {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
                   = Total Receivable
                 </span>
-                <span className="text-base font-black font-mono text-white">
+                <span className="text-base font-bold font-mono text-white">
                   ₹ {remainingBalance.toLocaleString("en-IN")}
                 </span>
               </div>
@@ -899,10 +945,10 @@ export const SalesBillingModule: React.FC = () => {
                   Clear
                 </button>
                 <button
-                  type="button"
-                  onClick={handleSaveInvoice}
-                  className="px-7 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-sm font-black shadow-lg shadow-indigo-500/20 cursor-pointer transition-all flex items-center gap-2"
-                >
+                    type="button"
+                    onClick={handleSaveInvoice}
+                    className="px-7 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 cursor-pointer transition-all flex items-center gap-2"
+                  >
                   <Save className="w-5 h-5 stroke-[2.5]" />
                   <span>Save Invoice</span>
                 </button>
@@ -1056,14 +1102,21 @@ export const SalesBillingModule: React.FC = () => {
                           {weight.toFixed(1)}{" "}
                           <span className="text-[9px] font-sans">KG</span>
                         </td>
-                        <td className="py-3.5 px-3 col-num font-mono font-black text-indigo-600 dark:text-indigo-400 text-base">
+                        <td className="py-3.5 px-3 col-num font-mono font-bold text-indigo-600 dark:text-indigo-400 text-base">
                           ₹ {inv.todayAmount.toLocaleString("en-IN")}
                         </td>
-                        <td className="py-3.5 px-3 col-num font-mono font-black dark:text-slate-200 text-slate-900 text-sm">
+                        <td className="py-3.5 px-3 col-num font-mono font-bold dark:text-slate-200 text-slate-900 text-sm">
                           ₹ {inv.remainingBalance.toLocaleString("en-IN")}
                         </td>
                         <td className="py-3.5 px-4 col-actions">
                           <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                              onClick={() => handleEditInvoice(inv)}
+                              className={`p-2 ${muted} hover:text-indigo-600 dark:hover:text-indigo-400 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}
+                              title="Edit Invoice"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => setPreviewInvoice(inv)}
                               className={`p-2 ${muted} hover:text-indigo-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}

@@ -12,12 +12,15 @@
     "backup": "બેકઅપ",
     "snapshotTitle": "આજનું લાઇવ સ્નેપશોટ",
     "snapshot": {
-      "inwardLoads": "આવક લોડ",
+      "purchaseBills": "ખરીદી બિલ",
       "purchaseValue": "ખરીદી મૂલ્ય",
       "salesBills": "વેચાણ બિલ",
       "salesValue": "વેચાણ મૂલ્ય",
       "weightIn": "આવક વજન",
-      "cashInOut": "નગદ આવક / જાવક"
+      "weightOut": "જાવક વજન",
+      "cashInOut": "નગદ આવક / જાવક",
+      "netCash": "ચોખ્ખી રોકડ",
+      "caretsOut": "મોકલેલ કેરેટ"
     }
   },
   "sections": {

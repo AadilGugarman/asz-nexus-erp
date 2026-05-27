@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
-  ShoppingBag, Plus, Save, Search, Eye, Trash2,
+  ShoppingBag, Plus, Save, Search, Eye, Trash2, Edit2,
   FileText, Calendar, Copy, ArrowUpDown, Calculator
 } from "lucide-react";
 
@@ -9,6 +9,7 @@ import { useDataTable } from "../hooks/useDataTable";
 import { useAppTranslation } from "@/hooks";
 
 import { CommandSelect, CommandOption } from "./ui/CommandSelect";
+import { DatePicker } from "./ui/DatePicker";
 import { useToast } from "./ui/Toast";
 import { useConfirmDialog } from "./ui/ConfirmDialog";
 import { ModuleEmptyState, TableSkeleton } from "./ui/DataStates";
@@ -75,10 +76,36 @@ export const PurchaseBillingModule: React.FC = () => {
     addFruitVariety,
     settings,
     updateSettings,
+    activeFY,
+    companies,
+    activeCompanyId,
   } = useApp();
   const { t } = useAppTranslation("billing");
   const toast = useToast();
   const dialog = useConfirmDialog();
+
+  // Derive FY start month from active company
+  const fyStartMonth = useMemo(() => {
+    const activeCompany = companies.find((c) => c.id === activeCompanyId);
+    const fyStartMD = activeCompany?.financial?.financialYearStart
+      ?? settings?.financial?.financialYearStart
+      ?? "04-01";
+    return parseInt(fyStartMD.split("-")[0], 10) || 4;
+  }, [companies, activeCompanyId, settings?.financial?.financialYearStart]);
+
+  // FY date range for list filtering
+  const { fyStartDate, fyEndDate } = useMemo(() => {
+    const [startYearStr] = (activeFY ?? "").split("-");
+    const startYear = parseInt(startYearStr, 10) || new Date().getFullYear();
+    const endMonth = fyStartMonth === 1 ? 12 : fyStartMonth - 1;
+    const endYear  = fyStartMonth === 1 ? startYear : startYear + 1;
+    const lastDay  = new Date(endYear, endMonth, 0).getDate();
+    const p = (n: number) => String(n).padStart(2, "0");
+    return {
+      fyStartDate: `${startYear}-${p(fyStartMonth)}-01`,
+      fyEndDate:   `${endYear}-${p(endMonth)}-${lastDay}`,
+    };
+  }, [activeFY, fyStartMonth]);
 
   const [activeSubTab, setActiveSubTab] = useState<"NEW_INVOICE" | "LIST">(
     "NEW_INVOICE",
@@ -88,12 +115,19 @@ export const PurchaseBillingModule: React.FC = () => {
   );
   const [isListLoading, setIsListLoading] = useState(false);
   const [showCharges, setShowCharges] = useState(false);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   //        form state
   const [billNo, setBillNo] = useState(() => {
-    const next = getNextUniquePurchaseNumber(settings.invoice, purchaseInvoices, new Date().toISOString().split("T")[0], settings.invoice.purchaseNextNo || 101);
+    const next = getNextUniquePurchaseNumber(
+      settings.invoice,
+      purchaseInvoices,
+      new Date().toISOString().split("T")[0],
+      settings.invoice.purchaseNextNo || 101,
+    );
     return next.invoiceNo;
   });
+
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [notes, setNotes] = useState("");
@@ -104,8 +138,6 @@ export const PurchaseBillingModule: React.FC = () => {
   const [items, setItems] = useState<PurchaseInvoiceItem[]>(() => [
     makeBlankItem(fruits),
   ]);
-
-  const dateRef = useRef<HTMLInputElement>(null);
 
   const supplierOptions: CommandOption[] = useMemo(() => {
     return suppliers.map(s => ({
@@ -137,9 +169,11 @@ export const PurchaseBillingModule: React.FC = () => {
       purchaseInvoices,
       date,
       settings.invoice.purchaseNextNo || 101,
+      activeFY,
+      fyStartMonth,
     );
     setBillNo(next.invoiceNo);
-  }, [date, purchaseInvoices.length, settings.invoice.purchaseNextNo]);
+  }, [date, purchaseInvoices.length, settings.invoice.purchaseNextNo, activeFY, fyStartMonth]);
 
   //        calculations
   const itemsSubtotal = sumCurrency(items.map(it => parseFloat(String(it.amount)) || 0));
@@ -262,11 +296,14 @@ export const PurchaseBillingModule: React.FC = () => {
 
   //        reset / save
   const handleResetForm = () => {
+    setEditingInvoiceId(null);
     const next = getNextUniquePurchaseNumber(
       settings.invoice,
       purchaseInvoices,
       date,
       settings.invoice.purchaseNextNo || 101,
+      activeFY,
+      fyStartMonth,
     );
     setBillNo(next.invoiceNo);
     setSelectedSupplierId("");
@@ -276,6 +313,21 @@ export const PurchaseBillingModule: React.FC = () => {
     setFreightInput(0);
     setHamaliInput(0);
     setNotes("");
+  };
+
+  const handleEditInvoice = (inv: PurchaseInvoice) => {
+    setEditingInvoiceId(inv.id);
+    setBillNo(inv.billNo);
+    setDate(inv.date);
+    setSelectedSupplierId(inv.supplierId);
+    setNotes(inv.notes || "");
+    setVehicleNo(inv.vehicleNo || "");
+    setDeclaredWeight(inv.declaredWeight || 0);
+    setFreightInput(inv.freight || 0);
+    setHamaliInput(inv.hamali || 0);
+    setItems(inv.items.length > 0 ? inv.items : [makeBlankItem(fruits)]);
+    setActiveSubTab("NEW_INVOICE");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSaveInvoice = () => {
@@ -295,18 +347,19 @@ export const PurchaseBillingModule: React.FC = () => {
       toast.error("Missing Bill No", "Enter a bill number.");
       return;
     }
+
     // Duplicate check
-    if (purchaseInvoices.some((i) => i.billNo === resolvedNo)) {
+    if (!editingInvoiceId && purchaseInvoices.some((i) => i.billNo === resolvedNo)) {
       // Auto-resolve by bumping the seed
-      const next = getNextUniquePurchaseNumber(settings.invoice, purchaseInvoices, date, nextSeed);
+      const next = getNextUniquePurchaseNumber(settings.invoice, purchaseInvoices, date, nextSeed, activeFY, fyStartMonth);
       resolvedNo = next.invoiceNo;
       nextSeed = next.nextSeed;
-    } else {
+    } else if (!editingInvoiceId) {
       nextSeed = nextSeed + 1;
     }
 
     const inv: PurchaseInvoice = {
-      id: `pinv-${Date.now()}`,
+      id: editingInvoiceId || `pinv-${Date.now()}`,
       billNo: resolvedNo,
       date,
       supplierId: selectedSupplier.id,
@@ -321,12 +374,19 @@ export const PurchaseBillingModule: React.FC = () => {
       remainingBalance,
       notes: notes || undefined,
       items,
-      createdAt: new Date().toISOString(),
+      createdAt: editingInvoiceId ? (purchaseInvoices.find(i => i.id === editingInvoiceId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
     };
     savePurchaseInvoice(inv);
-    updateSettings({ invoice: { ...settings.invoice, purchaseNextNo: nextSeed } });
+    
+    if (!editingInvoiceId) {
+      updateSettings({
+        ...settings,
+        invoice: { ...settings.invoice, purchaseNextNo: nextSeed },
+      });
+    }
+
     toast.success(
-      "Bill Saved",
+      editingInvoiceId ? "Bill Updated" : "Bill Saved",
       `${resolvedNo} - Rs.${todayAmount.toLocaleString("en-IN")} for ${selectedSupplier.name}`,
     );
     setTimeout(() => {
@@ -341,18 +401,20 @@ export const PurchaseBillingModule: React.FC = () => {
 
   const filteredInvoices = useMemo(
     () =>
-      purchaseInvoices.filter(
-        (inv) =>
-          inv.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          inv.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (inv.vehicleNo || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          inv.items.some((it) =>
-            it.fruit.toLowerCase().includes(searchTerm.toLowerCase()),
-          ),
-      ),
-    [purchaseInvoices, searchTerm],
+      purchaseInvoices
+        .filter((inv) => inv.date >= fyStartDate && inv.date <= fyEndDate)
+        .filter(
+          (inv) =>
+            inv.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            inv.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (inv.vehicleNo || "")
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            inv.items.some((it) =>
+              it.fruit.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
+        ),
+    [purchaseInvoices, searchTerm, fyStartDate, fyEndDate],
   );
 
   const table = useDataTable<
@@ -412,7 +474,7 @@ export const PurchaseBillingModule: React.FC = () => {
         className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${card} p-4`}
       >
         <div>
-          <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h1 className="text-xl font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-2.5">
             <ShoppingBag className="w-6 h-6 text-emerald-500" />
             <span>PURCHASE BILLING</span>
           </h1>
@@ -453,7 +515,7 @@ export const PurchaseBillingModule: React.FC = () => {
           NEW BILL FORM
                                                                                                                                                     */}
       {activeSubTab === "NEW_INVOICE" && (
-        <div className="space-y-4">
+        <div className="flex-1 flex flex-col space-y-4 min-h-0">
           {/* Lorry Deductions Toggle */}
           <div className="flex items-center justify-between px-1">
             <button
@@ -485,34 +547,18 @@ export const PurchaseBillingModule: React.FC = () => {
                   type="text"
                   value={billNo}
                   onChange={(e) => setBillNo(e.target.value.toUpperCase())}
-                  className={`${inp} px-2 py-1 text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 w-full`}
+                  className={`${inp} px-2 py-1 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 w-full`}
                   placeholder="PUR-2026-001"
                 />
               </div>
               {/* Date */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider ${label}`}
-                >
-                  Date
-                </span>
-                <div className="relative">
-                  <input
-                    ref={dateRef}
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className={`${inp} px-2 py-1 text-xs font-mono font-bold w-full pr-20`}
-                  />
-                  {date && (
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-200 dark:border-slate-700 pointer-events-none leading-tight">
-                      {new Date(`${date}T00:00:00`).toLocaleDateString(
-                        "en-IN",
-                        { weekday: "long" },
-                      )}
-                    </span>
-                  )}
-                </div>
+                <DatePicker
+                  label="Date"
+                  value={date}
+                  onChange={(val) => setDate(val)}
+                  variant="emerald"
+                />
               </div>
               {/* Supplier */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
@@ -601,7 +647,7 @@ export const PurchaseBillingModule: React.FC = () => {
           )}
 
           {/*        ITEMS TABLE        */}
-          <div className={`${card} overflow-hidden`}>
+          <div className={`${card} overflow-hidden flex-1 flex flex-col min-h-0`}>
             <div
               className={`px-5 py-3.5 ${hdr} flex items-center justify-between`}
             >
@@ -629,7 +675,7 @@ export const PurchaseBillingModule: React.FC = () => {
             </div>
 
             {/* overflow-x-auto with min-w-0 prevents the wrapper from expanding the parent card */}
-            <div className="overflow-x-auto min-w-0">
+            <div className="flex-1 overflow-auto min-w-0 relative">
               {/* table-fixed locks column widths so tfoot content never causes reflow */}
               <table className="erp-table w-full text-left text-xs sm:text-sm table-fixed">
                 <colgroup>
@@ -643,7 +689,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 </colgroup>
                 <thead>
                   <tr
-                    className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none`}
+                    className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none sticky top-0 z-10 shadow-sm`}
                   >
                     <th className="py-3 px-4 col-text">Fruit Category</th>
                     <th className="py-3 px-3 col-text">
@@ -863,7 +909,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 >
                   Previous Balance
                 </span>
-                <span className="text-sm font-black font-mono dark:text-slate-200 text-slate-900">
+                <span className="text-sm font-bold font-mono dark:text-slate-200 text-slate-900">
                   ₹ {previousBalance.toLocaleString("en-IN")}
                 </span>
               </div>
@@ -871,7 +917,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                   + Today's Bill
                 </span>
-                <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
                   ₹ {todayAmount.toLocaleString("en-IN")}
                 </span>
               </div>
@@ -879,7 +925,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
                   = Total Payable
                 </span>
-                <span className="text-base font-black font-mono text-white">
+                <span className="text-base font-bold font-mono text-white">
                   ₹ {remainingBalance.toLocaleString("en-IN")}
                 </span>
               </div>
@@ -1072,10 +1118,10 @@ export const PurchaseBillingModule: React.FC = () => {
                           {weight.toFixed(1)}{" "}
                           <span className="text-[9px] font-sans">KG</span>
                         </td>
-                        <td className="py-3.5 px-3 col-num font-mono font-black text-emerald-600 dark:text-emerald-400 text-base">
+                        <td className="py-3.5 px-3 col-num font-mono font-bold text-emerald-600 dark:text-emerald-400 text-base">
                           ₹ {inv.todayAmount.toLocaleString("en-IN")}
                         </td>
-                        <td className="py-3.5 px-3 col-num font-mono font-black dark:text-slate-200 text-slate-900 text-sm">
+                        <td className="py-3.5 px-3 col-num font-mono font-bold dark:text-slate-200 text-slate-900 text-sm">
                           ₹ {inv.remainingBalance.toLocaleString("en-IN")}
                         </td>
                         <td className="py-3.5 px-4 col-actions sticky right-0 bg-[var(--card-bg)] z-[2] border-l border-[var(--table-border)]">
@@ -1088,20 +1134,20 @@ export const PurchaseBillingModule: React.FC = () => {
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => {
-                                dialog.confirm({
+                              onClick={async () => {
+                                const ok = await dialog.confirm({
                                   title: "Delete Purchase Bill?",
-                                  message: `Are you sure you want to delete ${inv.billNo}? This will also adjust the supplier balance and inventory.`,
-                                  confirmLabel: "Delete Bill",
-                                  confirmVariant: "danger",
-                                  onConfirm: () => {
-                                    deletePurchaseInvoice(inv.id);
-                                    toast.success(
-                                      "Bill Deleted",
-                                      "The purchase record and associated stock have been removed.",
-                                    );
-                                  },
+                                  description: `Are you sure you want to delete ${inv.billNo}? This will also adjust the supplier balance and inventory.`,
+                                  confirmText: "Delete Bill",
+                                  variant: "destructive",
                                 });
+                                if (ok) {
+                                  deletePurchaseInvoice(inv.id);
+                                  toast.success(
+                                    "Bill Deleted",
+                                    "The purchase record and associated stock have been removed.",
+                                  );
+                                }
                               }}
                               className={`p-2 ${muted} hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}
                               title="Delete Bill"

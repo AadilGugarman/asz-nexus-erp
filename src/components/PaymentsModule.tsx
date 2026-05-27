@@ -10,6 +10,7 @@ import { useApp } from '@/context/AppContext';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import { CommandSelect, CommandOption } from './ui/CommandSelect';
+import { DatePicker } from './ui/DatePicker';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 import { useDataTable } from '../hooks/useDataTable';
 import { DataTable, Pagination } from './ui/table';
@@ -28,10 +29,29 @@ const getPaymentModeMeta = (mode: string) =>
   PAYMENT_MODE_LABELS[mode] ?? { label: mode || 'Unknown', icon: <Wallet className="w-3.5 h-3.5" />, color: 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/30' };
 
 export const PaymentsModule: React.FC = () => {
-  const { payments, suppliers, customers, addPayment, savePayment, deletePayment, settings, getSupplierLedger, getCustomerLedger } = useApp();
+  const { payments, suppliers, customers, addPayment, savePayment, deletePayment, settings, getSupplierLedger, getCustomerLedger, activeFY, companies, activeCompanyId } = useApp();
   const cs = settings.company;
   const toast = useToast();
   const dialog = useConfirmDialog();
+
+  // Derive FY date range from active company + activeFY
+  const { fyStartDate, fyEndDate } = useMemo(() => {
+    const activeCompany = companies.find((c) => c.id === activeCompanyId);
+    const fyStartMD = activeCompany?.financial?.financialYearStart
+      ?? settings?.financial?.financialYearStart
+      ?? '04-01';
+    const fyStartMonth = parseInt(fyStartMD.split('-')[0], 10) || 4;
+    const [startYearStr] = (activeFY ?? '').split('-');
+    const startYear = parseInt(startYearStr, 10) || new Date().getFullYear();
+    const endMonth = fyStartMonth === 1 ? 12 : fyStartMonth - 1;
+    const endYear  = fyStartMonth === 1 ? startYear : startYear + 1;
+    const lastDay  = new Date(endYear, endMonth, 0).getDate();
+    const p = (n: number) => String(n).padStart(2, '0');
+    return {
+      fyStartDate: `${startYear}-${p(fyStartMonth)}-01`,
+      fyEndDate:   `${endYear}-${p(endMonth)}-${lastDay}`,
+    };
+  }, [activeFY, companies, activeCompanyId, settings?.financial?.financialYearStart]);
 
   const [activeTab, setActiveTab] = useState<'NEW' | 'LIST'>('NEW');
   const [previewPayment, setPreviewPayment] = useState<PaymentReceipt | null>(null);
@@ -53,7 +73,6 @@ export const PaymentsModule: React.FC = () => {
   const [filterMode, setFilterMode] = useState<'ALL' | 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI'>('ALL');
   const searchRef = useRef<HTMLInputElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
-  const dateRef = useRef<HTMLInputElement>(null);
   const referenceRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLInputElement>(null);
 
@@ -97,6 +116,7 @@ export const PaymentsModule: React.FC = () => {
   // ── Filtered Payments ───────────────
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
+      const inFY = p.date >= fyStartDate && p.date <= fyEndDate;
       const matchSearch =
         p.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.referenceNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,9 +124,9 @@ export const PaymentsModule: React.FC = () => {
         p.amount.toString().includes(searchTerm);
       const matchType = filterType === 'ALL' || p.partyType === filterType;
       const matchMode = filterMode === 'ALL' || p.paymentMode === filterMode;
-      return matchSearch && matchType && matchMode;
+      return inFY && matchSearch && matchType && matchMode;
     });
-  }, [payments, searchTerm, filterType, filterMode]);
+  }, [payments, searchTerm, filterType, filterMode, fyStartDate, fyEndDate]);
 
   const paymentsTable = useDataTable<PaymentReceipt, 'date' | 'amount' | 'partyName'>({
     data: filteredPayments,
@@ -229,6 +249,20 @@ export const PaymentsModule: React.FC = () => {
     }
   };
 
+  const typeFilterOptions: CommandOption[] = [
+    { id: 'ALL', label: 'All Parties', icon: <Users className="w-3.5 h-3.5" /> },
+    { id: 'SUPPLIER', label: 'Suppliers Only', icon: <Building2 className="w-3.5 h-3.5" /> },
+    { id: 'CUSTOMER', label: 'Customers Only', icon: <UserCheck className="w-3.5 h-3.5" /> },
+  ];
+
+  const modeFilterOptions: CommandOption[] = [
+    { id: 'ALL', label: 'All Modes', icon: <Wallet className="w-3.5 h-3.5" /> },
+    { id: 'CASH', label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" /> },
+    { id: 'BANK_TRANSFER', label: 'Bank Transfer', icon: <Building2 className="w-3.5 h-3.5" /> },
+    { id: 'UPI', label: 'UPI', icon: <Smartphone className="w-3.5 h-3.5" /> },
+    { id: 'CHEQUE', label: 'Cheque', icon: <CreditCard className="w-3.5 h-3.5" /> },
+  ];
+
   return (
     <div className="flex-1 flex flex-col space-y-6 font-sans min-h-0">
 
@@ -274,10 +308,6 @@ export const PaymentsModule: React.FC = () => {
       {activeTab === 'NEW' && (
         <div className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 shadow-xl overflow-hidden animate-slide-up" onKeyDown={(e) => {
           if (e.key === 'Enter' && e.target === amountRef.current) {
-            e.preventDefault();
-            dateRef.current?.focus();
-          }
-          if (e.key === 'Enter' && e.target === dateRef.current) {
             e.preventDefault();
             referenceRef.current?.focus();
           }
@@ -370,13 +400,11 @@ export const PaymentsModule: React.FC = () => {
 
               {/* Date */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Payment Date</label>
-                <input
-                  ref={dateRef}
-                  type="date"
+                <DatePicker
+                  label="Payment Date"
                   value={payDate}
-                  onChange={(e) => setPayDate(e.target.value)}
-                  className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 font-mono rounded-xl p-2.5 text-xs outline-none focus:border-amber-500"
+                  onChange={(val) => setPayDate(val)}
+                  variant="amber"
                 />
               </div>
             </div>
@@ -534,27 +562,31 @@ export const PaymentsModule: React.FC = () => {
                 />
               </div>
               {/* Type Filter */}
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as any)}
-                className="erp-input min-h-0 rounded-lg px-3 py-2 text-xs font-semibold cursor-pointer"
-              >
-                <option value="ALL">All Parties</option>
-                <option value="SUPPLIER">Suppliers Only</option>
-                <option value="CUSTOMER">Customers Only</option>
-              </select>
+              <div className="w-48">
+                <CommandSelect
+                  value={filterType}
+                  onChange={(val) => setFilterType(val as any)}
+                  options={typeFilterOptions}
+                  placeholder="All Parties"
+                  creatable={false}
+                  showEmoji={false}
+                  variant="emerald"
+                  size="sm"
+                />
+              </div>
               {/* Mode Filter */}
-              <select
-                value={filterMode}
-                onChange={(e) => setFilterMode(e.target.value as any)}
-                className="erp-input min-h-0 rounded-lg px-3 py-2 text-xs font-semibold cursor-pointer"
-              >
-                <option value="ALL">All Modes</option>
-                <option value="CASH">Cash</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="UPI">UPI</option>
-                <option value="CHEQUE">Cheque</option>
-              </select>
+              <div className="w-48">
+                <CommandSelect
+                  value={filterMode}
+                  onChange={(val) => setFilterMode(val as any)}
+                  options={modeFilterOptions}
+                  placeholder="All Modes"
+                  creatable={false}
+                  showEmoji={false}
+                  variant="emerald"
+                  size="sm"
+                />
+              </div>
             </div>
           </div>
 

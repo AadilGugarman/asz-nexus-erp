@@ -63,7 +63,14 @@ export const CompanySetupPage: React.FC = () => {
 
       localStorage.setItem(STORAGE_KEYS.setupDone, "true");
       localStorage.setItem(STORAGE_KEYS.activeCompany, companyId);
-      localStorage.setItem(STORAGE_KEYS.activeFY, "2026-27");
+
+      // Derive the current FY from the company's financialYearStart instead of hardcoding
+      const fyStartMD = existingSettings.financial?.financialYearStart ?? "04-01";
+      const fyStartMonth = parseInt(fyStartMD.split("-")[0], 10) || 4;
+      const now = new Date();
+      const baseYear = now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
+      const derivedActiveFY = `${baseYear}-${String(baseYear + 1).slice(-2)}`;
+      localStorage.setItem(STORAGE_KEYS.activeFY, derivedActiveFY);
 
       const settings = {
         ...existingSettings,

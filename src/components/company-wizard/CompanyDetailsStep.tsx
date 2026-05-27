@@ -10,6 +10,7 @@ import {
   Globe,
 } from "lucide-react";
 import { Autocomplete, AutocompleteOption } from "../ui/Autocomplete";
+import { CommandSelect, CommandOption } from "../ui/CommandSelect";
 import locationsData from "@/data/india-locations.json";
 
 interface CompanyDetailsStepProps {
@@ -76,6 +77,17 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
 
   const labelClass = "block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider";
   const errorMsg = "text-[11px] text-red-500 dark:text-red-400 flex items-center gap-1";
+
+  const countryOptions: CommandOption[] = [
+    { id: "India", label: "India" },
+    { id: "United States", label: "United States" },
+    { id: "United Kingdom", label: "United Kingdom" },
+    { id: "United Arab Emirates", label: "UAE" },
+    { id: "Singapore", label: "Singapore" },
+    { id: "Germany", label: "Germany" },
+    { id: "Australia", label: "Australia" },
+    { id: "Canada", label: "Canada" },
+  ];
 
   return (
     <div className="space-y-4 animate-fadeIn">
@@ -228,20 +240,14 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
               <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                 <Globe className="w-3.5 h-3.5" />
               </div>
-              <select
+              <CommandSelect
                 value={data.country}
-                onChange={(e) => onChange({ country: e.target.value })}
-                className={`pl-8 pr-3 appearance-none ${inputNormal}`}
-              >
-                <option value="India">India</option>
-                <option value="United States">United States</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="United Arab Emirates">UAE</option>
-                <option value="Singapore">Singapore</option>
-                <option value="Germany">Germany</option>
-                <option value="Australia">Australia</option>
-                <option value="Canada">Canada</option>
-              </select>
+                onChange={(val) => onChange({ country: val })}
+                options={countryOptions}
+                creatable={false}
+                showEmoji={false}
+                variant="amber"
+              />
             </div>
           </div>
 
@@ -316,9 +322,9 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
             )}
           </div>
 
-          {/* Phone 1 */}
+          {/* Phone */}
           <div className="space-y-1">
-            <label className={labelClass}>Phone 1 <span className="text-red-500">*</span></label>
+            <label className={labelClass}>Phone <span className="text-red-500">*</span></label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                 <Phone className="w-3.5 h-3.5" />
@@ -329,7 +335,7 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
                 value={data.phone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 placeholder="9876543210"
-                onKeyDown={(e) => e.key === "Enter" && phone2Ref.current?.focus()}
+                onKeyDown={(e) => e.key === "Enter" && emailRef.current?.focus()}
                 className={`pl-8 pr-3 ${errors.phone ? inputError : inputNormal}`}
               />
             </div>
@@ -337,44 +343,7 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
               <p className={errorMsg}><AlertCircle className="w-3 h-3 shrink-0" /><span>{errors.phone}</span></p>
             )}
           </div>
-
-          {/* Phone 2 */}
-          <div className="space-y-1">
-            <label className={labelClass}>Phone 2</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
-                <Phone className="w-3.5 h-3.5" />
-              </div>
-              <input
-                ref={phone2Ref}
-                type="text"
-                value={data.phone2 || ""}
-                onChange={(e) => onChange({ phone2: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                placeholder="Optional"
-                onKeyDown={(e) => e.key === "Enter" && phone3Ref.current?.focus()}
-                className={`pl-8 pr-3 ${inputNormal}`}
-              />
-            </div>
-          </div>
-
-          {/* Phone 3 */}
-          <div className="space-y-1">
-            <label className={labelClass}>Phone 3</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
-                <Phone className="w-3.5 h-3.5" />
-              </div>
-              <input
-                ref={phone3Ref}
-                type="text"
-                value={data.phone3 || ""}
-                onChange={(e) => onChange({ phone3: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                placeholder="Optional"
-                onKeyDown={(e) => e.key === "Enter" && emailRef.current?.focus()}
-                className={`pl-8 pr-3 ${inputNormal}`}
-              />
-            </div>
-          </div>
+          {/* Secondary contacts managed in Settings → Invoice & Numbering */}
 
           {/* Email */}
           <div className="space-y-1">

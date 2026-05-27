@@ -529,12 +529,15 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       invoice: target.invoice,
     };
 
-    set({ activeCompanyId: id, settings: nextSettings });
+    // Derive the current FY for the new company based on its financialYearStart
+    const newActiveFY = deriveDefaultActiveFY(nextSettings);
+
+    set({ activeCompanyId: id, settings: nextSettings, activeFY: newActiveFY });
     await get()._persistToDb(
       nextSettings,
       current.companies,
       id,
-      current.activeFY,
+      newActiveFY,
     );
   },
 

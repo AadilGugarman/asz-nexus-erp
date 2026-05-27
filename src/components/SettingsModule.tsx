@@ -12,8 +12,57 @@ const getCompanyInitials = (name: string) => {
     .slice(0, 3)
     .toUpperCase();
 };
+
+// ── Shared input helper — defined OUTSIDE the component to prevent remount on every render ──
+const Inp: React.FC<{
+  label: string;
+  value: string | number;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  mono?: boolean;
+  disabled?: boolean;
+}> = ({ label, value, onChange, placeholder = "", type = "text", mono = false, disabled = false }) => (
+  <div className="space-y-1.5">
+    <label className="block text-[11px] font-semibold uppercase tracking-[0.15em] dark:text-slate-400 text-slate-600 ml-1">
+      {label}
+    </label>
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      disabled={disabled}
+      className={`w-full dark:bg-slate-950 bg-white border-2 dark:border-slate-800 border-slate-200 dark:text-white text-slate-900 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 shadow-sm transition-all duration-300 disabled:opacity-50 ${mono ? "font-mono font-bold uppercase" : "font-normal"}`}
+    />
+  </div>
+);
+
+// ── Toggle — also defined outside to prevent remount ──
+const Toggle: React.FC<{
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}> = ({ label, desc, checked, onChange }) => (
+  <div className="flex items-center justify-between py-3 border-b dark:border-slate-800 border-slate-200 last:border-0">
+    <div>
+      <div className="text-sm font-bold dark:text-white text-slate-900">{label}</div>
+      <div className="text-[11px] dark:text-slate-400 text-slate-500">{desc}</div>
+    </div>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${checked ? "bg-emerald-500" : "dark:bg-slate-700 bg-slate-300"}`}
+    >
+      <div
+        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[22px]" : "translate-x-0.5"}`}
+      />
+    </button>
+  </div>
+);
 import { useApp } from "@/context/AppContext";
-import { useAppearance, useAppTranslation } from "@/hooks";
+import { useAppearance } from "@/hooks";
 import { useDataTable } from "@/hooks/useDataTable";
 import { backupService } from "@/services/backup.service";
 import {
@@ -27,7 +76,6 @@ import { useToast } from "./ui/Toast";
 import { useConfirmDialog } from "./ui/ConfirmDialog";
 import {
   Settings,
-  Building2,
   FileText,
   Database,
   Palette,
@@ -45,14 +93,12 @@ import {
   Check,
   AlertTriangle,
   HardDrive,
-  Info,
   Plus,
   Star,
   Briefcase,
   X,
   MapPin,
   Phone,
-  Mail,
   Sparkles,
   Printer,
   Share2,
@@ -62,13 +108,14 @@ import {
   Search,
   ArrowUpDown,
   Hash,
+  Landmark,
 } from "lucide-react";
 import { CompanyProfile, Invoice } from "../types";
-import type { AppLanguage } from "@/types/language";
 import { formatInvoiceNumber } from "../utils/invoice-number";
 import { fmtDate } from "../utils/format";
 import { InvoiceTemplateRenderer } from "./invoice/InvoiceTemplateRenderer";
 import { DataTable, Pagination } from "./ui/table";
+import { CommandSelect, CommandOption } from "./ui/CommandSelect";
 import { CompanyWizard } from "./company-wizard/CompanyWizard";
 
 type Section =
@@ -80,8 +127,6 @@ type Section =
   | "SECURITY";
 
 export const SettingsModule: React.FC = () => {
-  const { t } = useAppTranslation("settings");
-  const { t: tCommon } = useAppTranslation("common");
   const {
     settings,
     updateSettings,
@@ -96,8 +141,7 @@ export const SettingsModule: React.FC = () => {
     fruits,
     companies,
     activeCompanyId,
-    addCompany,
-    updateCompany,
+    activeFY,
     deleteCompany,
     switchCompany,
     addFruitVariety,
@@ -115,12 +159,6 @@ export const SettingsModule: React.FC = () => {
     setFontSize,
     accentColor,
     setAccentColor,
-    language,
-    setLanguage,
-    lowStockAlerts,
-    setLowStockAlerts,
-    animationsEnabled,
-    setAnimationsEnabled,
     resetAppearance,
   } = useAppearance();
   const toast = useToast();
@@ -133,8 +171,8 @@ export const SettingsModule: React.FC = () => {
   const [confirmResetDialog, setConfirmResetDialog] = useState(false);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const sigInputRef = useRef<HTMLInputElement>(null);
-  const companyLogoInputRef = useRef<HTMLInputElement>(null);
   const watermarkInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoUploadProgress, setLogoUploadProgress] = useState(false);
 
   const handleResetAppearance = () => {
@@ -145,7 +183,7 @@ export const SettingsModule: React.FC = () => {
     );
   };
 
-  // ── Security State (extended) ───────────────
+  // â”€â”€ Security State (extended) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const {
     sessionTimeout,
     setSessionTimeout,
@@ -159,7 +197,7 @@ export const SettingsModule: React.FC = () => {
     setDbEncryption,
   } = useSecurityStore();
 
-  // -- Backup State � powered by backupService + useBackupStore -------------
+  // -- Backup State ï¿½ powered by backupService + useBackupStore -------------
   const {
     autoBackup,
     setAutoBackup,
@@ -268,70 +306,12 @@ export const SettingsModule: React.FC = () => {
   };
 
   const location = useLocation();
-  const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [showEditWizard, setShowEditWizard] = useState(false);
   const [wizardEditCompanyId, setWizardEditCompanyId] = useState<string | null>(null);
-  const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
-
-  // ── Reusable Company Form State (Create & Edit) ──
-  const [cfName, setCfName] = useState("");
-  const [cfTagline, setCfTagline] = useState("Wholesale Fruit Merchants");
-  const [cfGstin, setCfGstin] = useState("");
-  const [cfPan, setCfPan] = useState("");
-  const [cfAddress, setCfAddress] = useState("");
-  const [cfCity, setCfCity] = useState("");
-  const [cfState, setCfState] = useState("Gujarat");
-  const [cfPincode, setCfPincode] = useState("");
-  const [cfPhone, setCfPhone] = useState("");
-  const [cfPhone2, setCfPhone2] = useState("");
-  const [cfPhone3, setCfPhone3] = useState("");
-  const [cfEmail, setCfEmail] = useState("");
-  const [cfWebsite, setCfWebsite] = useState("");
-  const [cfCurrency, setCfCurrency] = useState("INR");
-  const [cfInvPrefix, setCfInvPrefix] = useState("INV");
-  const [cfInvStart, setCfInvStart] = useState(1001);
-  const [cfBankName, setCfBankName] = useState("");
-  const [cfAccountNo, setCfAccountNo] = useState("");
-  const [cfIfsc, setCfIfsc] = useState("");
-  const [cfUpiId, setCfUpiId] = useState("");
-  const [cfLogo, setCfLogo] = useState("");
-  const [cfStep, setCfStep] = useState(1);
-  const [cfSaving, setCfSaving] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-
-  const isEditMode = editingCompanyId !== null;
-  const cfModalTitle = isEditMode ? "Edit Company" : "Create Company";
-
-  const resetCompanyForm = () => {
-    setCfName("");
-    setCfTagline("Wholesale Fruit Merchants");
-    setCfGstin("");
-    setCfPan("");
-    setCfAddress("");
-    setCfCity("");
-    setCfState("Gujarat");
-    setCfPincode("");
-    setCfPhone("");
-    setCfPhone2("");
-    setCfPhone3("");
-    setCfEmail("");
-    setCfWebsite("");
-    setCfCurrency("INR");
-    setCfInvPrefix("INV");
-    setCfInvStart(1001);
-    setCfBankName("");
-    setCfAccountNo("");
-    setCfIfsc("");
-    setCfUpiId("");
-    setCfLogo("");
-    setCfStep(1);
-    setEditingCompanyId(null);
-    setCfSaving(false);
-  };
 
   const openCreateCompany = () => {
-    resetCompanyForm();
-    setShowCompanyModal(true);
+    setShowCreateWizard(true);
   };
 
   const openEditCompany = (c: CompanyProfile) => {
@@ -343,7 +323,7 @@ export const SettingsModule: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const section = params.get("section");
     if (section === "companies") setActiveSection("COMPANIES");
-    else if (section === "financial") setActiveSection("FINANCIAL");
+    else if (section === "financial") setActiveSection("INVOICE");
     else if (section === "invoice") setActiveSection("INVOICE");
     else if (section === "masters") setActiveSection("MASTERS");
     else if (section === "backup") setActiveSection("BACKUP");
@@ -353,18 +333,15 @@ export const SettingsModule: React.FC = () => {
     const action = params.get("action");
     const companyId = params.get("companyId");
     if (action === "create") {
-      resetCompanyForm();
-      setShowCompanyModal(true);
+      setShowCreateWizard(true);
     } else if (action === "edit" && companyId) {
       const company = companies.find((c) => c.id === companyId);
       if (company) openEditCompany(company);
     }
   }, [location.search, companies]);
 
-  const cfStep1Valid = cfName.trim().length >= 2 && cfPhone.trim().length >= 6;
-  const cfStep2Valid = cfInvPrefix.trim().length > 0 && cfInvStart > 0;
 
-  // ── Masters State ───────────────────────────
+  // â”€â”€ Masters State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [selectedFruitId, setSelectedFruitId] = useState(fruits[0]?.id || "");
   const [newVariety, setNewVariety] = useState("");
   const [newFruitName, setNewFruitName] = useState("");
@@ -374,91 +351,7 @@ export const SettingsModule: React.FC = () => {
   const [newCustName, setNewCustName] = useState("");
   const [newCustCity, setNewCustCity] = useState("");
 
-  const handleSaveCompany = () => {
-    setCfSaving(true);
-    const profile: CompanyProfile = {
-      id: editingCompanyId || `co-${Date.now()}`,
-      company: {
-        name: cfName.trim(),
-        tagline: cfTagline,
-        address: [cfAddress, cfCity, cfState, cfPincode]
-          .filter(Boolean)
-          .join(", "),
-        phone: cfPhone,
-        phone2: cfPhone2,
-        phone3: cfPhone3,
-        email: cfEmail,
-        website: cfWebsite,
-        gstin: cfGstin.toUpperCase(),
-        pan: cfPan.toUpperCase(),
-        bankName: cfBankName,
-        accountNo: cfAccountNo,
-        ifsc: cfIfsc,
-        upiId: cfUpiId,
-        logo: cfLogo,
-      },
-      financial: {
-        financialYearStart: "04-01",
-        currency: "INR",
-        commissionRate: 0,
-        defaultHamali: 0,
-        defaultFreight: 0,
-      },
-      invoice: {
-        salesPrefix: cfInvPrefix,
-        purchasePrefix: "PUR",
-        arrivalPrefix: "ARR",
-        salesNextNo: cfInvStart,
-        purchaseNextNo: 101,
-        arrivalNextNo: 1,
-        termsText: "Subject to APMC market yard rules.",
-        footerNote: "Thank you for your business",
-        showUPI: true,
-        showBankDetails: true,
-        templateStyle: "modern",
-        brandColor: "#6366f1",
-        enableQR: true,
-        autoInvoiceNo: true,
-        invoiceNumberMode: "sequential",
-        businessPrefix: "TF",
-        defaultTaxRate: 0,
-        paymentDueDays: 15,
-        showCompanyDetails: true,
-        showPaymentDetails: true,
-        watermarkType: "none",
-        watermarkText: "",
-        watermarkImage: "",
-        watermarkOpacity: 0.08,
-        watermarkSize: 110,
-        watermarkPosition: "center",
-        watermarkRepeat: false,
-        signatureImage: "",
-        invoiceLogo: "",
-        enableInvoiceLogo: false,
-      },
-      createdAt: isEditMode
-        ? companies.find((c) => c.id === editingCompanyId)?.createdAt ||
-          new Date().toISOString()
-        : new Date().toISOString(),
-    };
-    setTimeout(() => {
-      if (isEditMode) {
-        updateCompany(profile);
-        toast.success("Company Updated", `${cfName} details have been saved.`);
-      } else {
-        addCompany(profile);
-        toast.success(
-          "Company Created",
-          `${cfName} has been registered. Switch to it anytime!`,
-        );
-      }
-      setCfSaving(false);
-      setShowCompanyModal(false);
-      resetCompanyForm();
-    }, 400);
-  };
-
-  // ── local editable copies for controlled inputs ──
+  // â”€â”€ local editable copies for controlled inputs â”€â”€
   const [inv, setInv] = useState(settings.invoice);
   const [sec, setSec] = useState(settings.security);
 
@@ -515,70 +408,7 @@ export const SettingsModule: React.FC = () => {
     },
   ];
 
-  // ── Input helper ──
-  const Inp = ({
-    label,
-    value,
-    onChange,
-    placeholder = "",
-    type = "text",
-    mono = false,
-    disabled = false,
-  }: {
-    label: string;
-    value: string | number;
-    onChange: (v: string) => void;
-    placeholder?: string;
-    type?: string;
-    mono?: boolean;
-    disabled?: boolean;
-  }) => (
-    <div className="space-y-1.5">
-      <label className="block text-[11px] font-black uppercase tracking-[0.15em] dark:text-slate-400 text-slate-600 ml-1">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={`w-full dark:bg-slate-950 bg-white border-2 dark:border-slate-800 border-slate-200 dark:text-white text-slate-900 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 shadow-sm transition-all duration-300 disabled:opacity-50 ${mono ? "font-mono font-black uppercase" : "font-black tracking-tight"}`}
-      />
-    </div>
-  );
-
-  const Toggle = ({
-    label,
-    desc,
-    checked,
-    onChange,
-  }: {
-    label: string;
-    desc: string;
-    checked: boolean;
-    onChange: (v: boolean) => void;
-  }) => (
-    <div className="flex items-center justify-between py-3 border-b dark:border-slate-800 border-slate-200 last:border-0">
-      <div>
-        <div className="text-sm font-bold dark:text-white text-slate-900">
-          {label}
-        </div>
-        <div className="text-[11px] dark:text-slate-400 text-slate-500">
-          {desc}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${checked ? "bg-emerald-500" : "dark:bg-slate-700 bg-slate-300"}`}
-      >
-        <div
-          className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[22px]" : "translate-x-0.5"}`}
-        />
-      </button>
-    </div>
-  );
+  // Input helper (Inp) and Toggle are defined at module level above
 
   const saveInvoice = () => {
     updateSettings({ invoice: inv });
@@ -655,7 +485,7 @@ export const SettingsModule: React.FC = () => {
     e.target.value = "";
   };
 
-  // ── Storage usage ──
+  // â”€â”€ Storage usage â”€â”€
   const storageUsed = React.useMemo(() => {
     let total = 0;
     for (let i = 0; i < localStorage.length; i++) {
@@ -675,6 +505,39 @@ export const SettingsModule: React.FC = () => {
     fruits: fruits.length,
   };
 
+  // â”€â”€ Sample invoice for preview â€” uses current settings + rich fake data â”€â”€
+  // The preview company merges real settings with demo values so every
+  // section (logo, QR, bank, signature, contacts) is always visible.
+  const previewCompany = {
+    ...settings.company,
+    name:    settings.company.name    || "ASZ Nexus Traders",
+    tagline: settings.company.tagline || "Wholesale Fruit Merchants Â· Est. 2010",
+    address: settings.company.address || "Shop No. 12, APMC Market Yard, Valsad, Gujarat - 396001",
+    phone:   settings.company.phone   || "9876543210",
+    phone2:  settings.company.phone2  || "9876543211",
+    phone3:  settings.company.phone3  || "9876543212",
+    email:   settings.company.email   || "accounts@asznexus.in",
+    gstin:   settings.company.gstin   || "24AAAAA0000A1Z5",
+    bankName:  settings.company.bankName  || "State Bank of India",
+    accountNo: settings.company.accountNo || "38920019283",
+    ifsc:      settings.company.ifsc      || "SBIN0001234",
+    upiId:     settings.company.upiId     || "asznexus@sbi",
+    // Use a placeholder logo if none uploaded
+    logo: settings.company.logo || "",
+  };
+
+  const previewInvSettings = {
+    ...inv,
+    // Always show all sections in preview so user can see what's enabled
+    showUPI:            true,
+    showBankDetails:    true,
+    showCompanyDetails: true,
+    showPaymentDetails: true,
+    enableQR:           inv.enableQR ?? true,
+    // Use a placeholder signature image if none uploaded
+    signatureImage: inv.signatureImage || "",
+  };
+
   const invoicePreviewSample: Invoice = {
     id: "sample-invoice",
     invoiceNo: formatInvoiceNumber(
@@ -682,52 +545,85 @@ export const SettingsModule: React.FC = () => {
       inv.salesNextNo || 1,
       new Date().toISOString().split("T")[0],
       invoices,
+      activeFY,
     ),
     date: new Date().toISOString().split("T")[0],
     customerId: "sample-customer",
     customerName: "Metro Fresh Supermarket",
+    vehicleNo: "GJ01AB1234",
+    declaredWeight: 500,
     previousBalance: 35000,
     todayAmount: 42950,
+    freight: 850,
     hamali: 350,
-    discount: 100,
-    paidAmount: 5000,
-    remainingBalance: 72950,
-    notes: "Sample invoice preview for style verification",
+    paidAmount: 0,
+    remainingBalance: 77950,
+    remainingCaretBalance: 18,
+    notes: "Sample invoice â€” all sections shown for preview",
     createdAt: new Date().toISOString(),
     items: [
       {
         id: "s1",
+        fruitCategory: "Kesar Mango",
         fruit: "Kesar Mango",
         lotVariety: "Grade A",
         caret: 12,
         weight: 220,
         rate: 85,
         amount: 18700,
+        pricingType: 'kg',
       },
       {
         id: "s2",
+        fruitCategory: "Alphonso",
         fruit: "Alphonso",
         lotVariety: "Export",
         caret: 8,
         weight: 120,
         rate: 140,
         amount: 16800,
+        pricingType: 'caret',
       },
       {
         id: "s3",
+        fruitCategory: "Rajapuri",
         fruit: "Rajapuri",
         lotVariety: "Table",
         caret: 10,
         weight: 160,
         rate: 45,
         amount: 7200,
+        pricingType: 'caret',
       },
     ],
   };
 
+  const backupFreqOptions: CommandOption[] = [
+    { id: "daily", label: "Daily" },
+    { id: "weekly", label: "Weekly" },
+    { id: "monthly", label: "Monthly" },
+  ];
+
+  const autoLockOptions: CommandOption[] = [
+    { id: "0", label: "Disabled" },
+    { id: "5", label: "5 Minutes" },
+    { id: "15", label: "15 Minutes" },
+    { id: "30", label: "30 Minutes" },
+    { id: "60", label: "1 Hour" },
+    { id: "120", label: "2 Hours" },
+  ];
+
+  const sessionTimeoutOptions: CommandOption[] = [
+    { id: "15", label: "15 Minutes" },
+    { id: "30", label: "30 Minutes" },
+    { id: "60", label: "1 Hour" },
+    { id: "120", label: "2 Hours" },
+    { id: "480", label: "8 Hours" },
+  ];
+
   return (
       <div className="space-y-6 font-sans">
-        {/* ── HEADER ─────────────────────────────────── */}
+        {/* â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-md">
         <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
           <Settings className="w-6 h-6 text-cyan-500" />
@@ -739,7 +635,7 @@ export const SettingsModule: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* ── LEFT SIDEBAR ─────────────────────────── */}
+        {/* â”€â”€ LEFT SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="lg:col-span-1">
           <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden sticky top-20">
             {sections.map((s) => {
@@ -789,9 +685,9 @@ export const SettingsModule: React.FC = () => {
           </div>
         </div>
 
-        {/* ── RIGHT CONTENT ────────────────────────── */}
+        {/* â”€â”€ RIGHT CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="lg:col-span-3 space-y-0">
-          {/* ═══ COMPANIES ═══ */}
+          {/* â•â•â• COMPANIES â•â•â• */}
           {activeSection === "COMPANIES" && (
             <div className="space-y-5 animate-slide-up">
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
@@ -826,7 +722,12 @@ export const SettingsModule: React.FC = () => {
                       >
                         <div className="p-4 flex-1 flex items-start space-x-3.5">
                           <div
-                            className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-black shrink-0 shadow-sm ${isActive ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-slate-950" : "dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600"}`}
+                            className={`w-11 h-11 rounded-xl flex items-center justify-center font-black shrink-0 shadow-sm overflow-hidden ${isActive ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-slate-950" : "dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600"}`}
+                            style={{
+                              fontSize: initials.length <= 1 ? '20px' : initials.length === 2 ? '16px' : '12px',
+                              lineHeight: 1,
+                              letterSpacing: initials.length >= 3 ? '0.04em' : '0.02em',
+                            }}
                           >
                             {initials}
                           </div>
@@ -870,9 +771,16 @@ export const SettingsModule: React.FC = () => {
                         </div>
                         <div className="px-4 py-2.5 border-t dark:border-slate-800 border-slate-200 dark:bg-slate-950/50 bg-slate-50 flex items-center justify-between">
                           <div className="text-[10px] dark:text-slate-500 text-slate-400 font-mono">
-                            {c.financial?.currency ?? "INR"} ·{" "}
-                            {c.invoice?.salesPrefix ?? "INV"}-
-                            {c.invoice?.salesNextNo ?? 1001}
+                            {(() => {
+                              const fyStartMD = c.financial?.financialYearStart ?? "04-01";
+                              const fyStartMonth = parseInt(fyStartMD.split("-")[0], 10) || 4;
+                              const now = new Date();
+                              const baseYear = now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
+                              const fyShort = `${String(baseYear).slice(-2)}-${String(baseYear + 1).slice(-2)}`;
+                              const prefix = c.invoice?.salesPrefix ?? "INV";
+                              const nextNo = String(c.invoice?.salesNextNo ?? 1001).padStart(4, "0");
+                              return `${c.financial?.currency ?? "INR"} Â· ${prefix}/${fyShort}/${nextNo}`;
+                            })()}
                           </div>
                           <div className="flex items-center space-x-1">
                             {/* Edit */}
@@ -954,7 +862,7 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* ═══ INVOICE ═══ */}
+          {/* â•â•â• INVOICE â•â•â• */}
           {activeSection === "INVOICE" && (
             <div className="space-y-5 animate-slide-up">
               {/* Save button bar */}
@@ -1116,7 +1024,7 @@ export const SettingsModule: React.FC = () => {
 
                         <div>
                           <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
-                            Rotation ({inv.watermarkRotation || -25}°)
+                            Rotation ({inv.watermarkRotation || -25}Â°)
                           </label>
                           <input
                             type="range"
@@ -1159,6 +1067,18 @@ export const SettingsModule: React.FC = () => {
                 </div>
                 <div className="p-6">
                   <Toggle
+                    label="Show Company Details"
+                    desc="Display company name, address, GSTIN on invoice header"
+                    checked={inv.showCompanyDetails ?? true}
+                    onChange={(v) => setInv((p) => ({ ...p, showCompanyDetails: v }))}
+                  />
+                  <Toggle
+                    label="Show Payment Details"
+                    desc="Display bank/UPI payment information on invoice"
+                    checked={inv.showPaymentDetails ?? true}
+                    onChange={(v) => setInv((p) => ({ ...p, showPaymentDetails: v }))}
+                  />
+                  <Toggle
                     label="Enable QR Code on Invoice"
                     desc="Auto-generate payment QR from UPI ID"
                     checked={inv.enableQR ?? true}
@@ -1168,9 +1088,7 @@ export const SettingsModule: React.FC = () => {
                     label="Auto Invoice Numbering"
                     desc="Automatically increment invoice number after each bill"
                     checked={inv.autoInvoiceNo ?? true}
-                    onChange={(v) =>
-                      setInv((p) => ({ ...p, autoInvoiceNo: v }))
-                    }
+                    onChange={(v) => setInv((p) => ({ ...p, autoInvoiceNo: v }))}
                   />
                   <Toggle
                     label="Show UPI / QR Details"
@@ -1182,11 +1100,109 @@ export const SettingsModule: React.FC = () => {
                     label="Show Bank Account Details"
                     desc="Display bank A/C, IFSC on printed invoices"
                     checked={inv.showBankDetails}
-                    onChange={(v) =>
-                      setInv((p) => ({ ...p, showBankDetails: v }))
-                    }
+                    onChange={(v) => setInv((p) => ({ ...p, showBankDetails: v }))}
                   />
                 </div>
+              </div>
+
+              {/* 2b. Payment & Banking Details â€” collapsed unless Show Bank Account Details is ON */}
+              {inv.showBankDetails && (
+              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-slide-down">
+                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
+                  <Landmark className="w-4 h-4 text-cyan-500" />
+                  <span className="text-sm font-bold dark:text-white text-slate-900">
+                    Payment & Banking Details
+                  </span>
+                  <span className="text-[10px] dark:text-slate-500 text-slate-400 font-medium ml-1">â€” printed on invoices</span>
+                </div>
+                <div className="p-6 space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Inp
+                      label="Bank Name"
+                      value={settings.company.bankName || ""}
+                      onChange={(v) => updateSettings({ company: { ...settings.company, bankName: v } })}
+                      placeholder="e.g. State Bank of India"
+                    />
+                    <Inp
+                      label="Account Number"
+                      value={settings.company.accountNo || ""}
+                      onChange={(v) => updateSettings({ company: { ...settings.company, accountNo: v.replace(/\D/g, "") } })}
+                      placeholder="e.g. 38920019283"
+                      mono
+                    />
+                    <Inp
+                      label="IFSC Code"
+                      value={settings.company.ifsc || ""}
+                      onChange={(v) => updateSettings({ company: { ...settings.company, ifsc: v.toUpperCase() } })}
+                      placeholder="e.g. SBIN0001234"
+                      mono
+                    />
+                    <Inp
+                      label="UPI ID"
+                      value={settings.company.upiId || ""}
+                      onChange={(v) => updateSettings({ company: { ...settings.company, upiId: v } })}
+                      placeholder="e.g. business@sbi"
+                      mono
+                    />
+                  </div>
+                  {(settings.company.bankName || settings.company.accountNo || settings.company.upiId) && (
+                    <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-500/20">
+                      <Check className="w-3.5 h-3.5 shrink-0" />
+                      <span>Banking details saved â€” will appear on printed invoices.</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              )}
+
+              {/* 2c. Additional Contact Numbers */}
+              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Phone className="w-4 h-4 text-cyan-500" />
+                    <span className="text-sm font-bold dark:text-white text-slate-900">
+                      Additional Contact Numbers
+                    </span>
+                    <span className="text-[10px] dark:text-slate-500 text-slate-400 font-medium ml-1">â€” printed on invoices &amp; statements</span>
+                  </div>
+                  {/* inline toggle to show/hide the fields */}
+                  <button
+                    type="button"
+                    onClick={() => updateSettings({ company: {
+                      ...settings.company,
+                      phone2: settings.company.phone2 === undefined ? "" : undefined,
+                    }})}
+                    className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${(settings.company.phone2 !== undefined || settings.company.phone3) ? "bg-cyan-500" : "dark:bg-slate-700 bg-slate-300"}`}
+                  >
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${(settings.company.phone2 !== undefined || settings.company.phone3) ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+                  </button>
+                </div>
+                {(settings.company.phone2 !== undefined || settings.company.phone3) && (
+                  <div className="p-6 space-y-4 animate-slide-down">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Inp
+                        label="Secondary Contact"
+                        value={settings.company.phone2 || ""}
+                        onChange={(v) => updateSettings({ company: { ...settings.company, phone2: v } })}
+                        placeholder="e.g. 9876543210"
+                        mono
+                      />
+                      <Inp
+                        label="Alternate Contact"
+                        value={settings.company.phone3 || ""}
+                        onChange={(v) => updateSettings({ company: { ...settings.company, phone3: v } })}
+                        placeholder="e.g. 9876543211"
+                        mono
+                      />
+                    </div>
+                    {(settings.company.phone2 || settings.company.phone3) && (
+                      <div className="flex items-center gap-2 text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold bg-cyan-50 dark:bg-cyan-500/10 px-3 py-2 rounded-lg border border-cyan-200 dark:border-cyan-500/20">
+                        <Phone className="w-3.5 h-3.5 shrink-0" />
+                        <span>Contact numbers saved â€” will appear on all printed invoices and statements.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 3. Invoice Numbering */}
@@ -1297,28 +1313,12 @@ export const SettingsModule: React.FC = () => {
                       className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-3 text-xs outline-none focus:border-cyan-500 resize-none transition-all"
                     />
                   </div>
-                  <Toggle
-                    label="Show Company Details"
-                    desc="Display company name, address, GSTIN on invoice header"
-                    checked={inv.showCompanyDetails ?? true}
-                    onChange={(v) =>
-                      setInv((p) => ({ ...p, showCompanyDetails: v }))
-                    }
-                  />
-                  <Toggle
-                    label="Show Payment Details"
-                    desc="Display bank/UPI payment information on invoice"
-                    checked={inv.showPaymentDetails ?? true}
-                    onChange={(v) =>
-                      setInv((p) => ({ ...p, showPaymentDetails: v }))
-                    }
-                  />
                 </div>
               </div>
 
-              {/* 5. Invoice Branding — Signature + Logo side by side */}
+              {/* 5. Invoice Branding â€” Signature + Logo side by side */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* ── Signature Upload ────────────────── */}
+                {/* â”€â”€ Signature Upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden flex flex-col">
                   <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
                     <PenTool className="w-4 h-4 text-cyan-500" />
@@ -1392,7 +1392,7 @@ export const SettingsModule: React.FC = () => {
                   </div>
                 </div>
 
-                {/* ── Invoice Logo Upload ──────────────── */}
+                {/* â”€â”€ Invoice Logo Upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden flex flex-col">
                   <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1478,7 +1478,7 @@ export const SettingsModule: React.FC = () => {
                       >
                         {logoUploadProgress ? (
                           <span className="text-xs dark:text-violet-400 text-violet-600 font-semibold">
-                            Uploading…
+                            Uploadingâ€¦
                           </span>
                         ) : (
                           <>
@@ -1487,7 +1487,7 @@ export const SettingsModule: React.FC = () => {
                               Click or drag &amp; drop to upload
                             </span>
                             <span className="text-[10px] dark:text-slate-600 text-slate-400">
-                              PNG, JPG, SVG · max 1 MB
+                              PNG, JPG, SVG Â· max 1 MB
                             </span>
                           </>
                         )}
@@ -1526,7 +1526,7 @@ export const SettingsModule: React.FC = () => {
                       <div className="flex items-center gap-1.5 text-[11px] dark:text-amber-400 text-amber-600 font-semibold">
                         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          Custom logo disabled — company master logo will be
+                          Custom logo disabled â€” company master logo will be
                           used
                         </span>
                       </div>
@@ -1535,7 +1535,7 @@ export const SettingsModule: React.FC = () => {
                       <div className="flex items-center gap-1.5 text-[11px] dark:text-amber-400 text-amber-600 font-semibold">
                         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          No logo uploaded — falling back to company master logo
+                          No logo uploaded â€” falling back to company master logo
                         </span>
                       </div>
                     )}
@@ -1662,8 +1662,8 @@ export const SettingsModule: React.FC = () => {
                   <div className="p-6 sm:p-8 max-w-[820px] mx-auto">
                     <InvoiceTemplateRenderer
                       invoice={invoicePreviewSample}
-                      company={settings.company}
-                      invoiceSettings={inv}
+                      company={previewCompany}
+                      invoiceSettings={previewInvSettings}
                     />
                   </div>
                 </div>
@@ -1671,7 +1671,7 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* ═══ MASTERS ═══ */}
+          {/* â•â•â• MASTERS â•â•â• */}
           {activeSection === "MASTERS" && (
             <div className="space-y-5 animate-slide-up">
               {/* Fruit & Variety Management */}
@@ -1729,7 +1729,7 @@ export const SettingsModule: React.FC = () => {
                       >
                         <div className="px-4 py-3 flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <span className="text-sm">🍃</span>
+                            <span className="text-sm">ðŸƒ</span>
                             <span className="text-xs font-bold dark:text-white text-slate-900">
                               {f.name}
                             </span>
@@ -1745,7 +1745,7 @@ export const SettingsModule: React.FC = () => {
                             }
                             className="text-[10px] font-bold text-teal-600 dark:text-teal-400 cursor-pointer hover:underline"
                           >
-                            {selectedFruitId === f.id ? "Collapse" : "Manage →"}
+                            {selectedFruitId === f.id ? "Collapse" : "Manage â†’"}
                           </button>
                         </div>
                         {selectedFruitId === f.id && (
@@ -1856,7 +1856,14 @@ export const SettingsModule: React.FC = () => {
                           code: newSupCode.trim(),
                           city: newSupCity || "Local",
                           phone: "",
+                          email: "",
+                          gstin: "",
+                          state: "",
+                          billingAddress: "",
+                          shippingAddress: "",
                           previousBalance: 0,
+                          creditLimit: 0,
+                          notes: "",
                         });
                         toast.success(
                           "Supplier Added",
@@ -1908,7 +1915,14 @@ export const SettingsModule: React.FC = () => {
                           name: newCustName.trim(),
                           city: newCustCity || "Local",
                           phone: "",
+                          email: "",
+                          gstin: "",
+                          state: "",
+                          billingAddress: "",
+                          shippingAddress: "",
                           previousBalance: 0,
+                          creditLimit: 0,
+                          notes: "",
                         });
                         toast.success(
                           "Customer Added",
@@ -1928,7 +1942,7 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* ═══ BACKUP & DATA ═══ */}
+          {/* â•â•â• BACKUP & DATA â•â•â• */}
           {activeSection === "BACKUP" && (
             <div className="space-y-5 animate-slide-up">
               {/* Storage overview */}
@@ -1948,7 +1962,7 @@ export const SettingsModule: React.FC = () => {
                 ))}
               </div>
 
-              {/* ── 1. AUTOMATIC BACKUPS ───────────── */}
+              {/* â”€â”€ 1. AUTOMATIC BACKUPS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -1978,17 +1992,15 @@ export const SettingsModule: React.FC = () => {
                           <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">
                             Backup Frequency
                           </label>
-                          <select
+                          <CommandSelect
                             value={backupFreq}
-                            onChange={(e) =>
-                              handleBackupFreqChange(e.target.value)
-                            }
-                            className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs font-bold outline-none cursor-pointer focus:border-cyan-500"
-                          >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                          </select>
+                            onChange={handleBackupFreqChange}
+                            options={backupFreqOptions}
+                            creatable={false}
+                            showEmoji={false}
+                            variant="sky"
+                            size="sm"
+                          />
                         </div>
                         <Inp
                           label="Retention Period (days)"
@@ -2072,7 +2084,7 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* ── 2. BACKUP HISTORY ─────────────── */}
+              {/* â”€â”€ 2. BACKUP HISTORY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                   <div className="flex items-center space-x-2">
@@ -2232,7 +2244,7 @@ export const SettingsModule: React.FC = () => {
                 )}
               </div>
 
-              {/* ── 3. DATABASE MANAGEMENT ─────────── */}
+              {/* â”€â”€ 3. DATABASE MANAGEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
                   <HardDrive className="w-4 h-4 text-cyan-500" />
@@ -2306,7 +2318,7 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* ── 4. DANGER ZONE ────────────────── */}
+              {/* â”€â”€ 4. DANGER ZONE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border-2 dark:border-rose-500/30 border-rose-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-rose-950/30 bg-rose-50 border-b dark:border-rose-500/20 border-rose-200 flex items-center space-x-2">
                   <AlertTriangle className="w-4 h-4 text-rose-500" />
@@ -2384,7 +2396,7 @@ export const SettingsModule: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-3 dark:bg-rose-950/30 bg-rose-50 rounded-xl border dark:border-rose-500/20 border-rose-200 text-[11px] text-rose-700 dark:text-rose-400 font-semibold">
-                  ⚠️ This cannot be undone. Consider creating a backup first.
+                  âš ï¸ This cannot be undone. Consider creating a backup first.
                 </div>
                 <div className="flex items-center justify-end space-x-3 pt-2">
                   <button
@@ -2424,7 +2436,7 @@ export const SettingsModule: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-3 dark:bg-rose-950/30 bg-rose-50 rounded-xl border dark:border-rose-500/20 border-rose-200 text-[11px] text-rose-700 dark:text-rose-400 font-semibold">
-                  ⚠️ Extremely destructive action. Use only for clean handover.
+                  âš ï¸ Extremely destructive action. Use only for clean handover.
                 </div>
                 <div className="flex items-center justify-end space-x-3 pt-2">
                   <button
@@ -2487,7 +2499,7 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* ═══ APPEARANCE ═══ */}
+          {/* â•â•â• APPEARANCE â•â•â• */}
           {activeSection === "APPEARANCE" && (
             <div className="space-y-5 animate-slide-up">
               {/* 1. Theme */}
@@ -2760,7 +2772,7 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* ═══ SECURITY ═══ */}
+          {/* â•â•â• SECURITY â•â•â• */}
           {activeSection === "SECURITY" && (
             <div className="space-y-5 animate-slide-up">
               {/* 1. Access Control */}
@@ -2786,7 +2798,7 @@ export const SettingsModule: React.FC = () => {
                     <div className="space-y-4 pl-3 ml-1 border-l-2 dark:border-cyan-500/30 border-cyan-300 pt-3 animate-slide-down">
                       <div>
                         <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
-                          Set App PIN (4–6 digits)
+                          Set App PIN (4â€“6 digits)
                         </label>
                         <div className="relative max-w-xs">
                           <Lock className="w-4 h-4 dark:text-slate-500 text-slate-400 absolute left-3 top-3" />
@@ -2802,7 +2814,7 @@ export const SettingsModule: React.FC = () => {
                               }))
                             }
                             maxLength={6}
-                            placeholder="••••"
+                            placeholder="â€¢â€¢â€¢â€¢"
                             className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl pl-10 pr-10 py-2.5 text-lg font-mono font-black tracking-[0.3em] outline-none focus:border-cyan-500 transition-all"
                           />
                           <button
@@ -2827,23 +2839,21 @@ export const SettingsModule: React.FC = () => {
                         <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
                           Auto-Lock Timeout
                         </label>
-                        <select
-                          value={sec.autoLockMinutes}
-                          onChange={(e) => {
-                            setSec((p) => ({
-                              ...p,
-                              autoLockMinutes: parseInt(e.target.value) || 0,
-                            }));
-                          }}
-                          className="w-full max-w-xs dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs font-bold outline-none cursor-pointer focus:border-cyan-500 transition-all"
-                        >
-                          <option value="0">Disabled</option>
-                          <option value="5">5 Minutes</option>
-                          <option value="15">15 Minutes</option>
-                          <option value="30">30 Minutes</option>
-                          <option value="60">1 Hour</option>
-                          <option value="120">2 Hours</option>
-                        </select>
+                        <CommandSelect
+                           value={sec.autoLockMinutes.toString()}
+                           onChange={(val) => {
+                             setSec((p) => ({
+                               ...p,
+                               autoLockMinutes: parseInt(val) || 0,
+                             }));
+                           }}
+                           options={autoLockOptions}
+                           creatable={false}
+                           showEmoji={false}
+                           variant="sky"
+                           className="max-w-xs"
+                           size="sm"
+                         />
                         <span className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 block">
                           Lock the app after inactivity. Only works when PIN is
                           enabled.
@@ -2863,17 +2873,17 @@ export const SettingsModule: React.FC = () => {
                           Automatically end session after idle period
                         </div>
                       </div>
-                      <select
-                        value={sessionTimeout}
-                        onChange={(e) => setSessionTimeout(e.target.value)}
-                        className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl p-2.5 text-xs font-bold outline-none cursor-pointer focus:border-cyan-500 transition-all w-36"
-                      >
-                        <option value="15">15 Minutes</option>
-                        <option value="30">30 Minutes</option>
-                        <option value="60">1 Hour</option>
-                        <option value="120">2 Hours</option>
-                        <option value="480">8 Hours</option>
-                      </select>
+                      <div className="w-48">
+                         <CommandSelect
+                           value={sessionTimeout}
+                           onChange={(val) => setSessionTimeout(val)}
+                           options={sessionTimeoutOptions}
+                           creatable={false}
+                           showEmoji={false}
+                           variant="sky"
+                           size="sm"
+                         />
+                       </div>
                     </div>
                   </div>
 
@@ -2967,11 +2977,40 @@ export const SettingsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          CREATE COMPANY WIZARD MODAL
+         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {showCreateWizard && (
+        <div
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCreateWizard(false);
+          }}
+        >
+          <div className="bg-[#f8fafc] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
+            <CompanyWizard
+              mode="create"
+              onComplete={() => {
+                setShowCreateWizard(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           EDIT COMPANY WIZARD MODAL
-         ══════════════════════════════════════════════ */}
+         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       {showEditWizard && wizardEditCompanyId && (
-        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowEditWizard(false);
+              setWizardEditCompanyId(null);
+            }
+          }}
+        >
           <div className="bg-[#f8fafc] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
             <CompanyWizard
               mode="edit"
@@ -2981,441 +3020,6 @@ export const SettingsModule: React.FC = () => {
                 setWizardEditCompanyId(null);
               }}
             />
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════
-          COMPANY FORM MODAL (Create & Edit)
-         ══════════════════════════════════════════════ */}
-      {showCompanyModal && (
-        <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 pt-12 animate-fade-in">
-          <div className="dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden animate-slide-up">
-            {/* Modal Header */}
-            <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`p-2 rounded-lg ${isEditMode ? "bg-cyan-500/10 text-cyan-500" : "bg-indigo-500/10 text-indigo-500"}`}
-                >
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold dark:text-white text-slate-900">
-                    {cfModalTitle}
-                  </h3>
-                  <p className="text-[10px] dark:text-slate-400 text-slate-500">
-                    Step {cfStep} of 3 —{" "}
-                    {cfStep === 1
-                      ? "Company Details"
-                      : cfStep === 2
-                        ? "Financial & Bank"
-                        : "Review & Save"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-1.5">
-                  {[1, 2, 3].map((s) => (
-                    <div
-                      key={s}
-                      className={`w-2 h-2 rounded-full transition-colors ${cfStep >= s ? (isEditMode ? "bg-cyan-500" : "bg-indigo-500") : "dark:bg-slate-700 bg-slate-300"}`}
-                    />
-                  ))}
-                </div>
-                <button
-                  onClick={() => {
-                    setShowCompanyModal(false);
-                    resetCompanyForm();
-                  }}
-                  className="p-1.5 dark:text-slate-400 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg cursor-pointer transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* STEP 1: Company Details */}
-            {cfStep === 1 && (
-              <div className="p-6 space-y-4 animate-fade-in">
-                {/* Logo Upload */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
-                    Company Logo
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    {cfLogo ? (
-                      <div className="relative">
-                        <img
-                          src={cfLogo}
-                          alt="Logo"
-                          className="h-14 max-w-[140px] object-contain border dark:border-slate-700 border-slate-200 rounded-xl p-1.5 dark:bg-slate-950 bg-slate-50"
-                        />
-                        <button
-                          onClick={() => setCfLogo("")}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center cursor-pointer text-xs"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => companyLogoInputRef.current?.click()}
-                        className="h-14 w-36 border-2 border-dashed dark:border-slate-700 border-slate-300 rounded-xl flex items-center justify-center cursor-pointer dark:hover:border-indigo-500/50 hover:border-indigo-500/50 transition-colors"
-                      >
-                        <div className="flex items-center space-x-2 text-xs dark:text-slate-500 text-slate-400">
-                          <Image className="w-4 h-4" />
-                          <span>Upload Logo</span>
-                        </div>
-                      </div>
-                    )}
-                    <input
-                      ref={companyLogoInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/svg+xml"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = () =>
-                            setCfLogo(reader.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                        e.target.value = "";
-                      }}
-                    />
-                    <div className="text-[10px] dark:text-slate-500 text-slate-400 leading-relaxed max-w-[200px]">
-                      PNG, JPG, or SVG. Will appear on all invoices and
-                      receipts.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">
-                      Company Name <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <Building2 className="w-4 h-4 absolute left-3 top-2.5 dark:text-slate-500 text-slate-400" />
-                      <input
-                        type="text"
-                        value={cfName}
-                        onChange={(e) => setCfName(e.target.value)}
-                        placeholder="e.g. ASZ Nexus ERP"
-                        className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold outline-none focus:border-indigo-500 transition-all"
-                      />
-                    </div>
-                  </div>
-                  <Inp
-                    label="Tagline / Type"
-                    value={cfTagline}
-                    onChange={setCfTagline}
-                    placeholder="Wholesale Merchants"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Inp
-                    label="GSTIN"
-                    value={cfGstin}
-                    onChange={(v) => setCfGstin(v.toUpperCase())}
-                    placeholder="24AABCT1234A1ZH"
-                    mono
-                  />
-                  <Inp
-                    label="PAN"
-                    value={cfPan}
-                    onChange={(v) => setCfPan(v.toUpperCase())}
-                    placeholder="ABCDE1234F"
-                    mono
-                  />
-                </div>
-                <Inp
-                  label="Full Address"
-                  value={cfAddress}
-                  onChange={setCfAddress}
-                  placeholder="Shop 102, Gate 4, APMC Yard..."
-                />
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <Inp
-                    label="City"
-                    value={cfCity}
-                    onChange={setCfCity}
-                    placeholder="Surat"
-                  />
-                  <Inp
-                    label="State"
-                    value={cfState}
-                    onChange={setCfState}
-                    placeholder="Gujarat"
-                  />
-                  <Inp
-                    label="Pincode"
-                    value={cfPincode}
-                    onChange={(v) =>
-                      setCfPincode(v.replace(/\D/g, "").slice(0, 6))
-                    }
-                    placeholder="395001"
-                    mono
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">
-                      Phone <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 absolute left-3 top-2.5 dark:text-slate-500 text-slate-400" />
-                      <input
-                        type="text"
-                        value={cfPhone}
-                        onChange={(e) => setCfPhone(e.target.value)}
-                        placeholder="+91 99887 77665"
-                        className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono font-bold outline-none focus:border-indigo-500 transition-all"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1">
-                      Email
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3 top-2.5 dark:text-slate-500 text-slate-400" />
-                      <input
-                        type="email"
-                        value={cfEmail}
-                        onChange={(e) => setCfEmail(e.target.value)}
-                        placeholder="accounts@company.in"
-                        className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl pl-10 pr-4 py-2.5 text-xs outline-none focus:border-indigo-500 transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 2: Financial & Bank */}
-            {cfStep === 2 && (
-              <div className="p-6 space-y-4 animate-fade-in">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-2">
-                    Currency
-                  </label>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                    {[
-                      { c: "INR", s: "₹" },
-                      { c: "USD", s: "$" },
-                      { c: "AED", s: "د.إ" },
-                      { c: "GBP", s: "£" },
-                      { c: "EUR", s: "€" },
-                    ].map(({ c, s }) => (
-                      <button
-                        key={c}
-                        onClick={() => setCfCurrency(c)}
-                        className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-xl text-xs font-bold border-2 cursor-pointer transition-all ${cfCurrency === c ? "border-indigo-500 dark:bg-indigo-500/10 bg-indigo-50 text-indigo-700 dark:text-indigo-400 shadow-md" : "dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-500"}`}
-                      >
-                        <span className="text-base">{s}</span>
-                        <span>{c}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Inp
-                    label="Invoice Prefix"
-                    value={cfInvPrefix}
-                    onChange={(v) => setCfInvPrefix(v.toUpperCase())}
-                    placeholder="INV"
-                    mono
-                  />
-                  <Inp
-                    label="Starting Number"
-                    type="number"
-                    value={cfInvStart}
-                    onChange={(v) => setCfInvStart(parseInt(v) || 0)}
-                    placeholder="1001"
-                    mono
-                  />
-                </div>
-                <div className="dark:bg-slate-950 bg-slate-50 rounded-xl border dark:border-slate-800 border-slate-200 p-4 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-4 h-4 dark:text-slate-500 text-slate-400" />
-                    <span className="text-xs dark:text-slate-400 text-slate-500 font-semibold">
-                      Invoice Preview:
-                    </span>
-                  </div>
-                  <span className="font-mono font-black text-indigo-600 dark:text-indigo-400 text-sm tracking-wider">
-                    {cfInvPrefix}-2026-{String(cfInvStart).padStart(4, "0")}
-                  </span>
-                </div>
-                <div className="pt-4 border-t dark:border-slate-800 border-slate-200">
-                  <div className="text-xs font-bold dark:text-slate-300 text-slate-800 mb-3 uppercase tracking-wider">
-                    Bank & UPI Details
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Inp
-                      label="Bank Name"
-                      value={cfBankName}
-                      onChange={setCfBankName}
-                      placeholder="State Bank of India"
-                    />
-                    <Inp
-                      label="Account Number"
-                      value={cfAccountNo}
-                      onChange={setCfAccountNo}
-                      placeholder="38920019283"
-                      mono
-                    />
-                    <Inp
-                      label="IFSC Code"
-                      value={cfIfsc}
-                      onChange={setCfIfsc}
-                      placeholder="SBIN0001234"
-                      mono
-                    />
-                    <Inp
-                      label="UPI ID"
-                      value={cfUpiId}
-                      onChange={setCfUpiId}
-                      placeholder="asz@sbi"
-                      mono
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: Review */}
-            {cfStep === 3 && (
-              <div className="p-6 space-y-4 animate-fade-in">
-                {cfStep1Valid && cfStep2Valid ? (
-                  <div className="flex items-center space-x-3 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl">
-                    <Check className="w-6 h-6 text-emerald-500 shrink-0" />
-                    <div>
-                      <div className="text-sm font-bold text-emerald-800 dark:text-emerald-400">
-                        Ready to {isEditMode ? "Update" : "Create"}!
-                      </div>
-                      <div className="text-[11px] text-emerald-700 dark:text-emerald-400/70">
-                        All details verified.
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-3 p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl">
-                    <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0" />
-                    <div>
-                      <div className="text-sm font-bold text-amber-800 dark:text-amber-400">
-                        Missing Required Fields
-                      </div>
-                      <div className="text-[11px] text-amber-700 dark:text-amber-400/70">
-                        Company name (min 2 chars) and phone (min 6 digits) are
-                        required.
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="dark:bg-slate-950 bg-slate-50 rounded-xl border dark:border-slate-800 border-slate-200 overflow-hidden">
-                  <div className="px-5 py-3 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                    <Building2 className="w-4 h-4 text-indigo-500" />
-                    <span className="text-xs font-bold dark:text-white text-slate-900">
-                      Company Summary
-                    </span>
-                  </div>
-                  <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                    {[
-                      { l: "Company", v: cfName || "—" },
-                      { l: "Type", v: cfTagline || "—" },
-                      { l: "GSTIN", v: cfGstin || "N/A", m: true },
-                      { l: "PAN", v: cfPan || "N/A", m: true },
-                      {
-                        l: "Location",
-                        v: [cfCity, cfState].filter(Boolean).join(", ") || "—",
-                      },
-                      { l: "Phone", v: cfPhone || "—", m: true },
-                      { l: "Email", v: cfEmail || "—" },
-                      { l: "Currency", v: cfCurrency },
-                      {
-                        l: "Invoice",
-                        v: `${cfInvPrefix}-${cfInvStart}`,
-                        m: true,
-                      },
-                    ].map((r, i) => (
-                      <div key={i}>
-                        <div className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-500 text-slate-400">
-                          {r.l}
-                        </div>
-                        <div
-                          className={`dark:text-white text-slate-900 font-semibold mt-0.5 ${r.m ? "font-mono" : ""}`}
-                        >
-                          {r.v}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Footer Nav */}
-            <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-t dark:border-slate-800 border-slate-200 flex items-center justify-between">
-              <div>
-                {cfStep > 1 && (
-                  <button
-                    onClick={() => setCfStep(cfStep - 1)}
-                    className="flex items-center space-x-1.5 px-4 py-2 dark:bg-slate-800 bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
-                  >
-                    <span>← Back</span>
-                  </button>
-                )}
-              </div>
-              <div>
-                {cfStep < 3 ? (
-                  <button
-                    onClick={() => {
-                      if (cfStep === 1 && cfStep1Valid) setCfStep(2);
-                      else if (cfStep === 1)
-                        toast.error(
-                          "Required Fields",
-                          "Company name (min 2 chars) and phone (min 6 digits) are required.",
-                        );
-                      else if (cfStep === 2 && cfStep2Valid) setCfStep(3);
-                      else
-                        toast.error(
-                          "Required Fields",
-                          "Invoice prefix and starting number are required.",
-                        );
-                    }}
-                    className="flex items-center space-x-1.5 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow cursor-pointer transition-colors"
-                  >
-                    <span>Continue →</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSaveCompany}
-                    disabled={!cfStep1Valid || !cfStep2Valid || cfSaving}
-                    className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-black shadow-xl cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                      isEditMode
-                        ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-500/20"
-                        : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-indigo-500/20"
-                    }`}
-                  >
-                    {cfSaving ? (
-                      <>
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" />
-                        <span>
-                          {isEditMode ? "Update Company" : "Create Company"}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}

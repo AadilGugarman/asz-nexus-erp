@@ -15,6 +15,7 @@ import { useApp } from '@/context/AppContext';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { CommandSelect, CommandOption } from './ui/CommandSelect';
+import { DatePicker } from './ui/DatePicker';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import { DataTable, Pagination } from './ui/table';
@@ -583,13 +584,16 @@ export const CaretModule: React.FC = () => {
                   </label>
                   <input type="number" required min="1" value={returnQty === 0 ? '' : returnQty} placeholder="0" 
                     onChange={(e) => setReturnQty(parseInt(e.target.value) || 0)} 
-                    className={`erp-input w-full font-mono font-black text-lg ${editingTx?.type === 'GIVEN' ? 'text-rose-600' : 'text-cyan-600'}`} />
+                    className={`erp-input w-full font-mono font-bold text-lg ${editingTx?.type === 'GIVEN' ? 'text-rose-600' : 'text-cyan-600'}`} />
                   {!editingTx && <p className="text-[10px] text-slate-500 mt-1">Pending: {currentPending} carets</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[var(--text-muted)] mb-1 font-sans">Date</label>
-                  <input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} 
-                    className="erp-input w-full font-mono font-bold" />
+                  <DatePicker
+                    label="Date"
+                    value={returnDate}
+                    onChange={(val) => setReturnDate(val)}
+                    variant="sky"
+                  />
                 </div>
               </div>
 

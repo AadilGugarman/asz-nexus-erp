@@ -8,6 +8,7 @@ import { useApp } from '@/context/AppContext';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { DataTable, Pagination } from './ui/table';
+import { DatePicker } from './ui/DatePicker';
 import { StatementPreview } from './ui/StatementPreview';
 import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
 
@@ -16,23 +17,45 @@ import { fmtDate, sumCurrency, roundCurrency } from '@/utils/format';
 type ReportTab = 'DAILY' | 'DATERANGE' | 'PARTY' | 'FRUIT' | 'OUTSTANDING' | 'PNL';
 
 export const ReportsModule: React.FC = () => {
-  const { invoices, purchaseInvoices, payments, suppliers, customers, settings } = useApp();
+  const { invoices, purchaseInvoices, payments, suppliers, customers, settings, activeFY, companies, activeCompanyId } = useApp();
   const [showReportPreview, setShowReportPreview] = useState(false);
   const reportContentRef = useRef<HTMLDivElement>(null);
 
+  // Derive FY start month from active company (not global settings)
+  const fyStartMonth = useMemo(() => {
+    const activeCompany = companies.find((c) => c.id === activeCompanyId);
+    const fyStartMD = activeCompany?.financial?.financialYearStart
+      ?? settings?.financial?.financialYearStart
+      ?? '04-01';
+    return parseInt(fyStartMD.split('-')[0], 10) || 4;
+  }, [companies, activeCompanyId, settings?.financial?.financialYearStart]);
+
+  // Compute FY date range from activeFY + fyStartMonth
+  const { fyStartDate, fyEndDate } = useMemo(() => {
+    const [startYearStr] = (activeFY ?? '').split('-');
+    const startYear = parseInt(startYearStr, 10) || new Date().getFullYear();
+    const endMonth = fyStartMonth === 1 ? 12 : fyStartMonth - 1;
+    const endYear  = fyStartMonth === 1 ? startYear : startYear + 1;
+    const lastDay  = new Date(endYear, endMonth, 0).getDate();
+    const p = (n: number) => String(n).padStart(2, '0');
+    return {
+      fyStartDate: `${startYear}-${p(fyStartMonth)}-01`,
+      fyEndDate:   `${endYear}-${p(endMonth)}-${lastDay}`,
+    };
+  }, [activeFY, fyStartMonth]);
+
   const [activeReport, setActiveReport] = useState<ReportTab>('DAILY');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dateFrom, setDateFrom] = useState(() => {
-    // Default to start of current financial year
-    const fyStart = settings?.financial?.financialYearStart ?? '04-01';
-    const [monthStr, dayStr] = fyStart.split('-');
-    const month = parseInt(monthStr, 10);
-    const now = new Date();
-    const baseYear = now.getMonth() + 1 >= month ? now.getFullYear() : now.getFullYear() - 1;
-    return `${baseYear}-${String(month).padStart(2, '0')}-${dayStr}`;
-  });
-  const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
+  // Default date range = active FY bounds (updates when FY or company changes)
+  const [dateFrom, setDateFrom] = useState(fyStartDate);
+  const [dateTo, setDateTo] = useState(fyEndDate);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Sync dateFrom/dateTo when activeFY or company changes
+  useEffect(() => {
+    setDateFrom(fyStartDate);
+    setDateTo(fyEndDate);
+  }, [fyStartDate, fyEndDate]);
 
   const reportTabs: { id: ReportTab; label: string; icon: React.ReactNode }[] = [
     { id: 'DAILY', label: 'Daily Summary', icon: <Calendar className="w-4 h-4" /> },
@@ -343,9 +366,13 @@ export const ReportsModule: React.FC = () => {
       {activeReport === 'DAILY' && (
         <div className="flex-1 flex flex-col space-y-5 animate-slide-up min-h-0">
           <div className="flex items-center space-x-3 no-print shrink-0">
-            <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">Select Date:</label>
-            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-              className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
+            <DatePicker
+              label="Select Date"
+              value={selectedDate}
+              onChange={(val) => setSelectedDate(val)}
+              variant="sky"
+              className="w-48"
+            />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 shrink-0">
@@ -421,10 +448,26 @@ export const ReportsModule: React.FC = () => {
       {activeReport === 'DATERANGE' && (
         <div className="flex-1 flex flex-col space-y-5 animate-slide-up min-h-0">
           <div className="flex flex-wrap items-center gap-3 no-print shrink-0">
-            <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">From:</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
-            <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wider">To:</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="erp-input min-h-0 bg-white font-mono rounded-lg px-3 py-2 text-xs" />
+            <DatePicker
+              label="From"
+              value={dateFrom}
+              onChange={(val) => setDateFrom(val)}
+              variant="sky"
+              className="w-44"
+            />
+            <DatePicker
+              label="To"
+              value={dateTo}
+              onChange={(val) => setDateTo(val)}
+              variant="sky"
+              className="w-44"
+            />
+            <button
+              onClick={() => { setDateFrom(fyStartDate); setDateTo(fyEndDate); }}
+              className="text-[11px] font-bold text-[#00aeef] hover:text-[#0090cc] bg-[rgba(0,174,239,0.08)] hover:bg-[rgba(0,174,239,0.14)] border border-[rgba(0,174,239,0.25)] px-3 py-1.5 rounded-lg transition-colors cursor-pointer mt-4"
+            >
+              Reset to FY {activeFY}
+            </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 shrink-0">

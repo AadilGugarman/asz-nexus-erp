@@ -40,12 +40,23 @@ const TypeBadge = ({ type }: { type: PartyType }) => {
   const c = { CUSTOMER: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20', SUPPLIER: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', BOTH: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' };
   return <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border font-mono ${c[type]}`}>{{ CUSTOMER: 'Customer', SUPPLIER: 'Supplier', BOTH: 'Both' }[type]}</span>;
 };
-const Av = ({ name, size = 'w-10 h-10 text-xs' }: { name: string; size?: string }) => <div className={`${size} rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-black shrink-0 shadow-sm`}>{name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}</div>;
+const Av = ({ name, size = 'w-10 h-10' }: { name: string; size?: string }) => {
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const fontSize = initials.length <= 1 ? 'text-sm' : 'text-[10px]';
+  return (
+    <div
+      className={`${size} rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold shrink-0 shadow-sm overflow-hidden`}
+      style={{ lineHeight: 1, letterSpacing: '0.02em' }}
+    >
+      <span className={`${fontSize} font-bold`}>{initials}</span>
+    </div>
+  );
+};
 const Bal = ({ balance, className = "text-sm" }: { balance: number; className?: string }) => (<div className="flex items-center space-x-1">{balance >= 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> : <TrendingDown className="w-3.5 h-3.5 text-rose-500" />}<span className={`font-mono font-bold ${className} ${balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>₹{Math.abs(balance).toLocaleString('en-IN')}</span></div>);
 const Inp = ({ label, value, onChange, placeholder = '', mono = false, type = 'text', required = false, icon }: { label: string; value: string | number; onChange: (v: string) => void; placeholder?: string; mono?: boolean; type?: string; required?: boolean; icon?: React.ReactNode }) => (
   <div className="space-y-1.5">
-    <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] ml-1">
-      {label}{required && <span className="text-rose-500 ml-1 font-black">*</span>}
+    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] ml-1">
+      {label}{required && <span className="text-rose-500 ml-1 font-bold">*</span>}
     </label>
     <div className="relative group">
       {icon && (
@@ -58,7 +69,7 @@ const Inp = ({ label, value, onChange, placeholder = '', mono = false, type = 't
         value={value} 
         onChange={e => onChange(e.target.value)} 
         placeholder={placeholder} 
-        className={`w-full bg-white dark:bg-slate-950 border-2 dark:border-slate-800 border-slate-200 dark:text-white text-slate-900 rounded-xl py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm transition-all duration-300 ${icon ? 'pl-10 pr-3.5' : 'px-3.5'} ${mono ? 'font-mono font-black uppercase' : 'font-black tracking-tight'}`} 
+        className={`w-full bg-white dark:bg-slate-950 border-2 dark:border-slate-800 border-slate-200 dark:text-white text-slate-900 rounded-xl py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm transition-all duration-300 ${icon ? 'pl-10 pr-3.5' : 'px-3.5'} ${mono ? 'font-mono font-bold uppercase' : 'font-normal'}`} 
       />
     </div>
   </div>
@@ -358,7 +369,7 @@ export const PartiesModule: React.FC = () => {
             <Av name={p.name} size="w-14 h-14 text-lg" />
             <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight">{p.name}</h1>
+                <h1 className="text-xl font-bold dark:text-white text-slate-900 tracking-tight">{p.name}</h1>
                 <TypeBadge type={p.type} />
               </div>
               <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 text-[10px] dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider">
@@ -372,7 +383,7 @@ export const PartiesModule: React.FC = () => {
           <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch sm:items-center lg:items-end xl:items-center gap-4 relative z-10">
             {/* Compact Highlight Balance */}
             <div className="flex-1 lg:flex-none dark:bg-slate-950/50 bg-slate-50 px-5 py-2.5 rounded-2xl border-2 dark:border-slate-800 border-slate-100 text-right min-w-[180px] hover:border-indigo-500/30 transition-colors">
-              <div className="text-[9px] font-black uppercase tracking-[0.15em] dark:text-slate-500 text-slate-400 mb-0.5">Current Balance</div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.15em] dark:text-slate-500 text-slate-400 mb-0.5">Current Balance</div>
               <div className="flex items-center justify-end space-x-2">
                 <Bal balance={outstandingBalance} className="text-lg" />
               </div>
@@ -421,7 +432,7 @@ export const PartiesModule: React.FC = () => {
               <Calendar className="w-3.5 h-3.5 text-slate-500" />
             </div>
             <div>
-              <div className="text-[8px] font-black uppercase tracking-wider dark:text-slate-500 text-slate-400">Opening</div>
+              <div className="text-[8px] font-bold uppercase tracking-wider dark:text-slate-500 text-slate-400">Opening</div>
               <Bal balance={p.balance} className="text-[11px] font-bold" />
             </div>
           </div>
@@ -617,7 +628,7 @@ export const PartiesModule: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">{paymentType === 'SUPPLIER' ? 'Payment Amount (₹) *' : 'Amount Received (₹) *'}</label>
-                  <input type="number" required value={payAmount === 0 ? '' : payAmount} placeholder="100000" onChange={(e) => setPayAmount(parseFloat(e.target.value) || 0)} className={`w-full bg-slate-50 dark:bg-slate-950 border dark:border-slate-800 border-slate-200 rounded-xl px-4 py-3 font-mono font-black text-lg outline-none transition-all ${paymentType === 'SUPPLIER' ? 'text-cyan-600 dark:text-cyan-400 focus:border-cyan-500' : 'text-indigo-600 dark:text-indigo-400 focus:border-indigo-500'}`} />
+                  <input type="number" required value={payAmount === 0 ? '' : payAmount} placeholder="100000" onChange={(e) => setPayAmount(parseFloat(e.target.value) || 0)} className={`w-full bg-slate-50 dark:bg-slate-950 border dark:border-slate-800 border-slate-200 rounded-xl px-4 py-3 font-mono font-bold text-lg outline-none transition-all ${paymentType === 'SUPPLIER' ? 'text-cyan-600 dark:text-cyan-400 focus:border-cyan-500' : 'text-indigo-600 dark:text-indigo-400 focus:border-indigo-500'}`} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -850,65 +861,82 @@ export const PartiesModule: React.FC = () => {
         <button onClick={openCreate} className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-indigo-500/20 cursor-pointer transition-all"><Plus className="w-4 h-4 stroke-[2.5]" /><span>New Party</span></button>
       </div>
 
-      {/* Controls */}
-      <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm space-y-4 shrink-0">
-        <div className="relative"><Search className="w-4 h-4 dark:text-slate-400 text-slate-500 absolute left-3 top-3" /><input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, email, GSTIN, city..." className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-10 pr-10 py-2.5 rounded-xl text-xs outline-none focus:border-indigo-500 transition-all" />{search && <button onClick={() => setSearch('')} className="absolute right-3 top-2.5 dark:text-slate-500 text-slate-400 cursor-pointer hover:text-rose-500"><X className="w-4 h-4" /></button>}</div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center space-x-1.5 flex-wrap gap-y-1.5">{([['ALL', 'All'], ['CUSTOMER', 'Customers'], ['SUPPLIER', 'Suppliers'], ['BOTH', 'Dual']] as [FilterTab, string][]).map(([key, label]) => (<button key={key} onClick={() => setFilterTab(key)} className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border ${filterTab === key ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'dark:bg-slate-950 bg-slate-50 dark:text-slate-300 text-slate-600 dark:border-slate-800 border-slate-200'}`}><span>{label}</span><span className={`text-[9px] font-mono px-1 py-0.5 rounded ${filterTab === key ? 'bg-white/20' : 'dark:bg-slate-800 bg-slate-200'}`}>{counts[key]}</span></button>))}</div>
-          <div className="flex items-center space-x-2">
-            <div className="w-36">
-              <CommandSelect
-                value={partiesTable.sortBy}
-                onChange={(val) => partiesTable.toggleSort(val as SortKey)}
-                options={sortOptions}
-                placeholder="Sort by"
-                creatable={false}
-                showEmoji={false}
-                variant="violet"
-              />
-            </div>
-            <div className="flex items-center dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 rounded-lg p-0.5"><button onClick={() => setViewMode('GRID')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'GRID' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><LayoutGrid className="w-3.5 h-3.5" /></button><button onClick={() => setViewMode('LIST')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><List className="w-3.5 h-3.5" /></button></div></div>
+      {/* Search & Filters attached to Table */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Controls */}
+        <div className="dark:bg-slate-900 bg-white p-4 rounded-xl rounded-b-none border dark:border-slate-800 border-slate-200 border-b-0 shadow-sm space-y-4 shrink-0">
+          <div className="relative"><Search className="w-4 h-4 dark:text-slate-400 text-slate-500 absolute left-3 top-3" /><input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, email, GSTIN, city..." className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-10 pr-10 py-2.5 rounded-xl text-xs outline-none focus:border-indigo-500 transition-all" />{search && <button onClick={() => setSearch('')} className="absolute right-3 top-2.5 dark:text-slate-500 text-slate-400 cursor-pointer hover:text-rose-500"><X className="w-4 h-4" /></button>}</div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center space-x-1.5 flex-wrap gap-y-1.5">{([['ALL', 'All'], ['CUSTOMER', 'Customers'], ['SUPPLIER', 'Suppliers'], ['BOTH', 'Dual']] as [FilterTab, string][]).map(([key, label]) => (<button key={key} onClick={() => setFilterTab(key)} className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border ${filterTab === key ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'dark:bg-slate-950 bg-slate-50 dark:text-slate-300 text-slate-600 dark:border-slate-800 border-slate-200'}`}><span>{label}</span><span className={`text-[9px] font-mono px-1 py-0.5 rounded ${filterTab === key ? 'bg-white/20' : 'dark:bg-slate-800 bg-slate-200'}`}>{counts[key]}</span></button>))}</div>
+            <div className="flex items-center space-x-2">
+              <div className="w-44">
+                <CommandSelect
+                  value={partiesTable.sortBy}
+                  onChange={(val) => partiesTable.toggleSort(val as SortKey)}
+                  options={sortOptions}
+                  placeholder="Sort by"
+                  creatable={false}
+                  showEmoji={false}
+                  variant="violet"
+                  size="sm"
+                />
+              </div>
+              <div className="flex items-center dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 rounded-lg p-0.5"><button onClick={() => setViewMode('GRID')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'GRID' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><LayoutGrid className="w-3.5 h-3.5" /></button><button onClick={() => setViewMode('LIST')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><List className="w-3.5 h-3.5" /></button></div></div>
+          </div>
         </div>
-      </div>
 
-      {/* Empty */}
-      {partiesTable.totalRecords === 0 && (<div className="flex-1 dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 py-16 text-center animate-fade-in flex flex-col items-center justify-center"><Users className="w-12 h-12 dark:text-slate-700 text-slate-300 mx-auto mb-4" /><div className="text-sm font-bold dark:text-slate-400 text-slate-500">{search ? `No parties matching "${search}"` : 'No parties yet'}</div><p className="text-xs dark:text-slate-500 text-slate-400 mt-1">{search ? 'Try a different search' : 'Create your first party'}</p>{!search && <button onClick={openCreate} className="mt-4 inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs cursor-pointer"><Plus className="w-3.5 h-3.5" /><span>Add First Party</span></button>}</div>)}
+        {/* Empty */}
+        {partiesTable.totalRecords === 0 && (<div className="flex-1 dark:bg-slate-900 bg-white rounded-xl rounded-t-none border dark:border-slate-800 border-slate-200 py-16 text-center animate-fade-in flex flex-col items-center justify-center"><Users className="w-12 h-12 dark:text-slate-700 text-slate-300 mx-auto mb-4" /><div className="text-sm font-bold dark:text-slate-400 text-slate-500">{search ? `No parties matching "${search}"` : 'No parties yet'}</div><p className="text-xs dark:text-slate-500 text-slate-400 mt-1">{search ? 'Try a different search' : 'Create your first party'}</p>{!search && <button onClick={openCreate} className="mt-4 inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-bold text-xs cursor-pointer"><Plus className="w-3.5 h-3.5" /><span>Add First Party</span></button>}</div>)}
 
-      {/* GRID */}
-      {partiesTable.totalRecords > 0 && viewMode === 'GRID' && (
-        <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
-          {partiesTable.pageRows.map(p => (
-            <div key={p.id + p.type} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }} className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md dark:hover:border-slate-700 hover:border-slate-300 transition-all group overflow-hidden">
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3"><Av name={p.name} /><div className="min-w-0"><div className="text-sm font-bold dark:text-white text-slate-900 truncate">{p.name}</div><div className="flex items-center space-x-1.5 mt-0.5"><TypeBadge type={p.type} />{p.gstin && <span className="text-[9px] font-mono dark:text-slate-500 text-slate-400">{p.gstin}</span>}</div></div></div>
-                  <div className="flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => openEdit(p)} className="p-1.5 dark:text-slate-500 text-slate-400 hover:text-indigo-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer" title="Edit"><Edit3 className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => handleDeleteParty(p)} className="p-1.5 dark:text-slate-500 text-slate-400 hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+        {/* GRID */}
+        {partiesTable.totalRecords > 0 && viewMode === 'GRID' && (
+          <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1 pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+            {partiesTable.pageRows.map(p => (
+              <div key={p.id + p.type} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }} className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md dark:hover:border-slate-700 hover:border-slate-300 transition-all group overflow-hidden">
+                <div className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3"><Av name={p.name} /><div className="min-w-0"><div className="text-sm font-bold dark:text-white text-slate-900 truncate">{p.name}</div><div className="flex items-center space-x-1.5 mt-0.5"><TypeBadge type={p.type} />{p.gstin && <span className="text-[9px] font-mono dark:text-slate-500 text-slate-400">{p.gstin}</span>}</div></div></div>
+                    <div className="flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                      <button onClick={() => openEdit(p)} className="p-1.5 dark:text-slate-500 text-slate-400 hover:text-indigo-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer" title="Edit"><Edit3 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDeleteParty(p)} className="p-1.5 dark:text-slate-500 text-slate-400 hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
                   </div>
+                  <div className="mt-3 space-y-1 text-[11px] dark:text-slate-400 text-slate-500">
+                    {p.phone && <div className="flex items-center space-x-1.5"><Phone className="w-3 h-3 shrink-0" /><span>{p.phone}</span></div>}
+                    {p.email && <div className="flex items-center space-x-1.5"><Mail className="w-3 h-3 shrink-0" /><span className="truncate">{p.email}</span></div>}
+                    {p.city && <div className="flex items-center space-x-1.5"><MapPin className="w-3 h-3 shrink-0" /><span>{p.city}{p.state ? `, ${p.state}` : ''}</span></div>}
+                  </div>
+                  <div className="mt-3 pt-3 border-t dark:border-slate-800 border-slate-100 flex items-center justify-between"><Bal balance={p.balance} />{p.creditLimit > 0 && <span className="text-[10px] dark:text-slate-500 text-slate-400 font-mono">Limit: ₹{p.creditLimit.toLocaleString()}</span>}</div>
                 </div>
-                <div className="mt-3 space-y-1 text-[11px] dark:text-slate-400 text-slate-500">
-                  {p.phone && <div className="flex items-center space-x-1.5"><Phone className="w-3 h-3 shrink-0" /><span>{p.phone}</span></div>}
-                  {p.email && <div className="flex items-center space-x-1.5"><Mail className="w-3 h-3 shrink-0" /><span className="truncate">{p.email}</span></div>}
-                  {p.city && <div className="flex items-center space-x-1.5"><MapPin className="w-3 h-3 shrink-0" /><span>{p.city}{p.state ? `, ${p.state}` : ''}</span></div>}
+                <div className="px-4 py-2 border-t dark:border-slate-800 border-slate-100 dark:bg-slate-950/50 bg-slate-50 flex items-center justify-between">
+                  {p.city ? <span className="text-[10px] dark:text-slate-500 text-slate-400 flex items-center space-x-1"><MapPin className="w-3 h-3" /><span>{p.city}</span></span> : <span />}
+                  <button onClick={() => setDetailParty(p)} className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">View Details →</button>
                 </div>
-                <div className="mt-3 pt-3 border-t dark:border-slate-800 border-slate-100 flex items-center justify-between"><Bal balance={p.balance} />{p.creditLimit > 0 && <span className="text-[10px] dark:text-slate-500 text-slate-400 font-mono">Limit: ₹{p.creditLimit.toLocaleString()}</span>}</div>
               </div>
-              <div className="px-4 py-2 border-t dark:border-slate-800 border-slate-100 dark:bg-slate-950/50 bg-slate-50 flex items-center justify-between">
-                {p.city ? <span className="text-[10px] dark:text-slate-500 text-slate-400 flex items-center space-x-1"><MapPin className="w-3 h-3" /><span>{p.city}</span></span> : <span />}
-                <button onClick={() => setDetailParty(p)} className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">View Details →</button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-      {/* LIST */}
-      {partiesTable.totalRecords > 0 && viewMode === 'LIST' && (
-        <div className="flex-1 dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-fade-in flex flex-col min-h-0">
-          <div className="flex-1 overflow-auto custom-scrollbar">
+        {/* LIST */}
+        {partiesTable.totalRecords > 0 && viewMode === 'LIST' && (
+          <DataTable
+            className="flex-1 dark:bg-slate-900 bg-white rounded-xl rounded-t-none border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-fade-in flex flex-col min-h-0"
+            scrollClassName="flex-1"
+            footer={
+              <Pagination
+                page={partiesTable.page}
+                totalPages={partiesTable.totalPages}
+                totalRecords={partiesTable.totalRecords}
+                pageSize={partiesTable.pageSize}
+                pageSizeOptions={partiesTable.pageSizeOptions}
+                onPageChange={partiesTable.setPage}
+                onPageSizeChange={partiesTable.setPageSize}
+                label="parties"
+              />
+            }
+          >
             <table className="erp-table w-full text-left text-xs">
               <thead><tr className="dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 uppercase font-bold text-[10px] border-b dark:border-slate-800 border-slate-200 sticky top-0 z-10">
               <th className="py-3 px-4 col-text">Party</th>
@@ -935,24 +963,24 @@ export const PartiesModule: React.FC = () => {
               ))}
             </tbody>
           </table>
-          </div>
-        </div>
-      )}
+          </DataTable>
+        )}
 
-      {partiesTable.totalRecords > 0 && (
-        <div className="shrink-0">
-          <Pagination
-            page={partiesTable.page}
-            totalPages={partiesTable.totalPages}
-            totalRecords={partiesTable.totalRecords}
-            pageSize={partiesTable.pageSize}
-            pageSizeOptions={partiesTable.pageSizeOptions}
-            onPageChange={partiesTable.setPage}
-            onPageSizeChange={partiesTable.setPageSize}
-            label="parties"
-          />
-        </div>
-      )}
+        {partiesTable.totalRecords > 0 && viewMode === 'GRID' && (
+          <div className="shrink-0 bg-white dark:bg-slate-900 border dark:border-slate-800 border-slate-200 border-t-0 rounded-b-xl px-4 py-2">
+            <Pagination
+              page={partiesTable.page}
+              totalPages={partiesTable.totalPages}
+              totalRecords={partiesTable.totalRecords}
+              pageSize={partiesTable.pageSize}
+              pageSizeOptions={partiesTable.pageSizeOptions}
+              onPageChange={partiesTable.setPage}
+              onPageSizeChange={partiesTable.setPageSize}
+              label="parties"
+            />
+          </div>
+        )}
+      </div>
 
       {/* Modal */}
       {showModal && renderModal()}

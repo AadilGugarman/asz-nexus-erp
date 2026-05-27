@@ -31,6 +31,7 @@ interface CommandSelectProps {
   label?: string;
   error?: string;
   variant?: 'emerald' | 'violet' | 'sky' | 'amber';
+  size?: 'sm' | 'md';
 }
 
 export const CommandSelect: React.FC<CommandSelectProps> = ({
@@ -48,6 +49,7 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
   label,
   error,
   variant = 'emerald',
+  size = 'md',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -347,9 +349,13 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
         disabled ? 'opacity-50 cursor-not-allowed' : '',
       )}>
         {/* Search icon */}
-        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none z-10">
+        <div className={cn(
+          "absolute inset-y-0 flex items-center pointer-events-none z-10",
+          size === 'sm' ? 'left-2.5' : 'left-3'
+        )}>
           <Search className={cn(
-            'w-3.5 h-3.5 transition-colors duration-200',
+            'transition-colors duration-200',
+            size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5',
             isOpen ? v.searchIcon : 'text-slate-400/70 dark:text-slate-500/60',
           )} />
         </div>
@@ -370,7 +376,8 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
           autoFocus={autoFocus}
           readOnly={!isOpen}
           className={cn(
-            'w-full bg-transparent pl-8 pr-8 py-2 text-sm outline-none cursor-pointer',
+            'w-full bg-transparent outline-none cursor-pointer',
+            size === 'sm' ? 'pl-7 pr-7 py-1.5 text-xs' : 'pl-8 pr-8 py-2 text-sm',
             isOpen ? 'cursor-text' : '',
             displayLabel && !isOpen
               ? 'text-slate-800 dark:text-slate-100 font-medium'
@@ -379,7 +386,10 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
         />
 
         {/* Right controls */}
-        <div className="absolute inset-y-0 right-2.5 flex items-center gap-1 z-10">
+        <div className={cn(
+          "absolute inset-y-0 flex items-center gap-0.5 z-10",
+          size === 'sm' ? 'right-1.5' : 'right-2.5'
+        )}>
           {value && !disabled && (
             <button
               type="button"
@@ -390,11 +400,12 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
               }}
               className="p-1 rounded-md text-slate-400/60 hover:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all"
             >
-              <X className="w-3 h-3" />
+              <X className={size === 'sm' ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
             </button>
           )}
           <ChevronDown className={cn(
-            'w-3.5 h-3.5 transition-all duration-200',
+            'transition-all duration-200',
+            size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5',
             isOpen ? cn('rotate-180', v.chevron) : 'text-slate-400/60 dark:text-slate-500/50',
           )} />
         </div>

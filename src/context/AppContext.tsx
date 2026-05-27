@@ -158,17 +158,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   // Convenience: current company id as a non-null string for DB writes
   const cid = activeCompanyId ?? "default";
 
-  // Derive the financial year start date from settings for opening balance entries
+  // Derive the financial year start date from activeFY + company's financialYearStart.
+  // Used for ledger opening balance entries — respects the selected FY, not just current year.
   const fyStartDate = useMemo(() => {
     const fyStart = settings?.financial?.financialYearStart ?? "04-01";
-    const [monthStr, dayStr] = fyStart.split("-");
+    const [monthStr] = fyStart.split("-");
     const month = parseInt(monthStr, 10);
-    const day = parseInt(dayStr, 10);
+
+    // If activeFY is set (e.g. "2024-25"), use its start year directly
+    if (activeFY) {
+      const [startYearStr] = activeFY.split("-");
+      const startYear = parseInt(startYearStr, 10);
+      if (!isNaN(startYear)) {
+        return `${startYear}-${String(month).padStart(2, "0")}-01`;
+      }
+    }
+
+    // Fallback: derive from current date
     const now = new Date();
     const currentYear = now.getFullYear();
     const baseYear = now.getMonth() + 1 >= month ? currentYear : currentYear - 1;
-    return `${baseYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-  }, [settings?.financial?.financialYearStart]);
+    return `${baseYear}-${String(month).padStart(2, "0")}-01`;
+  }, [settings?.financial?.financialYearStart, activeFY]);
 
   // Auto-calculated Inventory & Stock Movements
   const { inventory, stockMovements } = useMemo(() => {
@@ -1007,7 +1018,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // ── Financial Year ──────────────────────────
-  const fyStartMD = settings?.financial?.financialYearStart ?? "04-01"; // MM-DD
+  // fyOptions is derived from the ACTIVE COMPANY's financialYearStart, not global settings.
+  // This ensures switching companies also updates the available FY options.
+  const fyStartMD = useMemo(() => {
+    const activeCompany = companies.find((c) => c.id === activeCompanyId);
+    return activeCompany?.financial?.financialYearStart
+      ?? settings?.financial?.financialYearStart
+      ?? "04-01"; // MM-DD
+  }, [companies, activeCompanyId, settings?.financial?.financialYearStart]);
+
   const fyOptions = useMemo(() => {
     const years: string[] = [];
     const now = new Date();

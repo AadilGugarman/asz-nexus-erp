@@ -1,5 +1,5 @@
 import React from "react";
-import { CompanyFormData } from "@/types/company";
+import { CompanyFormData, FY_MONTHS, computeFYLabel, fyLabelToDates } from "@/types/company";
 import { CURRENCIES, TAX_TYPES } from "@/config";
 import {
   CheckCircle2,
@@ -9,7 +9,6 @@ import {
   Coins,
   ShieldCheck,
   Database,
-  Landmark,
 } from "lucide-react";
 
 interface ReviewConfirmStepProps {
@@ -37,11 +36,11 @@ export const ReviewConfirmStep: React.FC<ReviewConfirmStepProps> = ({
   const currencyObj = CURRENCIES.find((c) => c.code === formData.financial.currency);
   const taxObj = TAX_TYPES.find((t) => t.id === formData.financial.taxType);
 
-  const hasBanking =
-    formData.financial.bankName ||
-    formData.financial.accountNo ||
-    formData.financial.ifsc ||
-    formData.financial.upiId;
+  // Derive FY label and dates from fyStartMonth
+  const startMonth = formData.financial.fyStartMonth ?? 4;
+  const fyLabel = computeFYLabel(startMonth);
+  const fyDates = fyLabelToDates(fyLabel, startMonth);
+  const fyMonthName = FY_MONTHS.find((m) => m.value === startMonth)?.label ?? "April";
 
   const sectionHeader = "bg-slate-50 dark:bg-slate-800/60 px-4 py-2.5 border-b border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between gap-3";
   const editBtn = "flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-500/10 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 transition-all cursor-pointer";
@@ -150,10 +149,12 @@ export const ReviewConfirmStep: React.FC<ReviewConfirmStepProps> = ({
           {[
             {
               label: "Financial Year",
-              value: formData.financial.fyStart && formData.financial.fyEnd
-                ? `${formData.financial.fyStart} → ${formData.financial.fyEnd}`
-                : "Missing",
-              error: validationErrors.financial.fyStart || validationErrors.financial.fyEnd,
+              value: `FY ${fyLabel} (${fyMonthName} start)`,
+              error: validationErrors.financial.fyStartMonth,
+            },
+            {
+              label: "FY Period",
+              value: `${fyDates.start} → ${fyDates.end}`,
             },
             {
               label: "Currency",
@@ -167,7 +168,7 @@ export const ReviewConfirmStep: React.FC<ReviewConfirmStepProps> = ({
             },
             {
               label: "Invoice Sample",
-              value: `${formData.financial.invoicePrefix}${formData.financial.invoiceStartingNumber}`,
+              value: `${formData.financial.invoicePrefix}/${String(startMonth).padStart(2,"0")}-${String(startMonth === 1 ? 12 : startMonth - 1).padStart(2,"0")}/${formData.financial.invoiceStartingNumber}`,
               error: validationErrors.financial.invoicePrefix || validationErrors.financial.invoiceStartingNumber,
               mono: true,
               amber: true,
@@ -192,35 +193,7 @@ export const ReviewConfirmStep: React.FC<ReviewConfirmStepProps> = ({
         </div>
       </div>
 
-      {/* Banking review — only shown if any field is filled */}
-      {hasBanking && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60 overflow-hidden">
-          <div className={sectionHeader}>
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 rounded">
-                <Landmark className="w-3.5 h-3.5" />
-              </div>
-              <h3 className="font-bold text-xs text-slate-900 dark:text-white">Banking & Payment</h3>
-            </div>
-            <button type="button" onClick={() => onEditStep(2)} className={editBtn}>
-              <Edit3 className="w-3 h-3" /><span>Edit</span>
-            </button>
-          </div>
-          <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: "Bank",       value: formData.financial.bankName  || "—" },
-              { label: "Account No", value: formData.financial.accountNo || "—", mono: true },
-              { label: "IFSC",       value: formData.financial.ifsc      || "—", mono: true },
-              { label: "UPI ID",     value: formData.financial.upiId     || "—", mono: true },
-            ].map(({ label, value, mono }) => (
-              <div key={label}>
-                <span className={fieldLabel}>{label}</span>
-                <span className={`${fieldValue} ${mono ? "font-mono" : ""}`}>{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Banking details moved to Settings → Invoice & Numbering */}
 
       {/* Submit */}
       <div className="bg-slate-900 dark:bg-slate-950 text-white p-4 rounded-xl flex items-center justify-between gap-4 border border-slate-800 dark:border-slate-700">

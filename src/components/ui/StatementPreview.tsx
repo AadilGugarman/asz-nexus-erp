@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer, Download, Share2, FileText } from 'lucide-react';
 
@@ -6,8 +6,29 @@ import { useApp } from '@/context/AppContext';
 import { useAppearance } from '@/hooks';
 
 import { useToast } from './Toast';
+import { printElement } from '@/utils/print';
 
 import { fmtDate } from '@/utils/format';
+
+/** Generate up to 3 initials, skipping filler words */
+const getInitials = (name: string): string => {
+  const skip = new Set(['and', '&', 'of', 'the', 'a', 'an', 'co', 'ltd', 'pvt', 'llp']);
+  return name
+    .split(/\s+/)
+    .filter(w => w && !skip.has(w.toLowerCase()))
+    .map(w => w[0].toUpperCase())
+    .slice(0, 3)
+    .join('');
+};
+
+/** Dynamic font size for initials badge */
+const initialsFontSize = (initials: string, size: number) => {
+  const len = initials.length;
+  if (len <= 1) return Math.round(size * 0.48);
+  if (len === 2) return Math.round(size * 0.38);
+  if (len === 3) return Math.round(size * 0.30);
+  return Math.round(size * 0.24);
+};
 
 interface StatementPreviewProps {
   isOpen: boolean;
@@ -24,11 +45,19 @@ export const StatementPreview: React.FC<StatementPreviewProps> = ({ isOpen, onCl
   const toast = useToast();
   const cs = settings.company;
   const color = accentColor || globalAccent || settings.invoice.brandColor || '#4f46e5';
+  const paperRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
-  const handlePrint = () => window.print();
-  const handleDownload = () => { window.print(); toast.info('Save as PDF', 'Select "Save as PDF" as destination in print dialog.'); };
+  const handlePrint = () => {
+    if (paperRef.current) printElement(paperRef.current);
+    else window.print();
+  };
+  const handleDownload = () => {
+    if (paperRef.current) printElement(paperRef.current);
+    else window.print();
+    toast.info('Save as PDF', 'Select "Save as PDF" as destination in print dialog.');
+  };
   const handleShare = () => {
     const msg = encodeURIComponent(`${title}\nFrom: ${cs.name}\nPhone: ${cs.phone}\n${cs.email}`);
     window.open(`https://wa.me/?text=${msg}`, '_blank');
@@ -39,7 +68,7 @@ export const StatementPreview: React.FC<StatementPreviewProps> = ({ isOpen, onCl
       <div className="min-h-screen dark:bg-slate-950/90 bg-slate-200/90 backdrop-blur-md flex flex-col items-center py-6 sm:py-10 px-4">
 
         {/* ── Action Bar ────────────────────────────── */}
-        <div className="w-full max-w-[850px] mb-4 flex items-center justify-between no-print animate-slide-down">
+        <div className="w-full max-w-[850px] mb-4 flex items-center justify-between animate-slide-down">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700" style={{ color }}>
               <FileText className="w-5 h-5" />
@@ -66,14 +95,30 @@ export const StatementPreview: React.FC<StatementPreviewProps> = ({ isOpen, onCl
         </div>
 
         {/* ── A4 Paper ──────────────────────────────── */}
-        <div className="w-full max-w-[850px] bg-white rounded-xl shadow-2xl dark:shadow-black/40 shadow-slate-400/20 overflow-hidden border border-slate-200/50 dark:border-slate-700/30 printable-patti animate-slide-up">
+        <div ref={paperRef} className="w-full max-w-[850px] bg-white rounded-xl shadow-2xl dark:shadow-black/40 shadow-slate-400/20 overflow-hidden border border-slate-200/50 dark:border-slate-700/30 printable-patti animate-slide-up">
           <div className="p-8 sm:p-12 max-w-[780px] mx-auto font-[system-ui,-apple-system,sans-serif] text-[13px] leading-relaxed text-slate-900">
 
             {/* ── Document Header ──────────────────── */}
             <div className="flex justify-between items-start pb-5 mb-6" style={{ borderBottom: `3px solid ${color}` }}>
               <div className="max-w-[55%]">
                 <div className="flex items-center space-x-3 mb-1">
-                  {cs.logo && <img src={cs.logo} alt={cs.name} className="h-9 max-w-[90px] object-contain shrink-0" />}
+                  {cs.logo ? (
+                    <img src={cs.logo} alt={cs.name} className="h-9 max-w-[90px] object-contain shrink-0" />
+                  ) : (
+                    <div
+                      className="shrink-0 rounded-xl text-white font-black select-none overflow-hidden flex items-center justify-center"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
+                        fontSize: `${initialsFontSize(getInitials(cs.name) || cs.name.slice(0,2).toUpperCase(), 36)}px`,
+                        lineHeight: 1,
+                        letterSpacing: (getInitials(cs.name) || cs.name.slice(0,2).toUpperCase()).length >= 3 ? '0.04em' : '0.02em',
+                      }}
+                    >
+                      {getInitials(cs.name) || cs.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <h1 className="text-[22px] font-black tracking-tight text-slate-950 leading-none">{cs.name.toUpperCase()}</h1>
                 </div>
                 <p className="text-[10px] font-bold text-slate-500 mt-1 tracking-[0.12em] uppercase">{cs.tagline}</p>

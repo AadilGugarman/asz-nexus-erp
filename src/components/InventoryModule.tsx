@@ -171,213 +171,218 @@ export const InventoryModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters bar */}
-      <div className="erp-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 font-sans">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
-          <input
-            type="text"
-            placeholder="Search fruit, variety..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="erp-input w-full pl-9 pr-4"
-          />
+      {/* Filters bar & Tables attached */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="erp-panel p-4 rounded-b-none border-b-0 flex flex-col sm:flex-row items-center justify-between gap-4 font-sans shrink-0">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
+            <input
+              type="text"
+              placeholder="Search fruit, variety..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="erp-input w-full pl-9 pr-4"
+            />
+          </div>
+          <div className="flex items-center space-x-3 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-[#94a3b8] hidden sm:block" />
+            <CommandSelect
+              variant="sky"
+              value={filterFruit}
+              onChange={(val) => setFilterFruit(val)}
+              options={fruitOptions}
+              placeholder="Filter Fruit..."
+              creatable={false}
+              className="sm:w-72"
+              size="sm"
+            />
+          </div>
         </div>
-        <div className="flex items-center space-x-3 w-full sm:w-auto">
-          <Filter className="w-4 h-4 text-[#94a3b8] hidden sm:block" />
-          <CommandSelect
-            variant="sky"
-            value={filterFruit}
-            onChange={(val) => setFilterFruit(val)}
-            options={fruitOptions}
-            placeholder="Filter Fruit..."
-            creatable={false}
-            className="sm:w-64"
-          />
-        </div>
+
+        {/* SUB-TAB 1: LIVE VARIETY STOCK TABLE */}
+        {activeTab === 'LIVE_STOCK' && (
+          <DataTable
+            className="font-sans flex-1 min-h-0 rounded-t-none"
+            scrollClassName="flex-1"
+            toolbar={
+            <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between shrink-0">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#475569]">Live Variety-Wise Warehouse Stock</span>
+              <span className="text-xs text-[#64748b] font-semibold font-mono">Total Unique Items: {liveStockTable.totalRecords}</span>
+            </div>
+            }
+            footer={
+              <Pagination
+                page={liveStockTable.page}
+                totalPages={liveStockTable.totalPages}
+                totalRecords={liveStockTable.totalRecords}
+                pageSize={liveStockTable.pageSize}
+                pageSizeOptions={liveStockTable.pageSizeOptions}
+                onPageChange={liveStockTable.setPage}
+                onPageSizeChange={liveStockTable.setPageSize}
+                label="stock items"
+              />
+            }
+          >
+
+              <table className="erp-table text-left font-sans">
+                <thead>
+                  <tr className="sticky top-0 z-10 bg-white shadow-sm">
+                    <th className="py-3.5 px-6 col-text"><button type="button" onClick={() => liveStockTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Fruit Category <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                    <th className="py-3.5 px-4 col-text"><button type="button" onClick={() => liveStockTable.toggleSort('variety')} className="inline-flex items-center gap-1">Variety (Vakkal) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                    <th className="py-3.5 px-4 col-num w-44"><button type="button" onClick={() => liveStockTable.toggleSort('totalCarets')} className="inline-flex items-center gap-1 ml-auto">Carets Quantity <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                    <th className="py-3.5 px-6 col-num text-[#00aeef] w-52"><button type="button" onClick={() => liveStockTable.toggleSort('totalWeight')} className="inline-flex items-center gap-1 ml-auto">Total Net Weight (KG) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                    <th className="py-3.5 px-6 col-actions w-44">Status / Health</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono">
+                  {isTableLoading ? (
+                    <tr>
+                      <td colSpan={5} className="p-0"><TableSkeleton rows={7} cols={5} /></td>
+                    </tr>
+                  ) : liveStockTable.totalRecords === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-0">
+                        <ModuleEmptyState title="No stock records found" subtitle="Save an Inward Load or Purchase Bill to add stock." />
+                      </td>
+                    </tr>
+                  ) : (
+                    liveStockTable.pageRows.map(item => {
+                      const isLowStock = item.totalWeight <= 200 && item.totalWeight > 0;
+                      const isOut = item.totalWeight <= 0;
+
+                      return (
+                        <tr key={item.key} className="font-sans group">
+                          <td className="py-4 px-6 col-text font-semibold text-[#0f172a] font-sans">
+                            <div className="flex items-center space-x-2.5">
+                              <div className={`w-2.5 h-2.5 rounded-full ${isOut ? 'bg-rose-500' : isLowStock ? 'bg-amber-400 animate-pulse' : 'bg-teal-500'}`}></div>
+                              <span>{item.fruit}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 col-text font-semibold text-[#0f172a] font-sans">
+                            {item.variety}
+                          </td>
+                          <td className="py-4 px-4 col-num font-mono font-semibold text-[#334155] text-sm">
+                            {item.totalCarets} <span className="text-xs text-[#64748b] font-normal font-sans">CRT</span>
+                          </td>
+                          <td className="py-4 px-6 col-num font-mono font-semibold text-base text-[#00aeef] bg-[rgba(0,174,239,0.06)]">
+                            {item.totalWeight.toLocaleString('en-IN')} <span className="text-xs text-[#0369a1] font-normal font-sans">KG</span>
+                          </td>
+                          <td className="py-4 px-6 col-actions font-sans">
+                            {isOut ? (
+                              <span className="bg-rose-500/10 text-rose-700 border border-rose-500/30 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider font-mono">
+                                Out of Stock
+                              </span>
+                            ) : isLowStock ? (
+                              <span className="bg-amber-500/10 text-amber-700 border border-amber-500/30 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider flex items-center justify-center space-x-1 font-mono">
+                                <AlertTriangle className="w-3.5 h-3.5 inline mr-1 text-amber-500" />
+                                <span>Low Stock</span>
+                              </span>
+                            ) : (
+                              <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider font-mono">
+                                Optimal Stock
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+          </DataTable>
+        )}
+
+        {/* SUB-TAB 2: MOVEMENT AUDIT LOG */}
+        {activeTab === 'MOVEMENT_HISTORY' && (
+          <DataTable
+            className="font-sans flex-1 min-h-0 rounded-t-none"
+            scrollClassName="flex-1"
+            toolbar={
+            <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between shrink-0">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#475569]">Automated Inventory Movement Audit Log</span>
+              <span className="text-xs text-[#64748b] font-medium">Chronological history of all stock additions & billing deductions</span>
+            </div>
+            }
+            footer={
+              <Pagination
+                page={movementTable.page}
+                totalPages={movementTable.totalPages}
+                totalRecords={movementTable.totalRecords}
+                pageSize={movementTable.pageSize}
+                pageSizeOptions={movementTable.pageSizeOptions}
+                onPageChange={movementTable.setPage}
+                onPageSizeChange={movementTable.setPageSize}
+                label="movements"
+              />
+            }
+          >
+
+              <table className="erp-table text-left">
+                <thead>
+                  <tr className="sticky top-0 z-10 bg-white shadow-sm">
+                    <th className="py-3 px-4 col-text w-28"><button type="button" onClick={() => movementTable.toggleSort('date')} className="inline-flex items-center gap-1">Date & Time <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                    <th className="py-3 px-3 col-text w-40">Movement Type</th>
+                    <th className="py-3 px-3 col-text"><button type="button" onClick={() => movementTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Item Variety <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                    <th className="py-3 px-4 col-text">Source / Reference</th>
+                    <th className="py-3 px-3 col-num w-36"><button type="button" onClick={() => movementTable.toggleSort('weightChange')} className="inline-flex items-center gap-1 ml-auto">Weight Change <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                    <th className="py-3 px-3 col-num w-36">Carets Change</th>
+                    <th className="py-3 px-4 col-num text-[#00aeef] w-48"><button type="button" onClick={() => movementTable.toggleSort('resultingWeight')} className="inline-flex items-center gap-1 ml-auto">Resulting Balance <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono font-medium">
+                  {isTableLoading ? (
+                    <tr>
+                      <td colSpan={7} className="p-0"><TableSkeleton rows={7} cols={7} /></td>
+                    </tr>
+                  ) : movementTable.totalRecords === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-0">
+                        <ModuleEmptyState title="No movement history recorded" subtitle="Stock movement entries appear after arrivals, purchases, and sales." />
+                      </td>
+                    </tr>
+                  ) : (
+                    movementTable.pageRows.map(m => {
+                      const isStockIn = m.type === 'ARRIVAL' || m.type === 'PURCHASE_BILL';
+                      return (
+                        <tr key={m.id} className="font-sans group">
+                          <td className="py-3.5 px-4 col-text font-mono text-[#64748b] whitespace-nowrap text-xs">{fmtDate(m.date)}</td>
+                          <td className="py-3.5 px-3 col-text">
+                            {isStockIn ? (
+                              <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase flex items-center w-max font-mono">
+                                <ArrowUpRight className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                <span>{m.type === 'ARRIVAL' ? 'STOCK IN (GATE)' : 'STOCK IN (BUY)'}</span>
+                              </span>
+                            ) : (
+                              <span className="bg-sky-500/10 text-sky-700 border border-sky-500/30 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase flex items-center w-max font-mono">
+                                <ArrowDownRight className="w-3.5 h-3.5 mr-1 text-sky-600" />
+                                <span>STOCK OUT (SALE)</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-3 col-text font-semibold text-[#0f172a] font-sans">
+                            {m.fruit} <span className="text-[#64748b] font-medium font-sans">({m.variety})</span>
+                          </td>
+                          <td className="py-3.5 px-4 col-text text-[#334155] font-sans truncate max-w-[240px] font-medium">
+                            {m.reference}
+                          </td>
+                          <td className={`py-3.5 px-3 col-num font-mono font-semibold text-sm ${isStockIn ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {isStockIn ? `+${m.weightChange}` : m.weightChange} KG
+                          </td>
+                          <td className={`py-3.5 px-3 col-num font-mono font-semibold text-sm ${isStockIn ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {isStockIn ? `+${m.caretChange}` : m.caretChange} CRT
+                          </td>
+                          <td className="py-3.5 px-4 col-num font-mono font-semibold text-[#00aeef] bg-[rgba(0,174,239,0.06)] text-sm">
+                            {m.resultingWeight} KG <span className="text-[11px] text-[#64748b] font-normal font-sans">({m.resultingCarets} CRT)</span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+          </DataTable>
+        )}
       </div>
-
-      {/* SUB-TAB 1: LIVE VARIETY STOCK TABLE */}
-      {activeTab === 'LIVE_STOCK' && (
-        <DataTable
-          className="font-sans"
-          toolbar={
-          <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#475569]">Live Variety-Wise Warehouse Stock</span>
-            <span className="text-xs text-[#64748b] font-semibold font-mono">Total Unique Items: {liveStockTable.totalRecords}</span>
-          </div>
-          }
-          footer={
-            <Pagination
-              page={liveStockTable.page}
-              totalPages={liveStockTable.totalPages}
-              totalRecords={liveStockTable.totalRecords}
-              pageSize={liveStockTable.pageSize}
-              pageSizeOptions={liveStockTable.pageSizeOptions}
-              onPageChange={liveStockTable.setPage}
-              onPageSizeChange={liveStockTable.setPageSize}
-              label="stock items"
-            />
-          }
-        >
-
-            <table className="erp-table text-left font-sans">
-              <thead>
-                <tr>
-                  <th className="py-3.5 px-6 col-text"><button type="button" onClick={() => liveStockTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Fruit Category <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3.5 px-4 col-text"><button type="button" onClick={() => liveStockTable.toggleSort('variety')} className="inline-flex items-center gap-1">Variety (Vakkal) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3.5 px-4 col-num w-44"><button type="button" onClick={() => liveStockTable.toggleSort('totalCarets')} className="inline-flex items-center gap-1 ml-auto">Carets Quantity <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3.5 px-6 col-num text-[#00aeef] w-52"><button type="button" onClick={() => liveStockTable.toggleSort('totalWeight')} className="inline-flex items-center gap-1 ml-auto">Total Net Weight (KG) <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3.5 px-6 col-actions w-44">Status / Health</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono">
-                {isTableLoading ? (
-                  <tr>
-                    <td colSpan={5} className="p-0"><TableSkeleton rows={7} cols={5} /></td>
-                  </tr>
-                ) : liveStockTable.totalRecords === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-0">
-                      <ModuleEmptyState title="No stock records found" subtitle="Save an Inward Load or Purchase Bill to add stock." />
-                    </td>
-                  </tr>
-                ) : (
-                  liveStockTable.pageRows.map(item => {
-                    const isLowStock = item.totalWeight <= 200 && item.totalWeight > 0;
-                    const isOut = item.totalWeight <= 0;
-
-                    return (
-                      <tr key={item.key} className="font-sans group">
-                        <td className="py-4 px-6 col-text font-semibold text-[#0f172a] font-sans">
-                          <div className="flex items-center space-x-2.5">
-                            <div className={`w-2.5 h-2.5 rounded-full ${isOut ? 'bg-rose-500' : isLowStock ? 'bg-amber-400 animate-pulse' : 'bg-teal-500'}`}></div>
-                            <span>{item.fruit}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 col-text font-semibold text-[#0f172a] font-sans">
-                          {item.variety}
-                        </td>
-                        <td className="py-4 px-4 col-num font-mono font-semibold text-[#334155] text-sm">
-                          {item.totalCarets} <span className="text-xs text-[#64748b] font-normal font-sans">CRT</span>
-                        </td>
-                        <td className="py-4 px-6 col-num font-mono font-semibold text-base text-[#00aeef] bg-[rgba(0,174,239,0.06)]">
-                          {item.totalWeight.toLocaleString('en-IN')} <span className="text-xs text-[#0369a1] font-normal font-sans">KG</span>
-                        </td>
-                        <td className="py-4 px-6 col-actions font-sans">
-                          {isOut ? (
-                            <span className="bg-rose-500/10 text-rose-700 border border-rose-500/30 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider font-mono">
-                              Out of Stock
-                            </span>
-                          ) : isLowStock ? (
-                            <span className="bg-amber-500/10 text-amber-700 border border-amber-500/30 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider flex items-center justify-center space-x-1 font-mono">
-                              <AlertTriangle className="w-3.5 h-3.5 inline mr-1 text-amber-500" />
-                              <span>Low Stock</span>
-                            </span>
-                          ) : (
-                            <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider font-mono">
-                              Optimal Stock
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-        </DataTable>
-      )}
-
-      {/* SUB-TAB 2: MOVEMENT AUDIT LOG */}
-      {activeTab === 'MOVEMENT_HISTORY' && (
-        <DataTable
-          className="font-sans"
-          toolbar={
-          <div className="px-6 py-4 bg-[#f8fafc] border-b border-[#edf2f7] flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#475569]">Automated Inventory Movement Audit Log</span>
-            <span className="text-xs text-[#64748b] font-medium">Chronological history of all stock additions & billing deductions</span>
-          </div>
-          }
-          footer={
-            <Pagination
-              page={movementTable.page}
-              totalPages={movementTable.totalPages}
-              totalRecords={movementTable.totalRecords}
-              pageSize={movementTable.pageSize}
-              pageSizeOptions={movementTable.pageSizeOptions}
-              onPageChange={movementTable.setPage}
-              onPageSizeChange={movementTable.setPageSize}
-              label="movements"
-            />
-          }
-        >
-
-            <table className="erp-table text-left">
-              <thead>
-                <tr>
-                  <th className="py-3 px-4 col-text w-28"><button type="button" onClick={() => movementTable.toggleSort('date')} className="inline-flex items-center gap-1">Date & Time <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3 px-3 col-text w-40">Movement Type</th>
-                  <th className="py-3 px-3 col-text"><button type="button" onClick={() => movementTable.toggleSort('fruit')} className="inline-flex items-center gap-1">Item Variety <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3 px-4 col-text">Source / Reference</th>
-                  <th className="py-3 px-3 col-num w-36"><button type="button" onClick={() => movementTable.toggleSort('weightChange')} className="inline-flex items-center gap-1 ml-auto">Weight Change <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                  <th className="py-3 px-3 col-num w-36">Carets Change</th>
-                  <th className="py-3 px-4 col-num text-[#00aeef] w-48"><button type="button" onClick={() => movementTable.toggleSort('resultingWeight')} className="inline-flex items-center gap-1 ml-auto">Resulting Balance <ArrowUpDown className="w-3.5 h-3.5" /></button></th>
-                </tr>
-              </thead>
-              <tbody className="font-mono font-medium">
-                {isTableLoading ? (
-                  <tr>
-                    <td colSpan={7} className="p-0"><TableSkeleton rows={7} cols={7} /></td>
-                  </tr>
-                ) : movementTable.totalRecords === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-0">
-                      <ModuleEmptyState title="No movement history recorded" subtitle="Stock movement entries appear after arrivals, purchases, and sales." />
-                    </td>
-                  </tr>
-                ) : (
-                  movementTable.pageRows.map(m => {
-                    const isStockIn = m.type === 'ARRIVAL' || m.type === 'PURCHASE_BILL';
-                    return (
-                      <tr key={m.id} className="font-sans group">
-                        <td className="py-3.5 px-4 col-text font-mono text-[#64748b] whitespace-nowrap text-xs">{fmtDate(m.date)}</td>
-                        <td className="py-3.5 px-3 col-text">
-                          {isStockIn ? (
-                            <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase flex items-center w-max font-mono">
-                              <ArrowUpRight className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                              <span>{m.type === 'ARRIVAL' ? 'STOCK IN (GATE)' : 'STOCK IN (BUY)'}</span>
-                            </span>
-                          ) : (
-                            <span className="bg-sky-500/10 text-sky-700 border border-sky-500/30 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase flex items-center w-max font-mono">
-                              <ArrowDownRight className="w-3.5 h-3.5 mr-1 text-sky-600" />
-                              <span>STOCK OUT (SALE)</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-3 col-text font-semibold text-[#0f172a] font-sans">
-                          {m.fruit} <span className="text-[#64748b] font-medium font-sans">({m.variety})</span>
-                        </td>
-                        <td className="py-3.5 px-4 col-text text-[#334155] font-sans truncate max-w-[240px] font-medium">
-                          {m.reference}
-                        </td>
-                        <td className={`py-3.5 px-3 col-num font-mono font-semibold text-sm ${isStockIn ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {isStockIn ? `+${m.weightChange}` : m.weightChange} KG
-                        </td>
-                        <td className={`py-3.5 px-3 col-num font-mono font-semibold text-sm ${isStockIn ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {isStockIn ? `+${m.caretChange}` : m.caretChange} CRT
-                        </td>
-                        <td className="py-3.5 px-4 col-num font-mono font-semibold text-[#00aeef] bg-[rgba(0,174,239,0.06)] text-sm">
-                          {m.resultingWeight} KG <span className="text-[11px] text-[#64748b] font-normal font-sans">({m.resultingCarets} CRT)</span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-        </DataTable>
-      )}
     </div>
   );
 };

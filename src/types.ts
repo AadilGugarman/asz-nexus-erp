@@ -153,6 +153,7 @@ export interface Invoice {
   discount?: number;      // legacy field — no longer set by new invoices
   paidAmount: number;
   remainingBalance: number;
+  remainingCaretBalance?: number;
   notes?: string;
   createdAt: string;
 }

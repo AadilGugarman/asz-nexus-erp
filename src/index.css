@@ -9,6 +9,35 @@
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
+  /* ── GLOBAL PLACEHOLDER STANDARDIZATION ────────── */
+  ::placeholder {
+    font-weight: 400 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    font-style: normal !important;
+    opacity: 0.6 !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    color: var(--text-muted) !important;
+  }
+  input::placeholder {
+    font-weight: 400 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    font-style: normal !important;
+    opacity: 0.6 !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    color: var(--text-muted) !important;
+  }
+  textarea::placeholder {
+    font-weight: 400 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    font-style: normal !important;
+    opacity: 0.6 !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    color: var(--text-muted) !important;
+  }
+
   /* ── FONT RENDERING ────────────────────────────── */
   html {
     -webkit-font-smoothing: antialiased;
@@ -245,78 +274,512 @@
     color: var(--text-primary);
     padding: 0.6rem 0.85rem;
     font-size: 0.82rem;
-    font-weight: 500;
+    font-weight: 400;
     outline: none;
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
-  .erp-input::placeholder { color: var(--text-muted); }
   .erp-input:focus {
     border-color: var(--input-focus-border);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+  .erp-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--surface-bg);
   }
 
   /* ══════════════════════════════════════════════════
      FORCE WHITE PAPER PRINT STYLE
      Ensures invoices/statements stay white in dark mode
   ══════════════════════════════════════════════════ */
+
+  /*
+   * PRINT ISOLATION SYSTEM
+   * ─────────────────────────────────────────────────
+   * .printable-patti is the "paper" wrapper used by:
+   *   - InvoicePreviewModal
+   *   - PurchasePreviewModal
+   *   - StatementPreview
+   *
+   * Rules:
+   *  1. The wrapper itself is always white, light color-scheme.
+   *  2. ALL descendants are forced to light values — no dark bg,
+   *     no dark text, no dark borders — regardless of app theme.
+   *  3. Explicit colored elements (brand gradients, accent badges,
+   *     teal/indigo highlights) are preserved via allow-list below.
+   *  4. These rules apply both on-screen (preview) and in print.
+   */
+
+  /* ── 1. The paper container ─────────────────────── */
   .printable-patti {
     background-color: #ffffff !important;
-    color: #0f172a !important; /* slate-900 */
+    color: #0f172a !important;
+    color-scheme: light !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.10) !important;
+    /* Ensure colors print correctly on color printers */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  /* ── 2. Force ALL descendants to light values ────── */
+  /*    Covers both plain classes and dark: prefixed classes    */
+  .printable-patti *,
+  .dark .printable-patti * {
+    color-scheme: light !important;
+    box-shadow: none !important;
+  }
+
+  /* Reset dark Tailwind bg classes that bleed dark backgrounds into the paper */
+  .printable-patti .dark\:bg-slate-950,
+  .printable-patti .dark\:bg-slate-900,
+  .printable-patti .dark\:bg-slate-800,
+  .printable-patti .dark\:bg-slate-700,
+  .dark .printable-patti .dark\:bg-slate-950,
+  .dark .printable-patti .dark\:bg-slate-900,
+  .dark .printable-patti .dark\:bg-slate-800,
+  .dark .printable-patti .dark\:bg-slate-700      { background-color: #ffffff !important; }
+
+  /* Reset dark text classes */
+  .printable-patti .dark\:text-white,
+  .dark .printable-patti .dark\:text-white         { color: #0f172a !important; }
+
+  .printable-patti .dark\:text-slate-100,
+  .printable-patti .dark\:text-slate-200,
+  .dark .printable-patti .dark\:text-slate-100,
+  .dark .printable-patti .dark\:text-slate-200     { color: #334155 !important; }
+
+  .printable-patti .dark\:text-slate-300,
+  .printable-patti .dark\:text-slate-400,
+  .dark .printable-patti .dark\:text-slate-300,
+  .dark .printable-patti .dark\:text-slate-400     { color: #64748b !important; }
+
+  /* Reset dark border classes */
+  .printable-patti .dark\:border-slate-800,
+  .printable-patti .dark\:border-slate-700,
+  .dark .printable-patti .dark\:border-slate-800,
+  .dark .printable-patti .dark\:border-slate-700   { border-color: #e2e8f0 !important; }
+
+  /* ── 3. Restore correct light-mode background tints ─ */
+  .printable-patti .bg-white,
+  .dark .printable-patti .bg-white                    { background-color: #ffffff !important; }
+
+  .printable-patti .bg-slate-50,
+  .dark .printable-patti .bg-slate-50                 { background-color: #f8fafc !important; }
+
+  .printable-patti .bg-slate-100,
+  .dark .printable-patti .bg-slate-100                { background-color: #f1f5f9 !important; }
+
+  .printable-patti .bg-indigo-50,
+  .dark .printable-patti .bg-indigo-50                { background-color: #eef2ff !important; }
+
+  .printable-patti .bg-emerald-50,
+  .dark .printable-patti .bg-emerald-50               { background-color: #ecfdf5 !important; }
+
+  .printable-patti .bg-teal-50,
+  .dark .printable-patti .bg-teal-50                  { background-color: #f0fdfa !important; }
+
+  .printable-patti .bg-rose-50,
+  .dark .printable-patti .bg-rose-50                  { background-color: #fff1f2 !important; }
+
+  .printable-patti .bg-amber-50,
+  .dark .printable-patti .bg-amber-50                 { background-color: #fffbeb !important; }
+
+  .printable-patti .bg-amber-100,
+  .dark .printable-patti .bg-amber-100                { background-color: #fef3c7 !important; }
+
+  /* Dark bg classes that must become white in print context */
+  .printable-patti .bg-slate-800,
+  .printable-patti .bg-slate-900,
+  .printable-patti .bg-slate-950,
+  .dark .printable-patti .bg-slate-800,
+  .dark .printable-patti .bg-slate-900,
+  .dark .printable-patti .bg-slate-950                { background-color: #0f172a !important; }
+
+  /* ── 4. Text colors ─────────────────────────────── */
+  .printable-patti .text-slate-950,
+  .printable-patti .text-slate-900,
+  .printable-patti .text-slate-800,
+  .dark .printable-patti .text-slate-950,
+  .dark .printable-patti .text-slate-900,
+  .dark .printable-patti .text-slate-800              { color: #0f172a !important; }
+
+  .printable-patti .text-slate-700,
+  .printable-patti .text-slate-600,
+  .dark .printable-patti .text-slate-700,
+  .dark .printable-patti .text-slate-600              { color: #334155 !important; }
+
+  .printable-patti .text-slate-500,
+  .printable-patti .text-slate-400,
+  .dark .printable-patti .text-slate-500,
+  .dark .printable-patti .text-slate-400              { color: #64748b !important; }
+
+  .printable-patti .text-slate-300,
+  .printable-patti .text-slate-200,
+  .dark .printable-patti .text-slate-300,
+  .dark .printable-patti .text-slate-200              { color: #cbd5e1 !important; }
+
+  /* Accent text — preserve brand colors */
+  .printable-patti .text-indigo-600,
+  .printable-patti .text-indigo-700,
+  .dark .printable-patti .text-indigo-600,
+  .dark .printable-patti .text-indigo-700             { color: #4f46e5 !important; }
+
+  .printable-patti .text-indigo-400,
+  .dark .printable-patti .text-indigo-400             { color: #818cf8 !important; }
+
+  .printable-patti .text-emerald-600,
+  .printable-patti .text-emerald-700,
+  .dark .printable-patti .text-emerald-600,
+  .dark .printable-patti .text-emerald-700            { color: #059669 !important; }
+
+  .printable-patti .text-emerald-400,
+  .dark .printable-patti .text-emerald-400            { color: #34d399 !important; }
+
+  .printable-patti .text-teal-700,
+  .printable-patti .text-teal-900,
+  .dark .printable-patti .text-teal-700,
+  .dark .printable-patti .text-teal-900               { color: #0f766e !important; }
+
+  .printable-patti .text-teal-500,
+  .dark .printable-patti .text-teal-500               { color: #14b8a6 !important; }
+
+  .printable-patti .text-rose-600,
+  .printable-patti .text-rose-700,
+  .dark .printable-patti .text-rose-600,
+  .dark .printable-patti .text-rose-700               { color: #e11d48 !important; }
+
+  .printable-patti .text-amber-700,
+  .printable-patti .text-amber-900,
+  .dark .printable-patti .text-amber-700,
+  .dark .printable-patti .text-amber-900              { color: #b45309 !important; }
+
+  .printable-patti .text-amber-600,
+  .dark .printable-patti .text-amber-600              { color: #d97706 !important; }
+
+  /* White text on colored backgrounds must stay white */
+  .printable-patti .text-white,
+  .dark .printable-patti .text-white                  { color: #ffffff !important; }
+
+  /* ── 5. Border colors ───────────────────────────── */
+  .printable-patti .border-slate-100,
+  .dark .printable-patti .border-slate-100            { border-color: #f1f5f9 !important; }
+
+  .printable-patti .border-slate-200,
+  .dark .printable-patti .border-slate-200            { border-color: #e2e8f0 !important; }
+
+  .printable-patti .border-slate-300,
+  .dark .printable-patti .border-slate-300            { border-color: #cbd5e1 !important; }
+
+  .printable-patti .border-slate-900,
+  .dark .printable-patti .border-slate-900            { border-color: #0f172a !important; }
+
+  .printable-patti .border-teal-700,
+  .dark .printable-patti .border-teal-700             { border-color: #0f766e !important; }
+
+  .printable-patti .border-indigo-100,
+  .dark .printable-patti .border-indigo-100           { border-color: #e0e7ff !important; }
+
+  .printable-patti .border-amber-100,
+  .dark .printable-patti .border-amber-100            { border-color: #fde68a !important; }
+
+  /* ── 6. Table resets ────────────────────────────── */
+  .printable-patti table,
+  .dark .printable-patti table                        { background-color: #ffffff !important; }
+
+  /* Only reset thead rows that DON'T have an inline style (colored headers use inline style) */
+  .printable-patti thead tr:not([style]),
+  .dark .printable-patti thead tr:not([style])        { background-color: #f8fafc !important; }
+
+  /* Dark thead (purchase bill uses bg-slate-900 on thead) — only if no inline style */
+  .printable-patti thead tr.bg-slate-900:not([style]),
+  .dark .printable-patti thead tr.bg-slate-900:not([style]) { background-color: #0f172a !important; }
+
+  .printable-patti tbody tr,
+  .dark .printable-patti tbody tr                     { background-color: #ffffff !important; border-bottom-color: #f1f5f9 !important; }
+
+  .printable-patti tbody tr.bg-slate-50,
+  .dark .printable-patti tbody tr.bg-slate-50         { background-color: #f8fafc !important; }
+
+  /* ── 7. Divide / ring / shadow utilities ────────── */
+  .printable-patti [class*="divide-slate"],
+  .dark .printable-patti [class*="divide-slate"]      { --tw-divide-opacity: 1 !important; }
+
+  .printable-patti [class*="ring-"],
+  .dark .printable-patti [class*="ring-"]             { box-shadow: none !important; }
+
+  /* ── 8. Gradient allow-list ─────────────────────── */
+  /*    Elements with inline style="background: ..." are untouched  */
+  /*    (the :not([style*="background"]) rule above handles this)   */
+  /*    Tailwind gradient classes that must render correctly:        */
+  .printable-patti .from-indigo-600,
+  .dark .printable-patti .from-indigo-600             { --tw-gradient-from: #4f46e5 !important; }
+
+  .printable-patti .to-violet-600,
+  .dark .printable-patti .to-violet-600               { --tw-gradient-to: #7c3aed !important; }
+
+  .printable-patti .from-teal-600,
+  .dark .printable-patti .from-teal-600               { --tw-gradient-from: #0d9488 !important; }
+
+  .printable-patti .to-teal-600,
+  .dark .printable-patti .to-teal-600                 { --tw-gradient-to: #0d9488 !important; }
+
+  /* ── 9. Misc utility resets ─────────────────────── */
+  .printable-patti .backdrop-blur-md,
+  .dark .printable-patti .backdrop-blur-md            { backdrop-filter: none !important; }
+
+  .printable-patti .shadow-2xl,
+  .printable-patti .shadow-xl,
+  .printable-patti .shadow-lg,
+  .printable-patti .shadow-sm,
+  .dark .printable-patti .shadow-2xl,
+  .dark .printable-patti .shadow-xl,
+  .dark .printable-patti .shadow-lg,
+  .dark .printable-patti .shadow-sm                   { box-shadow: none !important; }
+
+  /* Restore shadow on elements that explicitly need it for paper depth */
+  .printable-patti .shadow-inner,
+  .dark .printable-patti .shadow-inner                { box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06) !important; }
+
+  /* ══════════════════════════════════════════════════
+     PRINT SYSTEM — body.erp-printing strategy
+     ─────────────────────────────────────────────────
+     When printing:
+       body gets class "erp-printing"
+       the invoice paper gets attribute data-print-target
+
+     @media print rules:
+       - Hide everything on body
+       - Show ONLY [data-print-target]
+       - Force color printing
+       - Single A4 page, no extra margins
+  ══════════════════════════════════════════════════ */
+
+  /* ── 1. The paper container — always white on screen ── */
+  .printable-patti {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    color-scheme: light !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  /* ── 2. Force light values on all descendants ── */
+  .printable-patti *,
+  .dark .printable-patti * {
     color-scheme: light !important;
   }
 
-  /* Reset all children to ignore dark mode within printable area */
-  .dark .printable-patti,
-  .dark .printable-patti * {
-    background-color: transparent;
-    color: #0f172a; /* slate-900 */
-    border-color: #e2e8f0; /* slate-200 */
-    box-shadow: none;
-  }
+  /* Reset dark Tailwind bg classes */
+  .printable-patti .dark\:bg-slate-950,
+  .printable-patti .dark\:bg-slate-900,
+  .printable-patti .dark\:bg-slate-800,
+  .printable-patti .dark\:bg-slate-700,
+  .dark .printable-patti .dark\:bg-slate-950,
+  .dark .printable-patti .dark\:bg-slate-900,
+  .dark .printable-patti .dark\:bg-slate-800,
+  .dark .printable-patti .dark\:bg-slate-700      { background-color: #ffffff !important; }
 
-  /* Specific background resets for common print elements */
-  .dark .printable-patti .bg-slate-50,
-  .dark .printable-patti .bg-slate-100 { background-color: #f8fafc !important; }
-  .dark .printable-patti .bg-indigo-50 { background-color: #eef2ff !important; }
-  .dark .printable-patti .bg-emerald-50 { background-color: #ecfdf5 !important; }
-  .dark .printable-patti .bg-rose-50 { background-color: #fff1f2 !important; }
-  .dark .printable-patti .bg-amber-50 { background-color: #fffbeb !important; }
+  /* Reset dark text classes */
+  .printable-patti .dark\:text-white,
+  .dark .printable-patti .dark\:text-white         { color: #0f172a !important; }
+  .printable-patti .dark\:text-slate-100,
+  .printable-patti .dark\:text-slate-200,
+  .dark .printable-patti .dark\:text-slate-100,
+  .dark .printable-patti .dark\:text-slate-200     { color: #334155 !important; }
+  .printable-patti .dark\:text-slate-300,
+  .printable-patti .dark\:text-slate-400,
+  .dark .printable-patti .dark\:text-slate-300,
+  .dark .printable-patti .dark\:text-slate-400     { color: #64748b !important; }
 
-  /* Ensure text colors remain professional and readable */
-  .dark .printable-patti .text-slate-900,
+  /* Reset dark border classes */
+  .printable-patti .dark\:border-slate-800,
+  .printable-patti .dark\:border-slate-700,
+  .dark .printable-patti .dark\:border-slate-800,
+  .dark .printable-patti .dark\:border-slate-700   { border-color: #e2e8f0 !important; }
+
+  /* ── 3. Light-mode background tints ── */
+  .printable-patti .bg-white,
+  .dark .printable-patti .bg-white                    { background-color: #ffffff !important; }
+  .printable-patti .bg-slate-50,
+  .dark .printable-patti .bg-slate-50                 { background-color: #f8fafc !important; }
+  .printable-patti .bg-slate-100,
+  .dark .printable-patti .bg-slate-100                { background-color: #f1f5f9 !important; }
+  .printable-patti .bg-indigo-50,
+  .dark .printable-patti .bg-indigo-50                { background-color: #eef2ff !important; }
+  .printable-patti .bg-emerald-50,
+  .dark .printable-patti .bg-emerald-50               { background-color: #ecfdf5 !important; }
+  .printable-patti .bg-teal-50,
+  .dark .printable-patti .bg-teal-50                  { background-color: #f0fdfa !important; }
+  .printable-patti .bg-rose-50,
+  .dark .printable-patti .bg-rose-50                  { background-color: #fff1f2 !important; }
+  .printable-patti .bg-amber-50,
+  .dark .printable-patti .bg-amber-50                 { background-color: #fffbeb !important; }
+  .printable-patti .bg-amber-100,
+  .dark .printable-patti .bg-amber-100                { background-color: #fef3c7 !important; }
+
+  /* Dark bg → keep dark (intentional dark sections like table headers) */
+  .printable-patti .bg-slate-800,
+  .printable-patti .bg-slate-900,
+  .printable-patti .bg-slate-950,
+  .dark .printable-patti .bg-slate-800,
+  .dark .printable-patti .bg-slate-900,
+  .dark .printable-patti .bg-slate-950                { background-color: #0f172a !important; }
+
+  /* ── 4. Text colors ── */
+  .printable-patti .text-slate-950,
+  .printable-patti .text-slate-900,
+  .printable-patti .text-slate-800,
   .dark .printable-patti .text-slate-950,
-  .dark .printable-patti .text-slate-800 { color: #0f172a !important; }
+  .dark .printable-patti .text-slate-900,
+  .dark .printable-patti .text-slate-800              { color: #0f172a !important; }
+  .printable-patti .text-slate-700,
+  .printable-patti .text-slate-600,
   .dark .printable-patti .text-slate-700,
-  .dark .printable-patti .text-slate-600 { color: #334155 !important; }
+  .dark .printable-patti .text-slate-600              { color: #334155 !important; }
+  .printable-patti .text-slate-500,
+  .printable-patti .text-slate-400,
   .dark .printable-patti .text-slate-500,
-  .dark .printable-patti .text-slate-400 { color: #64748b !important; }
+  .dark .printable-patti .text-slate-400              { color: #64748b !important; }
+  .printable-patti .text-slate-300,
+  .printable-patti .text-slate-200,
+  .dark .printable-patti .text-slate-300,
+  .dark .printable-patti .text-slate-200              { color: #cbd5e1 !important; }
+
+  /* Accent text — preserve brand colors */
+  .printable-patti .text-indigo-600,
+  .printable-patti .text-indigo-700,
   .dark .printable-patti .text-indigo-600,
-  .dark .printable-patti .text-indigo-700 { color: #4f46e5 !important; }
+  .dark .printable-patti .text-indigo-700             { color: #4f46e5 !important; }
+  .printable-patti .text-emerald-600,
+  .printable-patti .text-emerald-700,
   .dark .printable-patti .text-emerald-600,
-  .dark .printable-patti .text-emerald-700 { color: #059669 !important; }
+  .dark .printable-patti .text-emerald-700            { color: #059669 !important; }
+  .printable-patti .text-teal-700,
+  .printable-patti .text-teal-900,
+  .dark .printable-patti .text-teal-700,
+  .dark .printable-patti .text-teal-900               { color: #0f766e !important; }
+  .printable-patti .text-rose-600,
+  .printable-patti .text-rose-700,
   .dark .printable-patti .text-rose-600,
-  .dark .printable-patti .text-rose-700 { color: #e11d48 !important; }
-  
-  /* Table specific resets */
-  .dark .printable-patti table { background-color: white !important; }
-  .dark .printable-patti thead tr { background-color: #f8fafc !important; }
-  .dark .printable-patti tbody tr { background-color: white !important; border-bottom-color: #f1f5f9 !important; }
+  .dark .printable-patti .text-rose-700               { color: #e11d48 !important; }
+  .printable-patti .text-amber-700,
+  .printable-patti .text-amber-900,
+  .dark .printable-patti .text-amber-700,
+  .dark .printable-patti .text-amber-900              { color: #b45309 !important; }
+  .printable-patti .text-amber-600,
+  .dark .printable-patti .text-amber-600              { color: #d97706 !important; }
+  .printable-patti .text-white,
+  .dark .printable-patti .text-white                  { color: #ffffff !important; }
 
-  /* Keep gradients in print if they are subtle indigo/brand colors */
-  .dark .printable-patti .from-indigo-600 { --tw-gradient-from: #4f46e5 !important; }
-  .dark .printable-patti .to-violet-600 { --tw-gradient-to: #7c3aed !important; }
-  .dark .printable-patti .text-white { color: #ffffff !important; }
+  /* ── 5. Border colors ── */
+  .printable-patti .border-slate-100,
+  .dark .printable-patti .border-slate-100            { border-color: #f1f5f9 !important; }
+  .printable-patti .border-slate-200,
+  .dark .printable-patti .border-slate-200            { border-color: #e2e8f0 !important; }
+  .printable-patti .border-slate-300,
+  .dark .printable-patti .border-slate-300            { border-color: #cbd5e1 !important; }
+  .printable-patti .border-slate-900,
+  .dark .printable-patti .border-slate-900            { border-color: #0f172a !important; }
+  .printable-patti .border-teal-700,
+  .dark .printable-patti .border-teal-700             { border-color: #0f766e !important; }
+  .printable-patti .border-indigo-100,
+  .dark .printable-patti .border-indigo-100           { border-color: #e0e7ff !important; }
+  .printable-patti .border-amber-100,
+  .dark .printable-patti .border-amber-100            { border-color: #fde68a !important; }
 
+  /* ── 6. Table resets ── */
+  .printable-patti table,
+  .dark .printable-patti table                        { background-color: #ffffff !important; }
+  .printable-patti thead tr:not([style]),
+  .dark .printable-patti thead tr:not([style])        { background-color: #f8fafc !important; }
+  .printable-patti tbody tr,
+  .dark .printable-patti tbody tr                     { background-color: #ffffff !important; border-bottom-color: #f1f5f9 !important; }
+  .printable-patti tbody tr.bg-slate-50,
+  .dark .printable-patti tbody tr.bg-slate-50         { background-color: #f8fafc !important; }
+
+  /* ── 7. Misc ── */
+  .printable-patti [class*="ring-"],
+  .dark .printable-patti [class*="ring-"]             { box-shadow: none !important; }
+  .printable-patti .shadow-2xl,
+  .printable-patti .shadow-xl,
+  .printable-patti .shadow-lg,
+  .printable-patti .shadow-sm,
+  .dark .printable-patti .shadow-2xl,
+  .dark .printable-patti .shadow-xl,
+  .dark .printable-patti .shadow-lg,
+  .dark .printable-patti .shadow-sm                   { box-shadow: none !important; }
+
+  /* ══════════════════════════════════════════════════
+     @media print — the actual print rules
+  ══════════════════════════════════════════════════ */
   @media print {
-    .no-print { display: none !important; }
-    body { background: white !important; padding: 0 !important; margin: 0 !important; }
-    .printable-patti {
-      box-shadow: none !important;
-      border: none !important;
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm;
+    }
+
+    /* Force color printing on color printers */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    /* ── When erp-printing class is on body:
+          hide everything via visibility, show only the target.
+          visibility:hidden on parent + visibility:visible on child
+          is the standard CSS trick — child overrides parent. ── */
+    body.erp-printing * {
+      visibility: hidden !important;
+    }
+
+    body.erp-printing [data-print-target],
+    body.erp-printing [data-print-target] * {
+      visibility: visible !important;
+    }
+
+    /* Position the target at the top-left of the page */
+    body.erp-printing [data-print-target] {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
       width: 100% !important;
       max-width: none !important;
-      padding: 0 !important;
       margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+      background: white !important;
+    }
+
+    /* Inline styles (gradients, brand colors) must print */
+    body.erp-printing [data-print-target] [style*="background"] {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Table page break control */
+    body.erp-printing [data-print-target] table { page-break-inside: auto; }
+    body.erp-printing [data-print-target] tr    { page-break-inside: avoid; }
+    body.erp-printing [data-print-target] thead { display: table-header-group; }
+
+    /* Remove animations */
+    body.erp-printing [data-print-target] * {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    /* Body reset */
+    body {
+      background: white !important;
+      margin: 0 !important;
+      padding: 0 !important;
     }
   }
 

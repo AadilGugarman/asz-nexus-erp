@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { useToast } from "./ui/Toast";
@@ -17,9 +17,20 @@ export const TopFilterBar: React.FC = () => {
   } = useApp();
   const toast = useToast();
 
-   const activeCompany = companies.find((c) => c.id === activeCompanyId);
+  const activeCompany = companies.find((c) => c.id === activeCompanyId);
   const coName =
     activeCompany?.company?.name || settings.company?.name || "My Company";
+
+  // Derive FY start month label from the active company's config
+  const fyStartMonthLabel = useMemo(() => {
+    const fyStartMD = activeCompany?.financial?.financialYearStart
+      ?? settings.financial?.financialYearStart
+      ?? "04-01";
+    const [monthStr] = fyStartMD.split("-");
+    const month = parseInt(monthStr, 10);
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return months[(month - 1) % 12] ?? "Apr";
+  }, [activeCompany, settings.financial?.financialYearStart]);
 
   // Pending selections (not applied yet)
   const [pendingFY, setPendingFY] = useState(activeFY);
@@ -123,7 +134,14 @@ export const TopFilterBar: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center space-x-2.5">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold shrink-0 ${isSelected ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white' : 'dark:bg-[#1e3048] dark:text-[#94b4d4] bg-[#f0f4f8] text-[#5e7490]'}`}>{initials}</div>
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold shrink-0 overflow-hidden ${isSelected ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white' : 'dark:bg-[#1e3048] dark:text-[#94b4d4] bg-[#f0f4f8] text-[#5e7490]'}`}
+                          style={{
+                            fontSize: initials.length <= 1 ? '13px' : initials.length === 2 ? '10px' : '8px',
+                            lineHeight: 1,
+                            letterSpacing: initials.length >= 3 ? '0.03em' : '0.01em',
+                          }}
+                        >{initials}</div>
                         <div className="text-left">
                           <div className={`truncate font-semibold ${isSelected ? 'text-[#00c896]' : 'dark:text-[#e8f0fe] text-[#0d1b2e]'}`}>{c.company.name}</div>
                           <div className="text-[10px] dark:text-[#6a8aaa] text-[#5e7490] font-normal truncate">{c.company.phone || c.city || 'Company'}</div>
@@ -182,7 +200,7 @@ export const TopFilterBar: React.FC = () => {
                 })}
               </div>
               <div className="px-3 py-2 dark:border-[#1e3048] border-t border-[#dde3ec] text-[10px] dark:text-[#6a8aaa] text-[#5e7490] font-medium">
-                FY starts {settings.financial.financialYearStart} · Setup during onboarding
+                FY starts {fyStartMonthLabel} · Company-specific
               </div>
             </div>,
             document.body

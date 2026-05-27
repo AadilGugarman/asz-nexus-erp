@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useAppTranslation } from '@/hooks';
 import { fmtDate, roundCurrency } from '@/utils/format';
@@ -100,7 +100,7 @@ interface ExecutiveDashboardProps {
 }
 
 export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiveTab }) => {
-  const { vehicles, invoices, purchaseInvoices, suppliers, customers, payments, settings, getExportData } = useApp();
+  const { vehicles, invoices, purchaseInvoices, suppliers, customers, payments, settings, getExportData, activeFY, companies, activeCompanyId } = useApp();
   const { t } = useAppTranslation('dashboard');
   const toast = useToast();
   const resolvedTheme = useAppearanceStore(s => s.resolvedTheme);
@@ -108,57 +108,95 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
   const savedVehicles = [];
 
-  // ── Financial calculations ────────────────────────────────────────────────
+  // ── FY date range — derived from active company's financialYearStart + activeFY ──
+  const { fyStartDate, fyEndDate } = useMemo(() => {
+    const activeCompany = companies.find((c) => c.id === activeCompanyId);
+    const fyStartMD = activeCompany?.financial?.financialYearStart
+      ?? settings?.financial?.financialYearStart
+      ?? "04-01";
+    const [monthStr] = fyStartMD.split("-");
+    const startMonth = parseInt(monthStr, 10) || 4;
+
+    // activeFY is "YYYY-YY" e.g. "2025-26"
+    const [startYearStr] = (activeFY ?? "").split("-");
+    const startYear = parseInt(startYearStr, 10) || new Date().getFullYear();
+
+    const endMonth = startMonth === 1 ? 12 : startMonth - 1;
+    const endYear = startMonth === 1 ? startYear : startYear + 1;
+    const lastDay = new Date(endYear, endMonth, 0).getDate();
+
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return {
+      fyStartDate: `${startYear}-${pad(startMonth)}-01`,
+      fyEndDate:   `${endYear}-${pad(endMonth)}-${lastDay}`,
+    };
+  }, [activeFY, companies, activeCompanyId, settings?.financial?.financialYearStart]);
+
+  // Helper: is a date string within the active FY?
+  const inActiveFY = useCallback((dateStr: string) => {
+    if (!dateStr) return false;
+    return dateStr >= fyStartDate && dateStr <= fyEndDate;
+  }, [fyStartDate, fyEndDate]);
+
+  // FY-filtered data slices
+  const fyInvoices = useMemo(() => (invoices || []).filter(i => inActiveFY(i?.date)), [invoices, inActiveFY]);
+  const fyPurchaseInvoices = useMemo(() => (purchaseInvoices || []).filter(i => inActiveFY(i?.date)), [purchaseInvoices, inActiveFY]);
+  const fyPayments = useMemo(() => (payments || []).filter(p => inActiveFY(p?.date)), [payments, inActiveFY]);
+
+  // ── Financial calculations (FY-scoped) ───────────────────────────────────
   const totalPurchase = useMemo(() => {
     const vAmt = 0;
-    const pAmt = (purchaseInvoices || []).reduce((s, i) => s + (i?.todayAmount || 0), 0);
+    const pAmt = fyPurchaseInvoices.reduce((s, i) => s + (i?.todayAmount || 0), 0);
     return roundCurrency(vAmt + pAmt);
-  }, [purchaseInvoices]);
+  }, [fyPurchaseInvoices]);
 
   const totalSales = useMemo(() => {
-    return roundCurrency((invoices || []).reduce((s, i) => s + (i?.todayAmount || 0), 0));
-  }, [invoices]);
+    return roundCurrency(fyInvoices.reduce((s, i) => s + (i?.todayAmount || 0), 0));
+  }, [fyInvoices]);
 
   const totalSupplierPayable = useMemo(() => {
     const prev = (suppliers || []).reduce((s, sup) => s + (sup?.previousBalance || 0), 0);
-    const paid = (payments || []).filter(p => p?.partyType === 'SUPPLIER').reduce((s, p) => s + (p?.amount || 0), 0);
+    const paid = fyPayments.filter(p => p?.partyType === 'SUPPLIER').reduce((s, p) => s + (p?.amount || 0), 0);
     return roundCurrency(prev + totalPurchase - paid);
-  }, [suppliers, totalPurchase, payments]);
+  }, [suppliers, totalPurchase, fyPayments]);
 
   const totalCustomerReceivable = useMemo(() => {
     const prev = (customers || []).reduce((s, c) => s + (c?.previousBalance || 0), 0);
-    const received = (payments || []).filter(p => p?.partyType === 'CUSTOMER').reduce((s, p) => s + (p?.amount || 0), 0);
+    const received = fyPayments.filter(p => p?.partyType === 'CUSTOMER').reduce((s, p) => s + (p?.amount || 0), 0);
     return roundCurrency(prev + totalSales - received);
-  }, [customers, totalSales, payments]);
+  }, [customers, totalSales, fyPayments]);
 
   // ── Today's snapshot ──────────────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0];
   const todayStats = useMemo(() => {
     const tVeh = [];
-    const tPinv = (purchaseInvoices || []).filter(i => i?.date === today);
-    const tSinv = (invoices || []).filter(i => i?.date === today);
-    const tPay = (payments || []).filter(p => p?.date === today);
+    const tPinv = fyPurchaseInvoices.filter(i => i?.date === today);
+    const tSinv = fyInvoices.filter(i => i?.date === today);
+    const tPay = fyPayments.filter(p => p?.date === today);
     
     return {
-      loads: tVeh.length + tPinv.length,
-      purchaseAmt: roundCurrency(tVeh.reduce((s, v: any) => s + (v?.totalAmount || 0), 0) + tPinv.reduce((s, i) => s + (i?.todayAmount || 0), 0)),
+      loads: tPinv.length,
+      purchaseAmt: roundCurrency(tPinv.reduce((s, i) => s + (i?.todayAmount || 0), 0)),
       salesCount: tSinv.length,
       salesAmt: roundCurrency(tSinv.reduce((s, i) => s + (i?.todayAmount || 0), 0)),
       paymentsCount: tPay.length,
       cashIn: roundCurrency(tPay.filter(p => p?.partyType === 'CUSTOMER').reduce((s, p) => s + (p?.amount || 0), 0)),
       cashOut: roundCurrency(tPay.filter(p => p?.partyType === 'SUPPLIER').reduce((s, p) => s + (p?.amount || 0), 0)),
       weightIn: roundCurrency(
-        tVeh.reduce((s, v: any) => s + (v?.totalCalculatedWeight || 0), 0) +
         tPinv.reduce((s, i) => s + (i?.items || []).reduce((a, it) => a + (Number(it?.weight) || 0), 0), 0)
       ),
+      weightOut: roundCurrency(
+        tSinv.reduce((s, i) => s + (i?.items || []).reduce((a, it) => a + (Number(it?.weight) || 0), 0), 0)
+      ),
+      caretsOut: tSinv.reduce((s, i) => s + (i?.items || []).reduce((a, it) => a + (Number(it?.caret) || 0), 0), 0),
     };
-  }, [today, purchaseInvoices, invoices, payments]);
+  }, [today, fyPurchaseInvoices, fyInvoices, fyPayments]);
 
-  // ── Recent transactions ───────────────────────────────────────────────────
+  // ── Recent transactions (FY-scoped) ──────────────────────────────────────
   const recentTx = useMemo(() => {
     const all: { id: string; date: string; type: string; ref: string; party: string; amount: number; isCredit: boolean }[] = [];
     
-    (purchaseInvoices || []).forEach(i => {
+    fyPurchaseInvoices.forEach(i => {
       if (!i) return;
       all.push({ 
         id: i.id, 
@@ -171,7 +209,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
       });
     });
 
-    (invoices || []).forEach(i => {
+    fyInvoices.forEach(i => {
       if (!i) return;
       all.push({ 
         id: i.id, 
@@ -184,7 +222,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
       });
     });
 
-    (payments || []).forEach(p => {
+    fyPayments.forEach(p => {
       if (!p) return;
       all.push({ 
         id: p.id, 
@@ -198,7 +236,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
     });
 
     return all.sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 8);
-  }, [savedVehicles, purchaseInvoices, invoices, payments, t]);
+  }, [savedVehicles, fyPurchaseInvoices, fyInvoices, fyPayments, t]);
 
   // ── Export ────────────────────────────────────────────────────────────────
   const handleExport = () => {
@@ -235,8 +273,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
 
   // ── KPI cards — purchase & sales only ────────────────────────────────────
   const kpiCards = [
-    { label: t('kpi.totalPurchase'), value: totalPurchase, sub: `${purchaseInvoices.length} ${t('kpi.loadsBills')}`, valueColor: D.roseText,    Icon: DollarSign, iconBg: D.roseDim,    iconBorder: 'rgba(225,29,72,0.15)',  iconColor: D.rose    },
-    { label: t('kpi.totalSales'),    value: totalSales,    sub: `${invoices.length} ${t('kpi.invoices')}`,                                  valueColor: D.emeraldText, Icon: TrendingUp, iconBg: D.emeraldDim, iconBorder: D.emeraldBorder,         iconColor: D.emerald },
+    { label: t('kpi.totalPurchase'), value: totalPurchase, sub: `${fyPurchaseInvoices.length} ${t('kpi.loadsBills')}`, valueColor: D.roseText,    Icon: DollarSign, iconBg: D.roseDim,    iconBorder: 'rgba(225,29,72,0.15)',  iconColor: D.rose    },
+    { label: t('kpi.totalSales'),    value: totalSales,    sub: `${fyInvoices.length} ${t('kpi.invoices')}`,                                  valueColor: D.emeraldText, Icon: TrendingUp, iconBg: D.emeraldDim, iconBorder: D.emeraldBorder,         iconColor: D.emerald },
   ];
 
 
@@ -287,7 +325,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               <div>
                 <p className="text-sm font-semibold" style={{ color: D.textSecondary }}>{greeting}!</p>
                 <h1
-                  className="text-3xl md:text-[2.4rem] font-black tracking-tight leading-tight mt-1"
+                  className="text-3xl md:text-[2.4rem] font-bold tracking-tight leading-tight mt-1"
                   style={{ color: D.heroHeading }}
                 >
                   {settings.company?.name || 'ASZ Nexus ERP'}
@@ -332,20 +370,23 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               </div>
               <div className="space-y-2.5">
                 {[
-                  { label: t('hero.snapshot.inwardLoads'),   value: String(todayStats.loads),                                                                    valueColor: D.textPrimary },
+                  { label: t('hero.snapshot.caretsOut'),     value: String(todayStats.caretsOut),                                                                valueColor: D.textPrimary },
+                  { label: t('hero.snapshot.purchaseBills'), value: String(todayStats.loads),                                                                    valueColor: D.textPrimary },
                   { label: t('hero.snapshot.purchaseValue'), value: `₹${todayStats.purchaseAmt.toLocaleString('en-IN')}`,                                        valueColor: D.roseText    },
                   { label: t('hero.snapshot.salesBills'),    value: String(todayStats.salesCount),                                                               valueColor: D.textPrimary },
                   { label: t('hero.snapshot.salesValue'),    value: `₹${todayStats.salesAmt.toLocaleString('en-IN')}`,                                           valueColor: D.emeraldText },
                 ].map(row => (
                   <div key={row.label} className="flex justify-between items-center text-sm">
                     <span style={{ color: D.textSecondary }}>{row.label}</span>
-                    <span className="font-black font-mono" style={{ color: row.valueColor }}>{row.value}</span>
+                    <span className="font-bold font-mono" style={{ color: row.valueColor }}>{row.value}</span>
                   </div>
                 ))}
                 <div style={{ borderTop: `1px solid ${D.snapshotDivider}` }} className="pt-2.5 space-y-2.5">
                   <div className="flex justify-between items-center text-sm">
-                    <span style={{ color: D.textSecondary }}>{t('hero.snapshot.weightIn')}</span>
-                    <span className="font-bold font-mono" style={{ color: D.textPrimary }}>{todayStats.weightIn.toLocaleString()} KG</span>
+                    <span style={{ color: D.textSecondary }}>Weight IN / OUT</span>
+                    <span className="font-bold font-mono" style={{ color: D.textPrimary }}>
+                      {todayStats.weightIn.toLocaleString()} / {todayStats.weightOut.toLocaleString()} KG
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span style={{ color: D.textSecondary }}>{t('hero.snapshot.cashInOut')}</span>
@@ -419,7 +460,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
                 <kpi.Icon className="h-[18px] w-[18px] stroke-[2.3]" style={{ color: kpi.iconColor }} />
               </div>
             </div>
-            <div className="text-[1.85rem] leading-none font-black font-mono tracking-[-0.03em]" style={{ color: kpi.valueColor }}>
+            <div className="text-[1.85rem] leading-none font-bold font-mono tracking-[-0.03em]" style={{ color: kpi.valueColor }}>
               ₹ {kpi.value.toLocaleString('en-IN')}
             </div>
             <div className="mt-2 text-[11px] font-semibold" style={{ color: D.textSecondary }}>{kpi.sub}</div>
@@ -455,7 +496,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               {customers.length} {t('sections.outstanding.buyers')}
             </span>
           </div>
-          <div className="text-[1.85rem] leading-none font-black font-mono tracking-[-0.03em]" style={{ color: D.blueText }}>
+          <div className="text-[1.85rem] leading-none font-bold font-mono tracking-[-0.03em]" style={{ color: D.blueText }}>
             ₹ {totalCustomerReceivable.toLocaleString('en-IN')}
           </div>
         </button>
@@ -482,7 +523,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
               {suppliers.length} {t('sections.outstanding.suppliers')}
             </span>
           </div>
-          <div className="text-[1.85rem] leading-none font-black font-mono tracking-[-0.03em]" style={{ color: D.emeraldText }}>
+          <div className="text-[1.85rem] leading-none font-bold font-mono tracking-[-0.03em]" style={{ color: D.emeraldText }}>
             ₹ {totalSupplierPayable.toLocaleString('en-IN')}
           </div>
         </button>
@@ -545,7 +586,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
                 </div>
               </div>
               <div className="text-right shrink-0 ml-4">
-                <div className="text-sm font-black font-mono" style={{ color: tx.isCredit ? D.emeraldText : D.roseText }}>
+                <div className="text-sm font-bold font-mono" style={{ color: tx.isCredit ? D.emeraldText : D.roseText }}>
                   {tx.amount >= 0 ? '+' : ''}₹{Math.abs(tx.amount).toLocaleString('en-IN')}
                 </div>
                 <div className="text-[10px] font-mono" style={{ color: D.textMuted }}>{fmtDate(tx.date)}</div>
