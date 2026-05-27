@@ -14,6 +14,7 @@ import { DataTable, Pagination } from './ui/table';
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
 import { StatementPreview } from './ui/StatementPreview';
+import { CommandSelect, CommandOption } from './ui/CommandSelect';
 
 import { PaymentReceipt } from '../types';
 import { fmtDate, roundCurrency } from '@/utils/format';
@@ -86,6 +87,13 @@ export const PartiesModule: React.FC = () => {
   const [payMode, setPayMode] = useState<'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI'>('UPI');
   const [payRefNo, setPayRefNo] = useState('');
   const [payNotes, setPayNotes] = useState('');
+
+  const paymentModeOptions: CommandOption[] = [
+    { id: 'UPI', label: 'UPI Transfer', emoji: '📱' },
+    { id: 'BANK_TRANSFER', label: 'Bank Transfer (NEFT/RTGS)', emoji: '🏦' },
+    { id: 'CHEQUE', label: 'Cheque', emoji: '🎫' },
+    { id: 'CASH', label: 'Cash', emoji: '💵' },
+  ];
 
   const f = (field: keyof UnifiedParty, value: any) => setForm(p => ({ ...p, [field]: value }));
   const isEditMode = editingParty !== null;
@@ -176,6 +184,12 @@ export const PartiesModule: React.FC = () => {
   });
 
   const counts = useMemo(() => ({ ALL: allParties.length, CUSTOMER: allParties.filter(p => p.type === 'CUSTOMER').length, SUPPLIER: allParties.filter(p => p.type === 'SUPPLIER').length, BOTH: allParties.filter(p => p.type === 'BOTH').length }), [allParties]);
+
+  const sortOptions: CommandOption[] = [
+    { id: 'name', label: 'Name', icon: <ArrowUpDown className="w-3.5 h-3.5" /> },
+    { id: 'city', label: 'City', icon: <ArrowUpDown className="w-3.5 h-3.5" /> },
+    { id: 'balance', label: 'Balance', icon: <ArrowUpDown className="w-3.5 h-3.5" /> },
+  ];
 
   // ── Actions ─────────────────────────────────
   const openCreate = () => { setEditingParty(null); setForm(emptyParty()); setShowModal(true); };
@@ -463,13 +477,13 @@ export const PartiesModule: React.FC = () => {
                     <th className="py-2 px-3 col-text">Bill # / Description</th>
                     <th className="py-2 px-3 col-num text-rose-600 dark:text-rose-400 w-44">
                       <button type="button" onClick={() => supplierLedgerTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
-                        Purchase (Dr) <ArrowUpDown className="w-3 h-3 opacity-50" />
+                        Purchase Amount (Dr) <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
-                    <th className="py-2 px-3 col-num text-emerald-600 dark:text-emerald-400 w-44">Paid (Cr)</th>
+                    <th className="py-2 px-3 col-num text-emerald-600 dark:text-emerald-400 w-44">Payment Paid (Cr)</th>
                     <th className="py-2 px-4 col-num font-black text-emerald-700 dark:text-emerald-400 w-44">
                       <button type="button" onClick={() => supplierLedgerTable.toggleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
-                        Balance <ArrowUpDown className="w-3 h-3 opacity-50" />
+                        Running Balance <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
                   </tr>
@@ -530,13 +544,13 @@ export const PartiesModule: React.FC = () => {
                     <th className="py-2 px-3 col-text">Invoice # / Description</th>
                     <th className="py-2 px-3 col-num text-indigo-600 dark:text-indigo-400 w-44">
                       <button type="button" onClick={() => customerLedgerTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
-                        Invoice (Dr) <ArrowUpDown className="w-3 h-3 opacity-50" />
+                        Invoice Amount (Dr) <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
-                    <th className="py-2 px-3 col-num text-emerald-600 dark:text-emerald-400 w-44">Received (Cr)</th>
+                    <th className="py-2 px-3 col-num text-emerald-600 dark:text-emerald-400 w-44">Payment Received (Cr)</th>
                     <th className="py-2 px-4 col-num font-black text-[#0369a1] dark:text-sky-400 w-44">
                       <button type="button" onClick={() => customerLedgerTable.toggleSort('runningBalance')} className="inline-flex items-center gap-1 ml-auto">
-                        Balance <ArrowUpDown className="w-3 h-3 opacity-50" />
+                        Running Balance <ArrowUpDown className="w-3 h-3 opacity-50" />
                       </button>
                     </th>
                   </tr>
@@ -609,12 +623,15 @@ export const PartiesModule: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Payment Mode</label>
-                    <select value={payMode} onChange={(e) => setPayMode(e.target.value as any)} className="w-full bg-slate-50 dark:bg-slate-950 border dark:border-slate-800 border-slate-200 rounded-xl px-3 py-2.5 font-bold cursor-pointer outline-none focus:border-indigo-500 transition-all text-slate-900 dark:text-white">
-                      <option value="UPI">UPI Transfer</option>
-                      <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
-                      <option value="CHEQUE">Cheque</option>
-                      <option value="CASH">Cash</option>
-                    </select>
+                    <CommandSelect
+                      value={payMode}
+                      onChange={(val) => setPayMode(val as any)}
+                      options={paymentModeOptions}
+                      placeholder="Select mode"
+                      creatable={false}
+                      showEmoji={true}
+                      variant="violet"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">{paymentType === 'SUPPLIER' ? 'Reference / Cheque No' : 'Reference No'}</label>
@@ -838,7 +855,19 @@ export const PartiesModule: React.FC = () => {
         <div className="relative"><Search className="w-4 h-4 dark:text-slate-400 text-slate-500 absolute left-3 top-3" /><input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, email, GSTIN, city..." className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 pl-10 pr-10 py-2.5 rounded-xl text-xs outline-none focus:border-indigo-500 transition-all" />{search && <button onClick={() => setSearch('')} className="absolute right-3 top-2.5 dark:text-slate-500 text-slate-400 cursor-pointer hover:text-rose-500"><X className="w-4 h-4" /></button>}</div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-1.5 flex-wrap gap-y-1.5">{([['ALL', 'All'], ['CUSTOMER', 'Customers'], ['SUPPLIER', 'Suppliers'], ['BOTH', 'Dual']] as [FilterTab, string][]).map(([key, label]) => (<button key={key} onClick={() => setFilterTab(key)} className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border ${filterTab === key ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'dark:bg-slate-950 bg-slate-50 dark:text-slate-300 text-slate-600 dark:border-slate-800 border-slate-200'}`}><span>{label}</span><span className={`text-[9px] font-mono px-1 py-0.5 rounded ${filterTab === key ? 'bg-white/20' : 'dark:bg-slate-800 bg-slate-200'}`}>{counts[key]}</span></button>))}</div>
-          <div className="flex items-center space-x-2"><div className="relative"><select value={partiesTable.sortBy} onChange={e => partiesTable.toggleSort(e.target.value as SortKey)} className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-slate-300 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold outline-none cursor-pointer pr-7 appearance-none"><option value="name">Name</option><option value="city">City</option><option value="balance">Balance</option></select><ArrowUpDown className="w-3 h-3 dark:text-slate-500 text-slate-400 absolute right-2 top-2 pointer-events-none" /></div><div className="flex items-center dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 rounded-lg p-0.5"><button onClick={() => setViewMode('GRID')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'GRID' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><LayoutGrid className="w-3.5 h-3.5" /></button><button onClick={() => setViewMode('LIST')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><List className="w-3.5 h-3.5" /></button></div></div>
+          <div className="flex items-center space-x-2">
+            <div className="w-36">
+              <CommandSelect
+                value={partiesTable.sortBy}
+                onChange={(val) => partiesTable.toggleSort(val as SortKey)}
+                options={sortOptions}
+                placeholder="Sort by"
+                creatable={false}
+                showEmoji={false}
+                variant="violet"
+              />
+            </div>
+            <div className="flex items-center dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 rounded-lg p-0.5"><button onClick={() => setViewMode('GRID')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'GRID' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><LayoutGrid className="w-3.5 h-3.5" /></button><button onClick={() => setViewMode('LIST')} className={`p-1.5 rounded-md cursor-pointer transition-colors ${viewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-slate-400 text-slate-500'}`}><List className="w-3.5 h-3.5" /></button></div></div>
         </div>
       </div>
 

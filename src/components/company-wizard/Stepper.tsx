@@ -48,12 +48,12 @@ export const Stepper: React.FC<StepperProps> = ({
       isCurrent || status === "completed"
         ? "text-white"
         : status === "warning"
-          ? "text-amber-600"
-          : "text-slate-400 group-hover:text-slate-600"
+          ? "text-amber-600 dark:text-amber-400"
+          : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
     }`;
 
     if (status === "completed" && !isCurrent) {
-      return <Check className="w-4 h-4 stroke-[2.5]" />;
+      return <Check className="w-4 h-4 stroke-[2.5] text-white" />;
     }
     if (status === "warning" && !isCurrent) {
       return <AlertTriangle className="w-4 h-4" />;
@@ -68,7 +68,7 @@ export const Stepper: React.FC<StepperProps> = ({
   };
 
   return (
-    <div className="bg-white border-b border-slate-200 px-4 py-2.5">
+    <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5">
       <div className="max-w-5xl mx-auto">
         <nav aria-label="Progress">
           <ol className="flex items-center justify-between gap-2">
@@ -86,12 +86,12 @@ export const Stepper: React.FC<StepperProps> = ({
                       <div
                         className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all font-semibold shrink-0 ${
                           isCurrent
-                            ? "bg-blue-600 text-white ring-2 ring-blue-100"
+                            ? "bg-blue-600 text-white ring-2 ring-blue-100 dark:ring-blue-500/20"
                             : status === "completed"
                               ? "bg-emerald-600 text-white"
                               : status === "warning"
-                                ? "bg-amber-50 text-amber-600 border border-amber-200"
-                                : "bg-slate-100 text-slate-400 border border-slate-200 group-hover:bg-slate-200"
+                                ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
                         }`}
                       >
                         {getIcon(step.icon, isCurrent, status)}
@@ -99,11 +99,19 @@ export const Stepper: React.FC<StepperProps> = ({
                       {/* Labels */}
                       <div className="flex-1 min-w-0 hidden sm:block">
                         <span className={`text-[10px] font-bold uppercase tracking-wider block ${
-                          isCurrent ? "text-blue-600" : status === "completed" ? "text-emerald-600" : "text-slate-400"
+                          isCurrent
+                            ? "text-blue-600 dark:text-blue-400"
+                            : status === "completed"
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-slate-400 dark:text-slate-500"
                         }`}>
                           Step {step.id}
                         </span>
-                        <span className={`text-xs font-bold truncate block ${isCurrent ? "text-slate-900" : "text-slate-600"}`}>
+                        <span className={`text-xs font-bold truncate block ${
+                          isCurrent
+                            ? "text-slate-900 dark:text-white"
+                            : "text-slate-600 dark:text-slate-400"
+                        }`}>
                           {step.title}
                         </span>
                       </div>
@@ -111,7 +119,11 @@ export const Stepper: React.FC<StepperProps> = ({
                     {/* Connector */}
                     {index < STEPS.length - 1 && (
                       <div className="hidden sm:block flex-1 mx-2">
-                        <div className={`h-0.5 rounded-full transition-all duration-300 ${status === "completed" ? "bg-emerald-500" : "bg-slate-100"}`} />
+                        <div className={`h-0.5 rounded-full transition-all duration-300 ${
+                          status === "completed"
+                            ? "bg-emerald-500"
+                            : "bg-slate-100 dark:bg-slate-800"
+                        }`} />
                       </div>
                     )}
                   </div>

@@ -23,13 +23,8 @@ import { useEffect, useRef } from 'react';
 const PRELOAD_MAP: Record<string, Array<() => Promise<unknown>>> = {
   dashboard: [
     () => import('@/components/SalesBillingModule'),
-    () => import('@/components/VehicleArrivalModule'),
     () => import('@/components/PaymentsModule'),
-  ],
-  arrival: [
     () => import('@/components/PurchaseBillingModule'),
-    () => import('@/components/SalesBillingModule'),
-    () => import('@/components/InventoryModule'),
   ],
   purchase: [
     () => import('@/components/SalesBillingModule'),

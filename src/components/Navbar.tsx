@@ -164,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       items: [
         { id: "purchase", label: t("items.purchase"), icon: ShoppingBag },
         { id: "sales",    label: t("items.sales"),    icon: ShoppingCart },
-        { id: "carets",    label: "Caret Tracking",    icon: Box },
+        { id: "carets",    label: t("items.carets"),   icon: Box },
         { id: "payments", label: t("items.payments"), icon: Wallet },
       ],
     },

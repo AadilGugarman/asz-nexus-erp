@@ -249,11 +249,13 @@ export const InventoryModule: React.FC = () => {
 
                     return (
                       <tr key={item.key} className="font-sans group">
-                        <td className="py-4 px-6 col-text font-semibold text-[#0f172a] flex items-center space-x-2.5 font-sans">
-                          <div className={`w-2.5 h-2.5 rounded-full ${isOut ? 'bg-rose-500' : isLowStock ? 'bg-amber-400 animate-pulse' : 'bg-teal-500'}`}></div>
-                          <span>{item.fruit}</span>
+                        <td className="py-4 px-6 col-text font-semibold text-[#0f172a] font-sans">
+                          <div className="flex items-center space-x-2.5">
+                            <div className={`w-2.5 h-2.5 rounded-full ${isOut ? 'bg-rose-500' : isLowStock ? 'bg-amber-400 animate-pulse' : 'bg-teal-500'}`}></div>
+                            <span>{item.fruit}</span>
+                          </div>
                         </td>
-                        <td className="py-4 px-4 col-text font-semibold text-[#0f172a] text-[15px] font-sans">
+                        <td className="py-4 px-4 col-text font-semibold text-[#0f172a] font-sans">
                           {item.variety}
                         </td>
                         <td className="py-4 px-4 col-num font-mono font-semibold text-[#334155] text-sm">

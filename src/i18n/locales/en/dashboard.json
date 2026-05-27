@@ -75,6 +75,10 @@
       "label": "View Reports",
       "desc": "Daily, date range, P&L analytics"
     },
+    "carets": {
+      "label": "Caret Tracking",
+      "desc": "Manage crates given & returned"
+    },
     "settings": {
       "label": "Settings",
       "desc": "Company, financial, backup config"

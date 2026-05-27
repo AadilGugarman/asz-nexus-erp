@@ -25,18 +25,16 @@ import { fmtDate, sumCurrency, roundCurrency, getFruitPricingType, calcItemAmoun
 function makeBlankItem(
   fruits: { name: string; varieties: string[]; pricingType?: 'kg' | 'caret' }[],
 ): InvoiceItem {
-  const firstFruit = fruits[0];
-  const pricingType = getFruitPricingType(firstFruit?.name || 'Mango', firstFruit?.pricingType);
   return {
     id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-    fruitCategory: firstFruit?.name || "Mango",
-    fruit: firstFruit?.name || "Mango",
-    lotVariety: firstFruit?.varieties[0] || "Standard",
+    fruitCategory: "",
+    fruit: "",
+    lotVariety: "",
     caret: 0,
     weight: 0,
     rate: 0,
     amount: 0,
-    pricingType,
+    pricingType: 'caret',
   };
 }
 
@@ -90,9 +88,7 @@ export const SalesBillingModule: React.FC = () => {
   //        form state
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [invoiceNo, setInvoiceNo] = useState("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState(
-    customers[0]?.id || "",
-  );
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [notes, setNotes] = useState("");
   const [vehicleNo, setVehicleNo] = useState("");
   const [declaredWeight, setDeclaredWeight] = useState<number>(0);
@@ -123,7 +119,7 @@ export const SalesBillingModule: React.FC = () => {
   }, [fruits]);
 
   const selectedCustomer = useMemo(
-    () => customers.find((c) => c.id === selectedCustomerId) || customers[0],
+    () => customers.find((c) => c.id === selectedCustomerId),
     [selectedCustomerId, customers],
   );
 
@@ -273,6 +269,7 @@ export const SalesBillingModule: React.FC = () => {
       settings.invoice.salesNextNo || 1001,
     );
     setInvoiceNo(next.invoiceNo);
+    setSelectedCustomerId("");
     setItems([makeBlankItem(fruits)]);
     setVehicleNo("");
     setDeclaredWeight(0);
@@ -623,23 +620,34 @@ export const SalesBillingModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto custom-scrollbar">
-              <table className="erp-table w-full text-left text-xs sm:text-sm">
+            {/* overflow-x-auto with min-w-0 prevents the wrapper from expanding the parent card */}
+            <div className="flex-1 overflow-auto custom-scrollbar min-w-0">
+              {/* table-fixed locks column widths so tfoot content never causes reflow */}
+              <table className="erp-table w-full text-left text-xs sm:text-sm table-fixed">
+                <colgroup>
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '16%' }} />
+                  <col style={{ width: '8%' }} />
+                </colgroup>
                 <thead>
                   <tr
                     className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none sticky top-0 z-10`}
                   >
-                    <th className="py-3 px-4 min-w-[150px] col-text">Fruit Category</th>
-                    <th className="py-3 px-3 min-w-[150px] col-text">
+                    <th className="py-3 px-4 col-text">Fruit Category</th>
+                    <th className="py-3 px-3 col-text">
                       Variety (Vakkal)
                     </th>
-                    <th className="py-3 px-3 w-24 col-num">Carets / Crt</th>
-                    <th className="py-3 px-3 w-28 col-num">Weight (KG)</th>
-                    <th className="py-3 px-3 w-28 col-num">Rate</th>
-                    <th className="py-3 px-4 w-36 col-num font-black text-indigo-600 dark:text-indigo-400 min-w-[130px]">
+                    <th className="py-3 px-3 col-num">Carets / Crt</th>
+                    <th className="py-3 px-3 col-num">Weight (KG)</th>
+                    <th className="py-3 px-3 col-num">Rate</th>
+                    <th className="py-3 px-4 col-num font-black text-indigo-600 dark:text-indigo-400">
                       Amount
                     </th>
-                    <th className="py-3 px-3 w-16 col-actions">Act.</th>
+                    <th className="py-3 px-3 col-actions">Act.</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100 font-mono">
@@ -696,7 +704,7 @@ export const SalesBillingModule: React.FC = () => {
                                 handleItemChange(idx, "caret", e.target.value)
                               }
                               onKeyDown={(e) => handleKeyDown(e, idx, 2)}
-                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${!isByKg ? 'ring-2 ring-indigo-400/40 border-indigo-400/60' : ''}`}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && !isByKg ? 'ring-2 ring-amber-400/50 border-amber-400/70' : ''}`}
                             />
                             {!isByKg && (
                               <span className="absolute -top-2 right-1 text-[8px] font-black text-indigo-500 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">Caret</span>
@@ -716,7 +724,7 @@ export const SalesBillingModule: React.FC = () => {
                                 handleItemChange(idx, "weight", e.target.value)
                               }
                               onKeyDown={(e) => handleKeyDown(e, idx, 3)}
-                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${isByKg ? 'ring-2 ring-indigo-400/40 border-indigo-400/60' : ''}`}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && isByKg ? 'ring-2 ring-amber-400/50 border-amber-400/70' : ''}`}
                             />
                             {isByKg && (
                               <span className="absolute -top-2 right-1 text-[8px] font-black text-indigo-500 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">KG</span>
@@ -796,8 +804,8 @@ export const SalesBillingModule: React.FC = () => {
                         // Show avg rate label based on mix of pricing types
                         const hasKg = items.some(it => (it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '')) === 'kg');
                         const hasCaret = items.some(it => (it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '')) === 'caret');
-                        if (hasKg && !hasCaret) return `Avg ₹ ${totalWeight > 0 ? (itemsSubtotal / totalWeight).toFixed(1) : '0'}/KG`;
-                        if (hasCaret && !hasKg) return `Avg ₹ ${totalCarets > 0 ? (itemsSubtotal / totalCarets).toFixed(1) : '0'}/Crt`;
+                        if (hasKg && !hasCaret) return `₹ ${totalWeight > 0 ? (itemsSubtotal / totalWeight).toFixed(1) : '0'}/KG`;
+                        if (hasCaret && !hasKg) return `₹ ${totalCarets > 0 ? (itemsSubtotal / totalCarets).toFixed(1) : '0'}/Crt`;
                         return `Mixed Pricing`;
                       })()}
                     </td>
@@ -814,13 +822,17 @@ export const SalesBillingModule: React.FC = () => {
                     <tr
                       className={`dark:bg-slate-900/50 bg-slate-50/60 font-bold text-xs border-t dark:border-slate-800 border-slate-100`}
                     >
-                      <td
-                        colSpan={5}
-                        className={`py-2.5 px-4 col-text text-right ${muted}`}
-                      >
-                        Freight / Bhaada ₹ {freight.toLocaleString("en-IN")}
+                      {/* Use individual cells matching the colgroup widths — never colSpan with dynamic text */}
+                      <td className={`py-2.5 px-4 col-text ${muted} overflow-hidden`} />
+                      <td className={`py-2.5 px-3 col-text text-right ${muted} overflow-hidden whitespace-nowrap`}>
+                        Lorry Freight (Bhaada)
                       </td>
-                      <td className="py-2.5 px-4 col-num font-mono text-indigo-600 dark:text-indigo-400 font-black text-base">
+                      <td className={`py-2.5 px-3 col-num overflow-hidden`} />
+                      <td className={`py-2.5 px-3 col-num overflow-hidden`} />
+                      <td className={`py-2.5 px-3 col-num text-right ${muted} overflow-hidden whitespace-nowrap`}>
+                        ₹ {freight.toLocaleString("en-IN")}
+                      </td>
+                      <td className="py-2.5 px-4 col-num font-mono text-indigo-600 dark:text-indigo-400 font-black text-base overflow-hidden">
                         ₹ {todayAmount.toLocaleString("en-IN")}
                       </td>
                       <td className="col-actions" />

@@ -6,7 +6,7 @@ import {
   TrendingUp, DollarSign, Users, UserCheck,
   ArrowUpRight, ArrowDownRight, Sparkles, Download,
   Truck, ShoppingCart, ShoppingBag, Wallet, FileBarChart2, Settings,
-  Clock, Zap, Calendar,
+  Clock, Zap, Calendar, Box,
 } from 'lucide-react';
 import { useToast } from './ui/Toast';
 import { useAppearanceStore } from '@/store/appearance.store';
@@ -229,6 +229,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ setActiv
     { label: t('quickActions.sales.label'),    desc: t('quickActions.sales.desc'),    Icon: ShoppingCart,  tab: 'sales',     iconBg: 'rgba(99,102,241,0.08)', iconBorder: 'rgba(99,102,241,0.18)', iconColor: '#4f46e5', key: 'F2'    },
     { label: t('quickActions.payment.label'),  desc: t('quickActions.payment.desc'),  Icon: Wallet,        tab: 'payments',  iconBg: D.amberDim,   iconBorder: D.amberBorder,   iconColor: D.amber,       key: 'Alt+5' },
     { label: t('quickActions.reports.label'),  desc: t('quickActions.reports.desc'),  Icon: FileBarChart2, tab: 'reports',   iconBg: 'rgba(14,165,233,0.08)', iconBorder: 'rgba(14,165,233,0.18)', iconColor: '#0284c7', key: 'Alt+6' },
+    { label: t('quickActions.carets.label'),   desc: t('quickActions.carets.desc'),   Icon: Box,           tab: 'carets',    iconBg: 'rgba(139,92,246,0.08)', iconBorder: 'rgba(139,92,246,0.18)', iconColor: '#8b5cf6', key: 'Alt+3' },
     { label: t('quickActions.settings.label'), desc: t('quickActions.settings.desc'), Icon: Settings,      tab: 'settings',  iconBg: 'rgba(100,116,139,0.08)', iconBorder: 'rgba(100,116,139,0.15)', iconColor: '#475569', key: 'Alt+9' },
   ];
 

@@ -822,9 +822,9 @@ export const SettingsModule: React.FC = () => {
                     return (
                       <div
                         key={c.id}
-                        className={`rounded-xl border-2 overflow-hidden transition-all ${isActive ? "dark:border-emerald-500/60 border-emerald-500 shadow-lg dark:shadow-emerald-500/10" : "dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300"}`}
+                        className={`rounded-xl border-2 overflow-hidden transition-all flex flex-col ${isActive ? "dark:border-emerald-500/60 border-emerald-500 shadow-lg dark:shadow-emerald-500/10" : "dark:border-slate-800 border-slate-200 dark:hover:border-slate-700 hover:border-slate-300"}`}
                       >
-                        <div className="p-4 flex items-start space-x-3.5">
+                        <div className="p-4 flex-1 flex items-start space-x-3.5">
                           <div
                             className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-black shrink-0 shadow-sm ${isActive ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-slate-950" : "dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600"}`}
                           >

@@ -25,19 +25,17 @@ import { getNextUniquePurchaseNumber } from "../utils/invoice-number";
 function makeBlankItem(
   fruits: { name: string; varieties: string[]; pricingType?: 'kg' | 'caret' }[],
 ): PurchaseInvoiceItem {
-  const firstFruit = fruits[0];
-  const pricingType = getFruitPricingType(firstFruit?.name || 'Mango', firstFruit?.pricingType);
   return {
     id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-    fruitCategory: firstFruit?.name || "Mango",
-    fruit: firstFruit?.name || "Mango",
-    variety: firstFruit?.varieties[0] || "Standard",
+    fruitCategory: "",
+    fruit: "",
+    variety: "",
     caret: 0,
     weight: 0,
     rate: 0,
     amount: 0,
     rowNote: "",
-    pricingType,
+    pricingType: 'caret',
   };
 }
 
@@ -89,7 +87,7 @@ export const PurchaseBillingModule: React.FC = () => {
     null,
   );
   const [isListLoading, setIsListLoading] = useState(false);
-  const [showCharges, setShowCharges] = useState(true);
+  const [showCharges, setShowCharges] = useState(false);
 
   //        form state
   const [billNo, setBillNo] = useState(() => {
@@ -97,9 +95,7 @@ export const PurchaseBillingModule: React.FC = () => {
     return next.invoiceNo;
   });
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [selectedSupplierId, setSelectedSupplierId] = useState(
-    suppliers[0]?.id || "",
-  );
+  const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [notes, setNotes] = useState("");
   const [vehicleNo, setVehicleNo] = useState("");
   const [declaredWeight, setDeclaredWeight] = useState<number>(0);
@@ -130,7 +126,7 @@ export const PurchaseBillingModule: React.FC = () => {
   }, [fruits]);
 
   const selectedSupplier = useMemo(
-    () => suppliers.find((s) => s.id === selectedSupplierId) || suppliers[0],
+    () => suppliers.find((s) => s.id === selectedSupplierId),
     [selectedSupplierId, suppliers],
   );
 
@@ -273,6 +269,7 @@ export const PurchaseBillingModule: React.FC = () => {
       settings.invoice.purchaseNextNo || 101,
     );
     setBillNo(next.invoiceNo);
+    setSelectedSupplierId("");
     setItems([makeBlankItem(fruits)]);
     setVehicleNo("");
     setDeclaredWeight(0);
@@ -409,7 +406,7 @@ export const PurchaseBillingModule: React.FC = () => {
 
   //        render
   return (
-    <div className="space-y-5 font-sans">
+    <div className="flex-1 flex flex-col space-y-5 font-sans min-h-0">
       {/*        PAGE HEADER        */}
       <div
         className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${card} p-4`}
@@ -457,7 +454,7 @@ export const PurchaseBillingModule: React.FC = () => {
                                                                                                                                                     */}
       {activeSubTab === "NEW_INVOICE" && (
         <div className="space-y-4">
-          {/* Lorry Charges Toggle */}
+          {/* Lorry Deductions Toggle */}
           <div className="flex items-center justify-between px-1">
             <button
               type="button"
@@ -468,7 +465,7 @@ export const PurchaseBillingModule: React.FC = () => {
               <span>
                 {showCharges
                   ? "Hide Lorry Deductions"
-                  : "Add Lorry Charges (Bhaada/Hamali)"}
+                  : "Add Lorry Deductions (Bhaada/Hamali)"}
               </span>
             </button>
           </div>
@@ -567,53 +564,37 @@ export const PurchaseBillingModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Advanced Lorry Charges Panel */}
+          {/* Advanced Lorry Deductions Panel — inline inside the form card to avoid layout shift */}
           {showCharges && (
-            <div
-              className={`${card} p-4 bg-slate-50/50 dark:bg-slate-950/30 border-emerald-500/20`}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    Lorry Freight (Bhaada ₹)
-                  </label>
-                  <div className="relative">
-                    <span
-                      className={`absolute left-3 top-2.5 text-xs ${muted} font-mono`}
-                    >
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      value={freightInput === 0 ? "" : freightInput}
-                      placeholder="0"
-                      onChange={(e) =>
-                        setFreightInput(parseFloat(e.target.value) || 0)
-                      }
-                      className={`${inp} w-full pl-8 py-2 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400`}
-                    />
-                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x dark:divide-slate-800 divide-slate-100 dark:bg-slate-950/40 bg-slate-50/60 border dark:border-slate-800 border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
+              <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${label}`}>
+                  Lorry Freight (Bhaada ₹)
+                </span>
+                <div className="relative">
+                  <span className={`absolute left-2 top-1.5 text-[11px] ${muted} font-mono`}>₹</span>
+                  <input
+                    type="number"
+                    value={freightInput === 0 ? "" : freightInput}
+                    placeholder="0"
+                    onChange={(e) => setFreightInput(parseFloat(e.target.value) || 0)}
+                    className={`${inp} w-full pl-5 pr-2 py-1 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400`}
+                  />
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    Unloading (Hamali ₹)
-                  </label>
-                  <div className="relative">
-                    <span
-                      className={`absolute left-3 top-2.5 text-xs ${muted} font-mono`}
-                    >
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      value={hamaliInput === 0 ? "" : hamaliInput}
-                      placeholder="0"
-                      onChange={(e) =>
-                        setHamaliInput(parseFloat(e.target.value) || 0)
-                      }
-                      className={`${inp} w-full pl-8 py-2 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400`}
-                    />
-                  </div>
+              </div>
+              <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${label}`}>
+                  Unloading (Hamali ₹)
+                </span>
+                <div className="relative">
+                  <span className={`absolute left-2 top-1.5 text-[11px] ${muted} font-mono`}>₹</span>
+                  <input
+                    type="number"
+                    value={hamaliInput === 0 ? "" : hamaliInput}
+                    placeholder="0"
+                    onChange={(e) => setHamaliInput(parseFloat(e.target.value) || 0)}
+                    className={`${inp} w-full pl-5 pr-2 py-1 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400`}
+                  />
                 </div>
               </div>
             </div>
@@ -647,23 +628,34 @@ export const PurchaseBillingModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="erp-table w-full text-left text-xs sm:text-sm">
+            {/* overflow-x-auto with min-w-0 prevents the wrapper from expanding the parent card */}
+            <div className="overflow-x-auto min-w-0">
+              {/* table-fixed locks column widths so tfoot content never causes reflow */}
+              <table className="erp-table w-full text-left text-xs sm:text-sm table-fixed">
+                <colgroup>
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '16%' }} />
+                  <col style={{ width: '8%' }} />
+                </colgroup>
                 <thead>
                   <tr
                     className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none`}
                   >
-                    <th className="py-3 px-4 min-w-[150px] col-text">Fruit Category</th>
-                    <th className="py-3 px-3 min-w-[150px] col-text">
+                    <th className="py-3 px-4 col-text">Fruit Category</th>
+                    <th className="py-3 px-3 col-text">
                       Variety (Vakkal)
                     </th>
-                    <th className="py-3 px-3 w-24 col-num">Carets / Crt</th>
-                    <th className="py-3 px-3 w-28 col-num">Weight (KG)</th>
-                    <th className="py-3 px-3 w-28 col-num">Rate</th>
-                    <th className="py-3 px-4 w-36 col-num font-black text-emerald-500 min-w-[130px]">
+                    <th className="py-3 px-3 col-num">Carets / Crt</th>
+                    <th className="py-3 px-3 col-num">Weight (KG)</th>
+                    <th className="py-3 px-3 col-num">Rate</th>
+                    <th className="py-3 px-4 col-num font-black text-emerald-500">
                       Amount
                     </th>
-                    <th className="py-3 px-3 w-16 col-actions">Act.</th>
+                    <th className="py-3 px-3 col-actions">Act.</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100 font-mono">
@@ -720,7 +712,7 @@ export const PurchaseBillingModule: React.FC = () => {
                                 handleItemChange(idx, "caret", e.target.value)
                               }
                               onKeyDown={(e) => handleKeyDown(e, idx, 2)}
-                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${!isByKg ? 'ring-2 ring-emerald-400/40 border-emerald-400/60' : ''}`}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && !isByKg ? 'ring-2 ring-amber-400/50 border-amber-400/70' : ''}`}
                             />
                             {!isByKg && (
                               <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">Caret</span>
@@ -740,7 +732,7 @@ export const PurchaseBillingModule: React.FC = () => {
                                 handleItemChange(idx, "weight", e.target.value)
                               }
                               onKeyDown={(e) => handleKeyDown(e, idx, 3)}
-                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${isByKg ? 'ring-2 ring-emerald-400/40 border-emerald-400/60' : ''}`}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && isByKg ? 'ring-2 ring-amber-400/50 border-amber-400/70' : ''}`}
                             />
                             {isByKg && (
                               <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">KG</span>
@@ -819,8 +811,8 @@ export const PurchaseBillingModule: React.FC = () => {
                       {(() => {
                         const hasKg = items.some(it => (it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '')) === 'kg');
                         const hasCaret = items.some(it => (it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '')) === 'caret');
-                        if (hasKg && !hasCaret) return `Avg ₹ ${totalWeight > 0 ? (itemsSubtotal / totalWeight).toFixed(1) : '0'}/KG`;
-                        if (hasCaret && !hasKg) return `Avg ₹ ${totalCarets > 0 ? (itemsSubtotal / totalCarets).toFixed(1) : '0'}/Crt`;
+                        if (hasKg && !hasCaret) return `₹ ${totalWeight > 0 ? (itemsSubtotal / totalWeight).toFixed(1) : '0'}/KG`;
+                        if (hasCaret && !hasKg) return `₹ ${totalCarets > 0 ? (itemsSubtotal / totalCarets).toFixed(1) : '0'}/Crt`;
                         return `Mixed Pricing`;
                       })()}
                     </td>
@@ -837,22 +829,26 @@ export const PurchaseBillingModule: React.FC = () => {
                     <tr
                       className={`dark:bg-slate-900/50 bg-slate-50/60 font-bold text-xs border-t dark:border-slate-800 border-slate-100`}
                     >
-                      <td
-                        colSpan={5}
-                        className={`py-2.5 px-4 col-text text-right ${muted}`}
-                      >
-                        {freight > 0
-                          ? `Freight  ₹ ${freight.toLocaleString("en-IN")}`
-                          : ""}
-                        {freight > 0 && hamali > 0 ? " + " : ""}
-                        {hamali > 0
-                          ? `Hamali  ₹ ${hamali.toLocaleString("en-IN")}`
-                          : ""}
+                      {/* Use individual cells matching the colgroup widths — never colSpan with dynamic text */}
+                      <td className={`py-2.5 px-4 col-text ${muted} overflow-hidden`} />
+                      <td className={`py-2.5 px-3 col-text text-right ${muted} overflow-hidden whitespace-nowrap`}>
+                        {freight > 0 && hamali > 0
+                          ? "Freight + Hamali"
+                          : freight > 0
+                          ? "Lorry Freight"
+                          : "Hamali"}
                       </td>
-                      <td className="py-2.5 px-4 col-num font-mono text-emerald-600 dark:text-emerald-400 font-black text-base">
+                      <td className={`py-2.5 px-3 col-num text-right ${muted} overflow-hidden whitespace-nowrap`}>
+                        {freight > 0 ? `₹ ${freight.toLocaleString("en-IN")}` : ""}
+                      </td>
+                      <td className={`py-2.5 px-3 col-num text-right ${muted} overflow-hidden whitespace-nowrap`}>
+                        {hamali > 0 ? `₹ ${hamali.toLocaleString("en-IN")}` : ""}
+                      </td>
+                      <td className={`py-2.5 px-3 col-num text-right ${muted} text-[10px] overflow-hidden`} />
+                      <td className="py-2.5 px-4 col-num font-mono text-emerald-600 dark:text-emerald-400 font-black text-base overflow-hidden">
                         ₹ {todayAmount.toLocaleString("en-IN")}
                       </td>
-                      <td colSpan={2} className="col-actions" />
+                      <td className="col-actions" />
                     </tr>
                   )}
                 </tfoot>
@@ -933,8 +929,8 @@ export const PurchaseBillingModule: React.FC = () => {
           BILLS LIST
                                                                                                                                                     */}
       {activeSubTab === "LIST" && (
-        <div className={`${card} p-5 space-y-5`}>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b dark:border-slate-800 border-slate-100 pb-4">
+        <div className={`flex-1 flex flex-col ${card} p-5 space-y-5 min-h-0`}>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b dark:border-slate-800 border-slate-100 pb-4 shrink-0">
             <h2 className="text-sm font-bold dark:text-white text-slate-900 flex items-center gap-2">
               <span>Purchase Bills</span>
               <span
@@ -959,6 +955,8 @@ export const PurchaseBillingModule: React.FC = () => {
           </div>
 
           <DataTable
+            className="flex-1 min-h-0"
+            scrollClassName="flex-1"
             footer={
               <Pagination
                 page={table.page}
@@ -975,7 +973,7 @@ export const PurchaseBillingModule: React.FC = () => {
             <table className="erp-table w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr
-                  className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider`}
+                  className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10`}
                 >
                   <th className="py-3.5 px-4 col-text">
                     <button
@@ -1008,7 +1006,7 @@ export const PurchaseBillingModule: React.FC = () => {
                       Balance <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-4 col-actions sticky right-0 bg-[var(--table-header-bg)] z-[3] w-28">
+                  <th className="py-3.5 px-4 col-actions sticky right-0 top-0 bg-[var(--table-header-bg)] z-[11] w-28">
                     Actions
                   </th>
                 </tr>

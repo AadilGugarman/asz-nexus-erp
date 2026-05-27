@@ -472,9 +472,7 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
 
   return (
     <div
-      className="min-h-screen flex flex-col"
-      data-wizard-light
-      style={{ backgroundColor: "#f8fafc", colorScheme: "light" }}
+      className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950"
     >
       <Header
         title={mode === "edit" ? "Edit Company" : "Create New Company"}
@@ -507,7 +505,7 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
       />
 
       <main className="max-w-5xl mx-auto w-full px-4 py-3">
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700/60 overflow-hidden">
           <div className="p-5">
             {currentStep === 1 && (
               <CompanyDetailsStep
@@ -535,12 +533,12 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
           </div>
 
           {currentStep < 3 && (
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={handleBack}
                 disabled={currentStep === 1}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-0 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg font-semibold text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-0 transition-all cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Previous</span>
