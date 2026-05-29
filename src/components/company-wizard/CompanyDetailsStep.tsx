@@ -284,7 +284,7 @@ export const CompanyDetailsStep: React.FC<CompanyDetailsStepProps> = ({
               placeholder="e.g. Nadiad"
               error={errors.city}
               icon={<MapPin className="w-3.5 h-3.5" />}
-              nextFieldRef={phoneRef}
+              nextFieldRef={phoneRef as React.RefObject<HTMLInputElement | null>}
             />
           </div>
 

@@ -22,7 +22,15 @@ const Inp: React.FC<{
   type?: string;
   mono?: boolean;
   disabled?: boolean;
-}> = ({ label, value, onChange, placeholder = "", type = "text", mono = false, disabled = false }) => (
+}> = ({
+  label,
+  value,
+  onChange,
+  placeholder = "",
+  type = "text",
+  mono = false,
+  disabled = false,
+}) => (
   <div className="space-y-1.5">
     <label className="block text-[11px] font-semibold uppercase tracking-[0.15em] dark:text-slate-400 text-slate-600 ml-1">
       {label}
@@ -47,8 +55,12 @@ const Toggle: React.FC<{
 }> = ({ label, desc, checked, onChange }) => (
   <div className="flex items-center justify-between py-3 border-b dark:border-slate-800 border-slate-200 last:border-0">
     <div>
-      <div className="text-sm font-bold dark:text-white text-slate-900">{label}</div>
-      <div className="text-[11px] dark:text-slate-400 text-slate-500">{desc}</div>
+      <div className="text-sm font-bold dark:text-white text-slate-900">
+        {label}
+      </div>
+      <div className="text-[11px] dark:text-slate-400 text-slate-500">
+        {desc}
+      </div>
     </div>
     <button
       type="button"
@@ -61,16 +73,11 @@ const Toggle: React.FC<{
     </button>
   </div>
 );
-import { useApp } from "@/context/AppContext";
+import { useApp } from "@/context/useApp";
 import { useAppearance } from "@/hooks";
 import { useDataTable } from "@/hooks/useDataTable";
 import { backupService } from "@/services/backup.service";
-import {
-  useBackupStore,
-  useLockStore,
-  useSecurityStore,
-  useAuthStore,
-} from "@/store";
+import { useBackupStore, useAuthStore } from "@/store";
 import type { BackupFrequency } from "@/store";
 import { useToast } from "./ui/Toast";
 import { useConfirmDialog } from "./ui/ConfirmDialog";
@@ -79,7 +86,6 @@ import {
   FileText,
   Database,
   Palette,
-  ShieldCheck,
   Save,
   Download,
   Upload,
@@ -87,9 +93,6 @@ import {
   Sun,
   Moon,
   RotateCcw,
-  Eye,
-  EyeOff,
-  Lock,
   Check,
   AlertTriangle,
   HardDrive,
@@ -109,22 +112,20 @@ import {
   ArrowUpDown,
   Hash,
   Landmark,
+  Eye,
+  ShieldCheck,
+  Lock,
 } from "lucide-react";
 import { CompanyProfile, Invoice } from "../types";
 import { formatInvoiceNumber } from "../utils/invoice-number";
 import { fmtDate } from "../utils/format";
 import { InvoiceTemplateRenderer } from "./invoice/InvoiceTemplateRenderer";
+import { printElement } from "@/utils/print";
 import { DataTable, Pagination } from "./ui/table";
 import { CommandSelect, CommandOption } from "./ui/CommandSelect";
 import { CompanyWizard } from "./company-wizard/CompanyWizard";
 
-type Section =
-  | "COMPANIES"
-  | "INVOICE"
-  | "MASTERS"
-  | "BACKUP"
-  | "APPEARANCE"
-  | "SECURITY";
+type Section = "COMPANIES" | "INVOICE" | "MASTERS" | "BACKUP" | "APPEARANCE";
 
 export const SettingsModule: React.FC = () => {
   const {
@@ -163,7 +164,6 @@ export const SettingsModule: React.FC = () => {
   } = useAppearance();
   const toast = useToast();
   const dialog = useConfirmDialog();
-  const configureLockSecurity = useLockStore((s) => s.configureSecurity);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeSection, setActiveSection] = useState<Section>("COMPANIES");
@@ -174,6 +174,12 @@ export const SettingsModule: React.FC = () => {
   const watermarkInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoUploadProgress, setLogoUploadProgress] = useState(false);
+  const paperRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    if (paperRef.current) printElement(paperRef.current);
+    else window.print();
+  };
 
   const handleResetAppearance = () => {
     resetAppearance();
@@ -182,20 +188,6 @@ export const SettingsModule: React.FC = () => {
       "All appearance settings restored to defaults.",
     );
   };
-
-  // â”€â”€ Security State (extended) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const {
-    sessionTimeout,
-    setSessionTimeout,
-    twoFactorEnabled,
-    setTwoFactorEnabled,
-    allowExport,
-    setAllowExport,
-    auditLog,
-    setAuditLog,
-    dbEncryption,
-    setDbEncryption,
-  } = useSecurityStore();
 
   // -- Backup State ï¿½ powered by backupService + useBackupStore -------------
   const {
@@ -308,7 +300,9 @@ export const SettingsModule: React.FC = () => {
   const location = useLocation();
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [showEditWizard, setShowEditWizard] = useState(false);
-  const [wizardEditCompanyId, setWizardEditCompanyId] = useState<string | null>(null);
+  const [wizardEditCompanyId, setWizardEditCompanyId] = useState<string | null>(
+    null,
+  );
 
   const openCreateCompany = () => {
     setShowCreateWizard(true);
@@ -328,7 +322,6 @@ export const SettingsModule: React.FC = () => {
     else if (section === "masters") setActiveSection("MASTERS");
     else if (section === "backup") setActiveSection("BACKUP");
     else if (section === "appearance") setActiveSection("APPEARANCE");
-    else if (section === "security") setActiveSection("SECURITY");
 
     const action = params.get("action");
     const companyId = params.get("companyId");
@@ -339,7 +332,6 @@ export const SettingsModule: React.FC = () => {
       if (company) openEditCompany(company);
     }
   }, [location.search, companies]);
-
 
   // â”€â”€ Masters State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [selectedFruitId, setSelectedFruitId] = useState(fruits[0]?.id || "");
@@ -353,16 +345,12 @@ export const SettingsModule: React.FC = () => {
 
   // â”€â”€ local editable copies for controlled inputs â”€â”€
   const [inv, setInv] = useState(settings.invoice);
-  const [sec, setSec] = useState(settings.security);
 
   // sync local state when settings change externally
 
   React.useEffect(() => {
     setInv(settings.invoice);
   }, [settings.invoice]);
-  React.useEffect(() => {
-    setSec(settings.security);
-  }, [settings.security]);
 
   const sections: {
     id: Section;
@@ -400,12 +388,6 @@ export const SettingsModule: React.FC = () => {
       icon: <Palette className="w-4 h-4" />,
       desc: "Theme, display preferences",
     },
-    {
-      id: "SECURITY",
-      label: "Security & Lock",
-      icon: <ShieldCheck className="w-4 h-4" />,
-      desc: "App PIN, auto-lock timer",
-    },
   ];
 
   // Input helper (Inp) and Toggle are defined at module level above
@@ -415,38 +397,6 @@ export const SettingsModule: React.FC = () => {
     toast.success(
       "Invoice Settings Saved",
       "Numbering, terms, and print preferences updated.",
-    );
-  };
-  const saveSecurity = async () => {
-    if (
-      sec.pinEnabled &&
-      sec.appPin.trim().length > 0 &&
-      sec.appPin.trim().length < 4
-    ) {
-      toast.error("Invalid PIN", "PIN must be at least 4 digits.");
-      return;
-    }
-
-    await configureLockSecurity({
-      pinEnabled: sec.pinEnabled,
-      appPin: sec.appPin,
-      autoLockMinutes: sec.autoLockMinutes,
-    });
-
-    const lockState = useLockStore.getState();
-    updateSettings({
-      security: {
-        appPin: "",
-        pinEnabled: lockState.pinEnabled,
-        autoLockMinutes: lockState.autoLockMinutes,
-      },
-    });
-
-    toast.success(
-      "Security Updated",
-      lockState.pinEnabled
-        ? "App PIN protection and lock policy are active."
-        : "Security settings saved.",
     );
   };
 
@@ -510,18 +460,21 @@ export const SettingsModule: React.FC = () => {
   // section (logo, QR, bank, signature, contacts) is always visible.
   const previewCompany = {
     ...settings.company,
-    name:    settings.company.name    || "ASZ Nexus Traders",
-    tagline: settings.company.tagline || "Wholesale Fruit Merchants Â· Est. 2010",
-    address: settings.company.address || "Shop No. 12, APMC Market Yard, Valsad, Gujarat - 396001",
-    phone:   settings.company.phone   || "9876543210",
-    phone2:  settings.company.phone2  || "9876543211",
-    phone3:  settings.company.phone3  || "9876543212",
-    email:   settings.company.email   || "accounts@asznexus.in",
-    gstin:   settings.company.gstin   || "24AAAAA0000A1Z5",
-    bankName:  settings.company.bankName  || "State Bank of India",
+    name: settings.company.name || "ASZ Nexus Traders",
+    tagline:
+      settings.company.tagline || "Wholesale Fruit Merchants Â· Est. 2010",
+    address:
+      settings.company.address ||
+      "Shop No. 12, APMC Market Yard, Valsad, Gujarat - 396001",
+    phone: settings.company.phone || "9876543210",
+    phone2: settings.company.phone2 || "9876543211",
+    phone3: settings.company.phone3 || "9876543212",
+    email: settings.company.email || "accounts@asznexus.in",
+    gstin: settings.company.gstin || "24AAAAA0000A1Z5",
+    bankName: settings.company.bankName || "State Bank of India",
     accountNo: settings.company.accountNo || "38920019283",
-    ifsc:      settings.company.ifsc      || "SBIN0001234",
-    upiId:     settings.company.upiId     || "asznexus@sbi",
+    ifsc: settings.company.ifsc || "SBIN0001234",
+    upiId: settings.company.upiId || "asznexus@sbi",
     // Use a placeholder logo if none uploaded
     logo: settings.company.logo || "",
   };
@@ -529,11 +482,11 @@ export const SettingsModule: React.FC = () => {
   const previewInvSettings = {
     ...inv,
     // Always show all sections in preview so user can see what's enabled
-    showUPI:            true,
-    showBankDetails:    true,
+    showUPI: true,
+    showBankDetails: true,
     showCompanyDetails: true,
     showPaymentDetails: true,
-    enableQR:           inv.enableQR ?? true,
+    enableQR: inv.enableQR ?? true,
     // Use a placeholder signature image if none uploaded
     signatureImage: inv.signatureImage || "",
   };
@@ -571,7 +524,7 @@ export const SettingsModule: React.FC = () => {
         weight: 220,
         rate: 85,
         amount: 18700,
-        pricingType: 'kg',
+        pricingType: "kg",
       },
       {
         id: "s2",
@@ -582,7 +535,7 @@ export const SettingsModule: React.FC = () => {
         weight: 120,
         rate: 140,
         amount: 16800,
-        pricingType: 'caret',
+        pricingType: "caret",
       },
       {
         id: "s3",
@@ -593,7 +546,7 @@ export const SettingsModule: React.FC = () => {
         weight: 160,
         rate: 45,
         amount: 7200,
-        pricingType: 'caret',
+        pricingType: "caret",
       },
     ],
   };
@@ -604,26 +557,9 @@ export const SettingsModule: React.FC = () => {
     { id: "monthly", label: "Monthly" },
   ];
 
-  const autoLockOptions: CommandOption[] = [
-    { id: "0", label: "Disabled" },
-    { id: "5", label: "5 Minutes" },
-    { id: "15", label: "15 Minutes" },
-    { id: "30", label: "30 Minutes" },
-    { id: "60", label: "1 Hour" },
-    { id: "120", label: "2 Hours" },
-  ];
-
-  const sessionTimeoutOptions: CommandOption[] = [
-    { id: "15", label: "15 Minutes" },
-    { id: "30", label: "30 Minutes" },
-    { id: "60", label: "1 Hour" },
-    { id: "120", label: "2 Hours" },
-    { id: "480", label: "8 Hours" },
-  ];
-
   return (
-      <div className="space-y-6 font-sans">
-        {/* â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+    <div className="space-y-6 font-sans">
+      {/* â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-md">
         <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
           <Settings className="w-6 h-6 text-cyan-500" />
@@ -724,9 +660,15 @@ export const SettingsModule: React.FC = () => {
                           <div
                             className={`w-11 h-11 rounded-xl flex items-center justify-center font-black shrink-0 shadow-sm overflow-hidden ${isActive ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-slate-950" : "dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600"}`}
                             style={{
-                              fontSize: initials.length <= 1 ? '20px' : initials.length === 2 ? '16px' : '12px',
+                              fontSize:
+                                initials.length <= 1
+                                  ? "20px"
+                                  : initials.length === 2
+                                    ? "16px"
+                                    : "12px",
                               lineHeight: 1,
-                              letterSpacing: initials.length >= 3 ? '0.04em' : '0.02em',
+                              letterSpacing:
+                                initials.length >= 3 ? "0.04em" : "0.02em",
                             }}
                           >
                             {initials}
@@ -772,13 +714,20 @@ export const SettingsModule: React.FC = () => {
                         <div className="px-4 py-2.5 border-t dark:border-slate-800 border-slate-200 dark:bg-slate-950/50 bg-slate-50 flex items-center justify-between">
                           <div className="text-[10px] dark:text-slate-500 text-slate-400 font-mono">
                             {(() => {
-                              const fyStartMD = c.financial?.financialYearStart ?? "04-01";
-                              const fyStartMonth = parseInt(fyStartMD.split("-")[0], 10) || 4;
+                              const fyStartMD =
+                                c.financial?.financialYearStart ?? "04-01";
+                              const fyStartMonth =
+                                parseInt(fyStartMD.split("-")[0], 10) || 4;
                               const now = new Date();
-                              const baseYear = now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
+                              const baseYear =
+                                now.getMonth() + 1 >= fyStartMonth
+                                  ? now.getFullYear()
+                                  : now.getFullYear() - 1;
                               const fyShort = `${String(baseYear).slice(-2)}-${String(baseYear + 1).slice(-2)}`;
                               const prefix = c.invoice?.salesPrefix ?? "INV";
-                              const nextNo = String(c.invoice?.salesNextNo ?? 1001).padStart(4, "0");
+                              const nextNo = String(
+                                c.invoice?.salesNextNo ?? 1001,
+                              ).padStart(4, "0");
                               return `${c.financial?.currency ?? "INR"} Â· ${prefix}/${fyShort}/${nextNo}`;
                             })()}
                           </div>
@@ -935,15 +884,19 @@ export const SettingsModule: React.FC = () => {
                   </div>
 
                   {/* Watermark / Initials Controls */}
-                  {(inv.templateStyle === "watermark" || inv.templateStyle === "initials") && (
+                  {(inv.templateStyle === "watermark" ||
+                    inv.templateStyle === "initials") && (
                     <div className="pt-4 border-t dark:border-slate-800 border-slate-100 space-y-4 animate-slide-down">
                       <div className="flex items-center space-x-2 mb-2">
                         <Palette className="w-3.5 h-3.5 text-indigo-500" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          {inv.templateStyle === "watermark" ? "Background Image" : "Initials Watermark"} Settings
+                          {inv.templateStyle === "watermark"
+                            ? "Background Image"
+                            : "Initials Watermark"}{" "}
+                          Settings
                         </span>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {inv.templateStyle === "watermark" ? (
                           <div className="sm:col-span-3">
@@ -959,14 +912,21 @@ export const SettingsModule: React.FC = () => {
                                     className="h-16 w-16 object-cover border dark:border-slate-700 border-slate-300 rounded-xl p-1 dark:bg-slate-950 bg-slate-50"
                                   />
                                   <button
-                                    onClick={() => setInv(p => ({ ...p, watermarkImage: "" }))}
+                                    onClick={() =>
+                                      setInv((p) => ({
+                                        ...p,
+                                        watermarkImage: "",
+                                      }))
+                                    }
                                     className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center cursor-pointer text-xs shadow"
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
                                 </div>
                                 <button
-                                  onClick={() => watermarkInputRef.current?.click()}
+                                  onClick={() =>
+                                    watermarkInputRef.current?.click()
+                                  }
                                   className="text-[11px] font-bold text-indigo-600 hover:underline cursor-pointer"
                                 >
                                   Replace Image
@@ -974,11 +934,15 @@ export const SettingsModule: React.FC = () => {
                               </div>
                             ) : (
                               <div
-                                onClick={() => watermarkInputRef.current?.click()}
+                                onClick={() =>
+                                  watermarkInputRef.current?.click()
+                                }
                                 className="h-20 border-2 border-dashed dark:border-slate-700 border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/50 transition-colors gap-1.5"
                               >
                                 <Image className="w-5 h-5 text-slate-400" />
-                                <span className="text-xs text-slate-400 font-medium">Click to upload background</span>
+                                <span className="text-xs text-slate-400 font-medium">
+                                  Click to upload background
+                                </span>
                               </div>
                             )}
                             <input
@@ -990,7 +954,11 @@ export const SettingsModule: React.FC = () => {
                                 const file = e.target.files?.[0];
                                 if (file) {
                                   const reader = new FileReader();
-                                  reader.onload = () => setInv(p => ({ ...p, watermarkImage: reader.result as string }));
+                                  reader.onload = () =>
+                                    setInv((p) => ({
+                                      ...p,
+                                      watermarkImage: reader.result as string,
+                                    }));
                                   reader.readAsDataURL(file);
                                 }
                               }}
@@ -1001,7 +969,9 @@ export const SettingsModule: React.FC = () => {
                             <Inp
                               label="Watermark Text"
                               value={inv.watermarkText}
-                              onChange={(v) => setInv(p => ({ ...p, watermarkText: v }))}
+                              onChange={(v) =>
+                                setInv((p) => ({ ...p, watermarkText: v }))
+                              }
                               placeholder="e.g. ASZ"
                             />
                           </div>
@@ -1009,7 +979,8 @@ export const SettingsModule: React.FC = () => {
 
                         <div>
                           <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
-                            Opacity ({Math.round((inv.watermarkOpacity || 0.05) * 100)}%)
+                            Opacity (
+                            {Math.round((inv.watermarkOpacity || 0.05) * 100)}%)
                           </label>
                           <input
                             type="range"
@@ -1017,7 +988,12 @@ export const SettingsModule: React.FC = () => {
                             max="0.3"
                             step="0.01"
                             value={inv.watermarkOpacity || 0.05}
-                            onChange={(e) => setInv(p => ({ ...p, watermarkOpacity: parseFloat(e.target.value) }))}
+                            onChange={(e) =>
+                              setInv((p) => ({
+                                ...p,
+                                watermarkOpacity: parseFloat(e.target.value),
+                              }))
+                            }
                             className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                           />
                         </div>
@@ -1032,7 +1008,12 @@ export const SettingsModule: React.FC = () => {
                             max="180"
                             step="5"
                             value={inv.watermarkRotation || -25}
-                            onChange={(e) => setInv(p => ({ ...p, watermarkRotation: parseInt(e.target.value) }))}
+                            onChange={(e) =>
+                              setInv((p) => ({
+                                ...p,
+                                watermarkRotation: parseInt(e.target.value),
+                              }))
+                            }
                             className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                           />
                         </div>
@@ -1047,7 +1028,12 @@ export const SettingsModule: React.FC = () => {
                             max="300"
                             step="5"
                             value={inv.watermarkSize || 110}
-                            onChange={(e) => setInv(p => ({ ...p, watermarkSize: parseInt(e.target.value) }))}
+                            onChange={(e) =>
+                              setInv((p) => ({
+                                ...p,
+                                watermarkSize: parseInt(e.target.value),
+                              }))
+                            }
                             className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                           />
                         </div>
@@ -1070,13 +1056,17 @@ export const SettingsModule: React.FC = () => {
                     label="Show Company Details"
                     desc="Display company name, address, GSTIN on invoice header"
                     checked={inv.showCompanyDetails ?? true}
-                    onChange={(v) => setInv((p) => ({ ...p, showCompanyDetails: v }))}
+                    onChange={(v) =>
+                      setInv((p) => ({ ...p, showCompanyDetails: v }))
+                    }
                   />
                   <Toggle
                     label="Show Payment Details"
                     desc="Display bank/UPI payment information on invoice"
                     checked={inv.showPaymentDetails ?? true}
-                    onChange={(v) => setInv((p) => ({ ...p, showPaymentDetails: v }))}
+                    onChange={(v) =>
+                      setInv((p) => ({ ...p, showPaymentDetails: v }))
+                    }
                   />
                   <Toggle
                     label="Enable QR Code on Invoice"
@@ -1088,7 +1078,9 @@ export const SettingsModule: React.FC = () => {
                     label="Auto Invoice Numbering"
                     desc="Automatically increment invoice number after each bill"
                     checked={inv.autoInvoiceNo ?? true}
-                    onChange={(v) => setInv((p) => ({ ...p, autoInvoiceNo: v }))}
+                    onChange={(v) =>
+                      setInv((p) => ({ ...p, autoInvoiceNo: v }))
+                    }
                   />
                   <Toggle
                     label="Show UPI / QR Details"
@@ -1100,59 +1092,90 @@ export const SettingsModule: React.FC = () => {
                     label="Show Bank Account Details"
                     desc="Display bank A/C, IFSC on printed invoices"
                     checked={inv.showBankDetails}
-                    onChange={(v) => setInv((p) => ({ ...p, showBankDetails: v }))}
+                    onChange={(v) =>
+                      setInv((p) => ({ ...p, showBankDetails: v }))
+                    }
                   />
                 </div>
               </div>
 
               {/* 2b. Payment & Banking Details â€” collapsed unless Show Bank Account Details is ON */}
               {inv.showBankDetails && (
-              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-slide-down">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                  <Landmark className="w-4 h-4 text-cyan-500" />
-                  <span className="text-sm font-bold dark:text-white text-slate-900">
-                    Payment & Banking Details
-                  </span>
-                  <span className="text-[10px] dark:text-slate-500 text-slate-400 font-medium ml-1">â€” printed on invoices</span>
-                </div>
-                <div className="p-6 space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Inp
-                      label="Bank Name"
-                      value={settings.company.bankName || ""}
-                      onChange={(v) => updateSettings({ company: { ...settings.company, bankName: v } })}
-                      placeholder="e.g. State Bank of India"
-                    />
-                    <Inp
-                      label="Account Number"
-                      value={settings.company.accountNo || ""}
-                      onChange={(v) => updateSettings({ company: { ...settings.company, accountNo: v.replace(/\D/g, "") } })}
-                      placeholder="e.g. 38920019283"
-                      mono
-                    />
-                    <Inp
-                      label="IFSC Code"
-                      value={settings.company.ifsc || ""}
-                      onChange={(v) => updateSettings({ company: { ...settings.company, ifsc: v.toUpperCase() } })}
-                      placeholder="e.g. SBIN0001234"
-                      mono
-                    />
-                    <Inp
-                      label="UPI ID"
-                      value={settings.company.upiId || ""}
-                      onChange={(v) => updateSettings({ company: { ...settings.company, upiId: v } })}
-                      placeholder="e.g. business@sbi"
-                      mono
-                    />
+                <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-slide-down">
+                  <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
+                    <Landmark className="w-4 h-4 text-cyan-500" />
+                    <span className="text-sm font-bold dark:text-white text-slate-900">
+                      Payment & Banking Details
+                    </span>
+                    <span className="text-[10px] dark:text-slate-500 text-slate-400 font-medium ml-1">
+                      â€” printed on invoices
+                    </span>
                   </div>
-                  {(settings.company.bankName || settings.company.accountNo || settings.company.upiId) && (
-                    <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-500/20">
-                      <Check className="w-3.5 h-3.5 shrink-0" />
-                      <span>Banking details saved â€” will appear on printed invoices.</span>
+                  <div className="p-6 space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Inp
+                        label="Bank Name"
+                        value={settings.company.bankName || ""}
+                        onChange={(v) =>
+                          updateSettings({
+                            company: { ...settings.company, bankName: v },
+                          })
+                        }
+                        placeholder="e.g. State Bank of India"
+                      />
+                      <Inp
+                        label="Account Number"
+                        value={settings.company.accountNo || ""}
+                        onChange={(v) =>
+                          updateSettings({
+                            company: {
+                              ...settings.company,
+                              accountNo: v.replace(/\D/g, ""),
+                            },
+                          })
+                        }
+                        placeholder="e.g. 38920019283"
+                        mono
+                      />
+                      <Inp
+                        label="IFSC Code"
+                        value={settings.company.ifsc || ""}
+                        onChange={(v) =>
+                          updateSettings({
+                            company: {
+                              ...settings.company,
+                              ifsc: v.toUpperCase(),
+                            },
+                          })
+                        }
+                        placeholder="e.g. SBIN0001234"
+                        mono
+                      />
+                      <Inp
+                        label="UPI ID"
+                        value={settings.company.upiId || ""}
+                        onChange={(v) =>
+                          updateSettings({
+                            company: { ...settings.company, upiId: v },
+                          })
+                        }
+                        placeholder="e.g. business@sbi"
+                        mono
+                      />
                     </div>
-                  )}
+                    {(settings.company.bankName ||
+                      settings.company.accountNo ||
+                      settings.company.upiId) && (
+                      <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-500/20">
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          Banking details saved â€” will appear on printed
+                          invoices.
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
               )}
 
               {/* 2c. Additional Contact Numbers */}
@@ -1163,34 +1186,54 @@ export const SettingsModule: React.FC = () => {
                     <span className="text-sm font-bold dark:text-white text-slate-900">
                       Additional Contact Numbers
                     </span>
-                    <span className="text-[10px] dark:text-slate-500 text-slate-400 font-medium ml-1">â€” printed on invoices &amp; statements</span>
+                    <span className="text-[10px] dark:text-slate-500 text-slate-400 font-medium ml-1">
+                      â€” printed on invoices &amp; statements
+                    </span>
                   </div>
                   {/* inline toggle to show/hide the fields */}
                   <button
                     type="button"
-                    onClick={() => updateSettings({ company: {
-                      ...settings.company,
-                      phone2: settings.company.phone2 === undefined ? "" : undefined,
-                    }})}
-                    className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${(settings.company.phone2 !== undefined || settings.company.phone3) ? "bg-cyan-500" : "dark:bg-slate-700 bg-slate-300"}`}
+                    onClick={() =>
+                      updateSettings({
+                        company: {
+                          ...settings.company,
+                          phone2:
+                            settings.company.phone2 === undefined
+                              ? ""
+                              : undefined,
+                        },
+                      })
+                    }
+                    className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${settings.company.phone2 !== undefined || settings.company.phone3 ? "bg-cyan-500" : "dark:bg-slate-700 bg-slate-300"}`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${(settings.company.phone2 !== undefined || settings.company.phone3) ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+                    <div
+                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${settings.company.phone2 !== undefined || settings.company.phone3 ? "translate-x-[22px]" : "translate-x-0.5"}`}
+                    />
                   </button>
                 </div>
-                {(settings.company.phone2 !== undefined || settings.company.phone3) && (
+                {(settings.company.phone2 !== undefined ||
+                  settings.company.phone3) && (
                   <div className="p-6 space-y-4 animate-slide-down">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Inp
                         label="Secondary Contact"
                         value={settings.company.phone2 || ""}
-                        onChange={(v) => updateSettings({ company: { ...settings.company, phone2: v } })}
+                        onChange={(v) =>
+                          updateSettings({
+                            company: { ...settings.company, phone2: v },
+                          })
+                        }
                         placeholder="e.g. 9876543210"
                         mono
                       />
                       <Inp
                         label="Alternate Contact"
                         value={settings.company.phone3 || ""}
-                        onChange={(v) => updateSettings({ company: { ...settings.company, phone3: v } })}
+                        onChange={(v) =>
+                          updateSettings({
+                            company: { ...settings.company, phone3: v },
+                          })
+                        }
                         placeholder="e.g. 9876543211"
                         mono
                       />
@@ -1198,7 +1241,10 @@ export const SettingsModule: React.FC = () => {
                     {(settings.company.phone2 || settings.company.phone3) && (
                       <div className="flex items-center gap-2 text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold bg-cyan-50 dark:bg-cyan-500/10 px-3 py-2 rounded-lg border border-cyan-200 dark:border-cyan-500/20">
                         <Phone className="w-3.5 h-3.5 shrink-0" />
-                        <span>Contact numbers saved â€” will appear on all printed invoices and statements.</span>
+                        <span>
+                          Contact numbers saved â€” will appear on all printed
+                          invoices and statements.
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1535,7 +1581,8 @@ export const SettingsModule: React.FC = () => {
                       <div className="flex items-center gap-1.5 text-[11px] dark:text-amber-400 text-amber-600 font-semibold">
                         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          No logo uploaded â€” falling back to company master logo
+                          No logo uploaded â€” falling back to company master
+                          logo
                         </span>
                       </div>
                     )}
@@ -1573,7 +1620,10 @@ export const SettingsModule: React.FC = () => {
                     <button
                       onClick={() => {
                         setShowInvoicePreview(true);
-                        setTimeout(() => window.print(), 300);
+                        setTimeout(() => {
+                          if (paperRef.current) printElement(paperRef.current);
+                          else window.print();
+                        }, 400);
                       }}
                       className="flex flex-col items-center space-y-2 p-4 rounded-xl border-2 dark:border-slate-800 border-slate-200 dark:hover:border-emerald-500/50 hover:border-emerald-500/50 cursor-pointer transition-all group"
                     >
@@ -1587,7 +1637,10 @@ export const SettingsModule: React.FC = () => {
                     <button
                       onClick={() => {
                         setShowInvoicePreview(true);
-                        setTimeout(() => window.print(), 300);
+                        setTimeout(() => {
+                          if (paperRef.current) printElement(paperRef.current);
+                          else window.print();
+                        }, 400);
                         toast.info(
                           "Save as PDF",
                           'Choose "Save as PDF" in the print dialog.',
@@ -1644,7 +1697,7 @@ export const SettingsModule: React.FC = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => window.print()}
+                      onClick={handlePrint}
                       className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow cursor-pointer"
                     >
                       <Printer className="w-4 h-4" />
@@ -1658,7 +1711,10 @@ export const SettingsModule: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto bg-white text-slate-900 printable-patti">
+                <div
+                  ref={paperRef}
+                  className="flex-1 overflow-y-auto bg-white text-slate-900 printable-patti"
+                >
                   <div className="p-6 sm:p-8 max-w-[820px] mx-auto">
                     <InvoiceTemplateRenderer
                       invoice={invoicePreviewSample}
@@ -1745,7 +1801,9 @@ export const SettingsModule: React.FC = () => {
                             }
                             className="text-[10px] font-bold text-teal-600 dark:text-teal-400 cursor-pointer hover:underline"
                           >
-                            {selectedFruitId === f.id ? "Collapse" : "Manage â†’"}
+                            {selectedFruitId === f.id
+                              ? "Collapse"
+                              : "Manage â†’"}
                           </button>
                         </div>
                         {selectedFruitId === f.id && (
@@ -2436,7 +2494,8 @@ export const SettingsModule: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-3 dark:bg-rose-950/30 bg-rose-50 rounded-xl border dark:border-rose-500/20 border-rose-200 text-[11px] text-rose-700 dark:text-rose-400 font-semibold">
-                  âš ï¸ Extremely destructive action. Use only for clean handover.
+                  âš ï¸ Extremely destructive action. Use only for clean
+                  handover.
                 </div>
                 <div className="flex items-center justify-end space-x-3 pt-2">
                   <button
@@ -2757,7 +2816,8 @@ export const SettingsModule: React.FC = () => {
                       Restore Default Settings
                     </div>
                     <div className="text-[11px] dark:text-slate-400 text-slate-500 mt-0.5 max-w-md">
-                      Reset theme to system, accent to indigo, and typography to defaults.
+                      Reset theme to system, accent to indigo, and typography to
+                      defaults.
                     </div>
                   </div>
                   <button
@@ -2771,215 +2831,10 @@ export const SettingsModule: React.FC = () => {
               </div>
             </div>
           )}
-
-          {/* â•â•â• SECURITY â•â•â• */}
-          {activeSection === "SECURITY" && (
-            <div className="space-y-5 animate-slide-up">
-              {/* 1. Access Control */}
-              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                  <Lock className="w-4 h-4 text-cyan-500" />
-                  <span className="text-sm font-bold dark:text-white text-slate-900">
-                    Access Control
-                  </span>
-                </div>
-                <div className="p-6 space-y-1">
-                  {/* PIN Lock */}
-                  <Toggle
-                    label="Require Password / App PIN"
-                    desc="Enable PIN protection when opening the app"
-                    checked={sec.pinEnabled}
-                    onChange={(v) => {
-                      setSec((p) => ({ ...p, pinEnabled: v }));
-                    }}
-                  />
-
-                  {sec.pinEnabled && (
-                    <div className="space-y-4 pl-3 ml-1 border-l-2 dark:border-cyan-500/30 border-cyan-300 pt-3 animate-slide-down">
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
-                          Set App PIN (4â€“6 digits)
-                        </label>
-                        <div className="relative max-w-xs">
-                          <Lock className="w-4 h-4 dark:text-slate-500 text-slate-400 absolute left-3 top-3" />
-                          <input
-                            type={showPin ? "text" : "password"}
-                            value={sec.appPin}
-                            onChange={(e) =>
-                              setSec((p) => ({
-                                ...p,
-                                appPin: e.target.value
-                                  .replace(/\D/g, "")
-                                  .slice(0, 6),
-                              }))
-                            }
-                            maxLength={6}
-                            placeholder="â€¢â€¢â€¢â€¢"
-                            className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 dark:text-white text-slate-900 rounded-xl pl-10 pr-10 py-2.5 text-lg font-mono font-black tracking-[0.3em] outline-none focus:border-cyan-500 transition-all"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPin(!showPin)}
-                            className="absolute right-3 top-3 dark:text-slate-500 text-slate-400 cursor-pointer hover:text-cyan-500 transition-colors"
-                          >
-                            {showPin ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                        <span className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 block">
-                          Numeric digits only. PIN is stored locally as a hash.
-                        </span>
-                      </div>
-
-                      {/* Auto-Lock Timeout */}
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
-                          Auto-Lock Timeout
-                        </label>
-                        <CommandSelect
-                           value={sec.autoLockMinutes.toString()}
-                           onChange={(val) => {
-                             setSec((p) => ({
-                               ...p,
-                               autoLockMinutes: parseInt(val) || 0,
-                             }));
-                           }}
-                           options={autoLockOptions}
-                           creatable={false}
-                           showEmoji={false}
-                           variant="sky"
-                           className="max-w-xs"
-                           size="sm"
-                         />
-                        <span className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 block">
-                          Lock the app after inactivity. Only works when PIN is
-                          enabled.
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Session Timeout (always available) */}
-                  <div className="pt-4 border-t dark:border-slate-800 border-slate-200 mt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-bold dark:text-white text-slate-900">
-                          Session Timeout
-                        </div>
-                        <div className="text-[11px] dark:text-slate-400 text-slate-500">
-                          Automatically end session after idle period
-                        </div>
-                      </div>
-                      <div className="w-48">
-                         <CommandSelect
-                           value={sessionTimeout}
-                           onChange={(val) => setSessionTimeout(val)}
-                           options={sessionTimeoutOptions}
-                           creatable={false}
-                           showEmoji={false}
-                           variant="sky"
-                           size="sm"
-                         />
-                       </div>
-                    </div>
-                  </div>
-
-                  {/* 2FA */}
-                  <div className="pt-3">
-                    <Toggle
-                      label="Two-Factor Authentication"
-                      desc="Add extra verification step for enhanced login security"
-                      checked={twoFactorEnabled}
-                      onChange={(v) => {
-                        setTwoFactorEnabled(v);
-                        if (v)
-                          toast.info(
-                            "Coming Soon",
-                            "2FA integration will be available in the next update.",
-                          );
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Data Security */}
-              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                  <ShieldCheck className="w-4 h-4 text-cyan-500" />
-                  <span className="text-sm font-bold dark:text-white text-slate-900">
-                    Data Security
-                  </span>
-                </div>
-                <div className="p-6 space-y-1">
-                  <Toggle
-                    label="Allow Data Export"
-                    desc="Permit downloading database backups and JSON exports"
-                    checked={allowExport}
-                    onChange={setAllowExport}
-                  />
-                  <Toggle
-                    label="Enable Audit Log"
-                    desc="Track important changes, logins, and activity across the app"
-                    checked={auditLog}
-                    onChange={(v) => {
-                      setAuditLog(v);
-                      if (v)
-                        toast.success(
-                          "Audit Log Enabled",
-                          "Activity tracking is now active.",
-                        );
-                    }}
-                  />
-                  <Toggle
-                    label="Database Encryption"
-                    desc="Encrypt stored application data for additional protection"
-                    checked={dbEncryption}
-                    onChange={(v) => {
-                      setDbEncryption(v);
-                      if (v)
-                        toast.success(
-                          "Encryption Enabled",
-                          "Data will be encrypted at rest.",
-                        );
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Info Banner */}
-              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm p-5 flex items-start space-x-3">
-                <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                <div className="text-xs dark:text-slate-400 text-slate-600 leading-relaxed">
-                  All data is stored <strong>locally in your browser</strong>.
-                  No data is transmitted to external servers. PIN protection
-                  adds a local access barrier. For maximum security, enable
-                  encryption, use backups regularly, and store exports in a
-                  secure location.
-                </div>
-              </div>
-
-              {/* Save button */}
-              <div className="flex justify-end">
-                <button
-                  onClick={saveSecurity}
-                  className="flex items-center space-x-1.5 bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-cyan-500/15 cursor-pointer transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Save Security Settings</span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-          CREATE COMPANY WIZARD MODAL
-         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* CREATE COMPANY WIZARD MODAL */}
       {showCreateWizard && (
         <div
           className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
@@ -2998,9 +2853,7 @@ export const SettingsModule: React.FC = () => {
         </div>
       )}
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-          EDIT COMPANY WIZARD MODAL
-         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* EDIT COMPANY WIZARD MODAL */}
       {showEditWizard && wizardEditCompanyId && (
         <div
           className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"

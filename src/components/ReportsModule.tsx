@@ -4,7 +4,7 @@ import {
   ArrowUpRight, ArrowDownRight, Package, Users, UserCheck, DollarSign, Layers, Banknote, ArrowUpDown
 } from 'lucide-react';
 
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { DataTable, Pagination } from './ui/table';
@@ -71,7 +71,7 @@ export const ReportsModule: React.FC = () => {
   const onDate = (d: string) => d === selectedDate;
 
   // Vehicle arrivals removed — keep as empty array so report calculations still work
-  const savedVehicles: { date: string; totalAmount: number; totalCalculatedWeight: number; fruitType: string; rows: { supplierId: string; amount: number; variety: string }[]; freightCharge?: number; hamaliCharge?: number; arrivalNo: string; id: string }[] = [];
+  const savedVehicles: { date: string; totalAmount: number; totalCalculatedWeight: number; fruitType: string; rows: { supplierId: string; amount: number; variety: string; weight?: number }[]; freightCharge?: number; hamaliCharge?: number; arrivalNo: string; id: string }[] = [];
 
   useEffect(() => {
     setIsLoading(true);

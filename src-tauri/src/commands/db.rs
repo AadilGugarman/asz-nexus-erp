@@ -5,18 +5,35 @@ use serde::{Deserialize, Serialize};
 use crate::db::connection::get_conn;
 use crate::ipc::IpcResponse;
 use crate::error::AppResult;
-use crate::repositories::employee as employee_repo;
-use crate::services::demo_seed;
+// use crate::repositories::employee as employee_repo;
 use crate::state::AppState;
 
 #[derive(Debug, Serialize)]
 pub struct DbStats {
     pub status:    String,
-    pub employees: crate::repositories::employee::EmployeeStats,
+    // pub employees: crate::repositories::employee::EmployeeStats,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SeedTableCounts {
+    pub fruits: u32,
+    pub suppliers: u32,
+    pub customers: u32,
+    pub purchase_invoices: u32,
+    pub sales_invoices: u32,
+    pub payments: u32,
+    pub app_settings: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SeedResetResponse {
+    pub deleted_counts: SeedTableCounts,
+    pub reset_at: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct DemoSeedRequest {
+    #[allow(dead_code)]
     pub profile: String,
     pub company_id: Option<String>,
 }
@@ -25,42 +42,14 @@ pub struct DemoSeedRequest {
 /// Frontend: ipc.db.getStats()
 #[tauri::command]
 pub async fn db_get_stats(
-    state: tauri::State<'_, AppState>,
+    _state: tauri::State<'_, AppState>,
 ) -> AppResult<IpcResponse<DbStats>> {
-    let conn = get_conn(&state.db)?;
-    let employees = employee_repo::stats(&conn)?;
+    // let conn = get_conn(&state.db)?;
+    // let employees = employee_repo::stats(&conn)?;
     Ok(IpcResponse::ok(DbStats {
         status: "connected".to_string(),
-        employees,
+        // employees,
     }))
-}
-
-/// Returns recommended demo seed profiles and scaling guidance.
-#[tauri::command]
-pub async fn db_get_seed_plan() -> AppResult<IpcResponse<demo_seed::SeedPlanResponse>> {
-    Ok(IpcResponse::ok(demo_seed::seed_plan()))
-}
-
-/// Clears ERP tables and inserts deterministic demo data for the requested profile.
-#[tauri::command]
-pub async fn db_reseed_demo_data(
-    payload: DemoSeedRequest,
-    state: tauri::State<'_, AppState>,
-) -> AppResult<IpcResponse<demo_seed::SeedExecutionResponse>> {
-    let mut conn = get_conn(&state.db)?;
-    let company_id = payload.company_id.as_deref().unwrap_or("default");
-    let result = demo_seed::reseed_demo_data(&mut conn, &payload.profile, company_id)?;
-    Ok(IpcResponse::ok(result))
-}
-
-/// Clears ERP tables and app settings without reseeding.
-#[tauri::command]
-pub async fn db_reset_demo_data(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<IpcResponse<demo_seed::SeedResetResponse>> {
-    let mut conn = get_conn(&state.db)?;
-    let result = demo_seed::reset_demo_data(&mut conn)?;
-    Ok(IpcResponse::ok(result))
 }
 
 /// Clears ERP tables scoped to a single company — production-safe reset.
@@ -69,9 +58,46 @@ pub async fn db_reset_demo_data(
 pub async fn db_reset_company_data(
     payload: DemoSeedRequest,
     state: tauri::State<'_, AppState>,
-) -> AppResult<IpcResponse<demo_seed::SeedResetResponse>> {
+) -> AppResult<IpcResponse<SeedResetResponse>> {
     let mut conn = get_conn(&state.db)?;
-    let company_id = payload.company_id.as_deref().unwrap_or("default");
-    let result = demo_seed::reset_company_data(&mut conn, company_id)?;
-    Ok(IpcResponse::ok(result))
+    // Require a real company_id — resetting with null/empty would either
+    // delete the wrong company's data or silently do nothing useful.
+    let company_id = payload.company_id
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .ok_or_else(|| crate::error::AppError::Validation(
+            "company_id is required for company reset. Pass the active company ID from the frontend.".to_string()
+        ))?;
+    
+    // Manual delete logic
+    let deleted_counts = delete_company_data(&mut conn, company_id)?;
+    
+    Ok(IpcResponse::ok(SeedResetResponse {
+        deleted_counts,
+        reset_at: chrono::Utc::now().to_rfc3339(),
+    }))
+}
+
+fn delete_company_data(conn: &mut rusqlite::Connection, cid: &str) -> AppResult<SeedTableCounts> {
+    let tx = conn.transaction()?;
+    
+    let mut counts = SeedTableCounts {
+        fruits: 0,
+        suppliers: 0,
+        customers: 0,
+        purchase_invoices: 0,
+        sales_invoices: 0,
+        payments: 0,
+        app_settings: 0,
+    };
+
+    counts.purchase_invoices = tx.execute("DELETE FROM purchase_invoices WHERE company_id = ?", [cid])? as u32;
+    counts.sales_invoices = tx.execute("DELETE FROM invoices WHERE company_id = ?", [cid])? as u32;
+    counts.payments = tx.execute("DELETE FROM payments WHERE company_id = ?", [cid])? as u32;
+    counts.suppliers = tx.execute("DELETE FROM suppliers WHERE company_id = ?", [cid])? as u32;
+    counts.customers = tx.execute("DELETE FROM customers WHERE company_id = ?", [cid])? as u32;
+    counts.fruits = tx.execute("DELETE FROM fruits WHERE company_id = ?", [cid])? as u32;
+
+    tx.commit()?;
+    Ok(counts)
 }

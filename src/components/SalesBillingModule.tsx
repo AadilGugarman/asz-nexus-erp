@@ -1,10 +1,18 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
-  ShoppingCart, Plus, Save, Search, Eye, Trash2, Edit2,
-  FileText, Calendar, Copy, ArrowUpDown
+  ShoppingCart,
+  Plus,
+  Save,
+  Search,
+  Eye,
+  Trash2,
+  Edit2,
+  FileText,
+  Copy,
+  ArrowUpDown,
 } from "lucide-react";
 
-import { useApp } from "@/context/AppContext";
+import { useApp } from "@/context/useApp";
 import { useDataTable } from "../hooks/useDataTable";
 import { useAppTranslation } from "@/hooks";
 
@@ -12,19 +20,26 @@ import { CommandSelect, CommandOption } from "./ui/CommandSelect";
 import { DatePicker } from "./ui/DatePicker";
 import { useToast } from "./ui/Toast";
 import { useConfirmDialog } from "./ui/ConfirmDialog";
+import { QuickAddPartyModal } from "./ui/QuickAddPartyModal";
 import { DataTable, Pagination } from "./ui/table";
 import { ModuleEmptyState } from "./ui/DataStates";
 import { InvoicePreviewModal } from "./InvoicePreviewModal";
 
 import { Invoice, InvoiceItem } from "../types";
 import { getNextUniqueInvoiceNumber } from "../utils/invoice-number";
-import { fmtDate, sumCurrency, roundCurrency, getFruitPricingType, calcItemAmount } from "@/utils/format";
+import {
+  fmtDate,
+  sumCurrency,
+  roundCurrency,
+  getFruitPricingType,
+  calcItemAmount,
+} from "@/utils/format";
 
 //        helpers
 // formatDateWithDay is now fmtDateWithDay from utils/format
 
 function makeBlankItem(
-  fruits: { name: string; varieties: string[]; pricingType?: 'kg' | 'caret' }[],
+  fruits: { name: string; varieties: string[]; pricingType?: "kg" | "caret" }[],
 ): InvoiceItem {
   return {
     id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -35,7 +50,7 @@ function makeBlankItem(
     weight: 0,
     rate: 0,
     amount: 0,
-    pricingType: 'caret',
+    pricingType: "caret",
   };
 }
 
@@ -50,10 +65,26 @@ const muted = "dark:text-slate-400 text-slate-500";
 const lbl = "dark:text-slate-400 text-slate-600";
 
 const FRUIT_EMOJIS: Record<string, string> = {
-  mango: '🥭', apple: '🍎', banana: '🍌', pomegranate: '🫐', grapes: '🍇',
-  citrus: '🍊', watermelon: '🍉', orange: '🍊', lemon: '🍋', pineapple: '🍍',
-  strawberry: '🍓', cherry: '🍒', peach: '🍑', pear: '🍐', kiwi: '🥝',
-  coconut: '🥥', papaya: '🥭', guava: '🥝', fig: '🫐', plum: '🫐',
+  mango: "🥭",
+  apple: "🍎",
+  banana: "🍌",
+  pomegranate: "🫐",
+  grapes: "🍇",
+  citrus: "🍊",
+  watermelon: "🍉",
+  orange: "🍊",
+  lemon: "🍋",
+  pineapple: "🍍",
+  strawberry: "🍓",
+  cherry: "🍒",
+  peach: "🍑",
+  pear: "🍐",
+  kiwi: "🥝",
+  coconut: "🥥",
+  papaya: "🥭",
+  guava: "🥝",
+  fig: "🫐",
+  plum: "🫐",
 };
 
 const getEmoji = (name: string): string => {
@@ -61,7 +92,7 @@ const getEmoji = (name: string): string => {
   for (const [key, emoji] of Object.entries(FRUIT_EMOJIS)) {
     if (lower.includes(key)) return emoji;
   }
-  return '🍃';
+  return "🍃";
 };
 
 export const SalesBillingModule: React.FC = () => {
@@ -73,6 +104,7 @@ export const SalesBillingModule: React.FC = () => {
     deleteInvoice,
     addFruit,
     addFruitVariety,
+    addCustomer,
     settings,
     updateSettings,
     addCaretTransaction,
@@ -87,9 +119,10 @@ export const SalesBillingModule: React.FC = () => {
   // Derive FY start month from active company
   const fyStartMonth = useMemo(() => {
     const activeCompany = companies.find((c) => c.id === activeCompanyId);
-    const fyStartMD = activeCompany?.financial?.financialYearStart
-      ?? settings?.financial?.financialYearStart
-      ?? "04-01";
+    const fyStartMD =
+      activeCompany?.financial?.financialYearStart ??
+      settings?.financial?.financialYearStart ??
+      "04-01";
     return parseInt(fyStartMD.split("-")[0], 10) || 4;
   }, [companies, activeCompanyId, settings?.financial?.financialYearStart]);
 
@@ -98,12 +131,12 @@ export const SalesBillingModule: React.FC = () => {
     const [startYearStr] = (activeFY ?? "").split("-");
     const startYear = parseInt(startYearStr, 10) || new Date().getFullYear();
     const endMonth = fyStartMonth === 1 ? 12 : fyStartMonth - 1;
-    const endYear  = fyStartMonth === 1 ? startYear : startYear + 1;
-    const lastDay  = new Date(endYear, endMonth, 0).getDate();
+    const endYear = fyStartMonth === 1 ? startYear : startYear + 1;
+    const lastDay = new Date(endYear, endMonth, 0).getDate();
     const p = (n: number) => String(n).padStart(2, "0");
     return {
       fyStartDate: `${startYear}-${p(fyStartMonth)}-01`,
-      fyEndDate:   `${endYear}-${p(endMonth)}-${lastDay}`,
+      fyEndDate: `${endYear}-${p(endMonth)}-${lastDay}`,
     };
   }, [activeFY, fyStartMonth]);
 
@@ -112,6 +145,8 @@ export const SalesBillingModule: React.FC = () => {
   );
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddName, setQuickAddName] = useState("");
 
   //        form state
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -127,20 +162,20 @@ export const SalesBillingModule: React.FC = () => {
   ]);
 
   const customerOptions: CommandOption[] = useMemo(() => {
-    return customers.map(c => ({
+    return customers.map((c) => ({
       id: c.id,
       label: c.name,
       subtitle: c.phone ? `${c.phone} • ${c.city}` : c.city,
-      emoji: '👤'
+      emoji: "👤",
     }));
   }, [customers]);
 
   const fruitOptions: CommandOption[] = useMemo(() => {
-    return fruits.map(f => ({
+    return fruits.map((f) => ({
       id: f.id,
       label: f.name,
       subtitle: `${f.varieties.length} varieties`,
-      emoji: getEmoji(f.name)
+      emoji: getEmoji(f.name),
     }));
   }, [fruits]);
 
@@ -177,7 +212,9 @@ export const SalesBillingModule: React.FC = () => {
   }, [settings.invoice, invoices, date, activeFY, fyStartMonth]);
 
   //        calculations
-  const itemsSubtotal = sumCurrency(items.map(it => parseFloat(String(it.amount)) || 0));
+  const itemsSubtotal = sumCurrency(
+    items.map((it) => parseFloat(String(it.amount)) || 0),
+  );
   const freight = roundCurrency(parseFloat(String(freightInput)) || 0);
   const todayAmount = roundCurrency(itemsSubtotal + freight);
   const previousBalance = selectedCustomer?.previousBalance ?? 0;
@@ -186,7 +223,9 @@ export const SalesBillingModule: React.FC = () => {
     (s, it) => s + (parseFloat(String(it.caret)) || 0),
     0,
   );
-  const totalWeight = sumCurrency(items.map(it => parseFloat(String(it.weight)) || 0));
+  const totalWeight = sumCurrency(
+    items.map((it) => parseFloat(String(it.weight)) || 0),
+  );
 
   //        item helpers
   const handleItemChange = (
@@ -210,10 +249,21 @@ export const SalesBillingModule: React.FC = () => {
       item.amount = calcItemAmount(item.pricingType, w, c, r);
     } else if (field === "caret" || field === "weight" || field === "rate") {
       (item as any)[field] = value;
-      const pricingType = item.pricingType ?? getFruitPricingType(item.fruitCategory || item.fruit || '');
-      const w = field === "weight" ? parseFloat(value) || 0 : parseFloat(String(item.weight)) || 0;
-      const c = field === "caret" ? parseFloat(value) || 0 : parseFloat(String(item.caret)) || 0;
-      const r = field === "rate" ? parseFloat(value) || 0 : parseFloat(String(item.rate)) || 0;
+      const pricingType =
+        item.pricingType ??
+        getFruitPricingType(item.fruitCategory || item.fruit || "");
+      const w =
+        field === "weight"
+          ? parseFloat(value) || 0
+          : parseFloat(String(item.weight)) || 0;
+      const c =
+        field === "caret"
+          ? parseFloat(value) || 0
+          : parseFloat(String(item.caret)) || 0;
+      const r =
+        field === "rate"
+          ? parseFloat(value) || 0
+          : parseFloat(String(item.rate)) || 0;
       item.amount = calcItemAmount(pricingType, w, c, r);
     } else {
       (item as any)[field] = value;
@@ -321,7 +371,7 @@ export const SalesBillingModule: React.FC = () => {
     setDeclaredWeight(inv.declaredWeight || 0);
     setFreightInput(inv.freight || 0);
     // For editing, we don't automatically add carets again unless modified
-    setCaretInput(0); 
+    setCaretInput(0);
     setItems(inv.items.length > 0 ? inv.items : [makeBlankItem(fruits)]);
     setActiveSubTab("NEW_INVOICE");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -356,7 +406,10 @@ export const SalesBillingModule: React.FC = () => {
         toast.error("Missing Invoice No", "Enter an invoice number.");
         return;
       }
-      if (!editingInvoiceId && invoices.some((i) => i.invoiceNo === resolvedNo)) {
+      if (
+        !editingInvoiceId &&
+        invoices.some((i) => i.invoiceNo === resolvedNo)
+      ) {
         toast.error("Duplicate Invoice No", "This number already exists.");
         return;
       }
@@ -380,29 +433,37 @@ export const SalesBillingModule: React.FC = () => {
       remainingBalance,
       notes: notes || undefined,
       items,
-      createdAt: editingInvoiceId 
-        ? (invoices.find(i => i.id === editingInvoiceId)?.createdAt || new Date().toISOString()) 
+      createdAt: editingInvoiceId
+        ? invoices.find((i) => i.id === editingInvoiceId)?.createdAt ||
+          new Date().toISOString()
         : new Date().toISOString(),
     };
     saveInvoice(inv);
-    
+
     if (!editingInvoiceId) {
-      updateSettings({ invoice: { ...settings.invoice, salesNextNo: nextSeed } });
+      updateSettings({
+        invoice: { ...settings.invoice, salesNextNo: nextSeed },
+      });
     }
 
     // Auto-create GIVEN caret transaction if carets were given
     if (!editingInvoiceId) {
-      const totalCaretsGiven = caretInput > 0
-        ? caretInput
-        : items.reduce((s, it) => s + (Number(it.caret) || 0), 0);
+      const totalCaretsGiven =
+        caretInput > 0
+          ? caretInput
+          : items.reduce((s, it) => s + (Number(it.caret) || 0), 0);
       if (totalCaretsGiven > 0 && selectedCustomer) {
-        const fruitNames = [...new Set(items.map(it => it.fruitCategory || it.fruit).filter(Boolean))].join(', ');
+        const fruitNames = [
+          ...new Set(
+            items.map((it) => it.fruitCategory || it.fruit).filter(Boolean),
+          ),
+        ].join(", ");
         addCaretTransaction({
           date,
           customerId: selectedCustomer.id,
           customerName: selectedCustomer.name,
-          type: 'GIVEN',
-          fruitName: fruitNames || 'Mixed',
+          type: "GIVEN",
+          fruitName: fruitNames || "Mixed",
           caretQty: totalCaretsGiven,
           note: `Auto from Invoice ${resolvedNo}`,
           billId: inv.id,
@@ -568,20 +629,67 @@ export const SalesBillingModule: React.FC = () => {
                 />
               </div>
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
+                  >
+                    Customer / Buyer
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickAddName("");
+                      setShowQuickAdd(true);
+                    }}
+                    className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+                  >
+                    <Plus className="w-2.5 h-2.5" />
+                    <span>New</span>
+                  </button>
+                </div>
                 <CommandSelect
                   id="sales-customer"
                   variant="violet"
-                  label="Customer / Buyer"
                   value={selectedCustomerId}
                   onChange={(val) => {
-                    const m = customers.find((c) => c.id === val || c.name === val);
+                    const m = customers.find(
+                      (c) => c.id === val || c.name === val,
+                    );
                     if (m) setSelectedCustomerId(m.id);
                   }}
                   options={customerOptions}
                   placeholder="Select customer"
-                  creatable={false}
+                  creatable={true}
+                  onAdd={(name) => {
+                    setQuickAddName(name);
+                    setShowQuickAdd(true);
+                  }}
                 />
               </div>
+              {/* Quick Add Modal */}
+              <QuickAddPartyModal
+                isOpen={showQuickAdd}
+                onClose={() => setShowQuickAdd(false)}
+                type="CUSTOMER"
+                initialName={quickAddName}
+                onAdd={(p) => {
+                  const id = addCustomer({
+                    name: p.name,
+                    phone: p.phone,
+                    city: p.city,
+                    previousBalance: p.previousBalance,
+                    email: "",
+                    gstin: "",
+                    state: "",
+                    billingAddress: "",
+                    shippingAddress: "",
+                    creditLimit: 0,
+                    notes: "",
+                  });
+                  setSelectedCustomerId(id);
+                  toast.success("Customer Added", `${p.name} created.`);
+                }}
+              />
               {/* Vehicle No */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
                 <span
@@ -624,7 +732,9 @@ export const SalesBillingModule: React.FC = () => {
               </div>
               {/* Caret Given */}
               <div className="px-4 py-3 flex flex-col justify-center gap-0.5">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}>
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider ${lbl}`}
+                >
                   Caret Given 📦
                 </span>
                 <input
@@ -639,7 +749,9 @@ export const SalesBillingModule: React.FC = () => {
           </div>
 
           {/*        ITEMS TABLE        */}
-          <div className={`${card} overflow-hidden flex-1 flex flex-col min-h-0`}>
+          <div
+            className={`${card} overflow-hidden flex-1 flex flex-col min-h-0`}
+          >
             <div
               className={`px-5 py-3.5 ${hdr} flex items-center justify-between shrink-0`}
             >
@@ -671,22 +783,20 @@ export const SalesBillingModule: React.FC = () => {
               {/* table-fixed locks column widths so tfoot content never causes reflow */}
               <table className="erp-table w-full text-left text-xs sm:text-sm table-fixed">
                 <colgroup>
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '16%' }} />
-                  <col style={{ width: '8%' }} />
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "8%" }} />
                 </colgroup>
                 <thead>
                   <tr
                     className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider select-none sticky top-0 z-10`}
                   >
                     <th className="py-3 px-4 col-text">Fruit Category</th>
-                    <th className="py-3 px-3 col-text">
-                      Variety (Vakkal)
-                    </th>
+                    <th className="py-3 px-3 col-text">Variety (Vakkal)</th>
                     <th className="py-3 px-3 col-num">Carets / Crt</th>
                     <th className="py-3 px-3 col-num">Weight (KG)</th>
                     <th className="py-3 px-3 col-num">Rate</th>
@@ -702,35 +812,61 @@ export const SalesBillingModule: React.FC = () => {
                       fruits.find((f) => f.name === it.fruitCategory) ||
                       fruits[0];
                     const varieties = fruitObj?.varieties || ["Standard"];
-                    const pricingType = it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '', fruitObj?.pricingType);
-                    const isByKg = pricingType === 'kg';
+                    const pricingType =
+                      it.pricingType ??
+                      getFruitPricingType(
+                        it.fruitCategory || it.fruit || "",
+                        fruitObj?.pricingType,
+                      );
+                    const isByKg = pricingType === "kg";
                     return (
                       <tr
                         key={it.id}
                         className="dark:hover:bg-slate-800/30 hover:bg-slate-50/80 font-sans group transition-colors"
                       >
                         {/* Fruit Category */}
-                        <td className="p-1.5 px-3 col-text" data-inv-cell={`${idx}-0`}>
+                        <td
+                          className="p-1.5 px-3 col-text"
+                          data-inv-cell={`${idx}-0`}
+                        >
                           <CommandSelect
                             variant="violet"
                             value={it.fruitCategory}
                             onChange={(val) => {
-                              const f = fruits.find(f => f.id === val || f.name === val);
-                              handleItemChange(idx, "fruitCategory", f?.name || val);
+                              const f = fruits.find(
+                                (f) => f.id === val || f.name === val,
+                              );
+                              handleItemChange(
+                                idx,
+                                "fruitCategory",
+                                f?.name || val,
+                              );
                             }}
                             options={fruitOptions}
                             placeholder="Select fruit"
                             creatable={true}
-                            onAdd={(nf) => addFruit(nf)}
+                            onAdd={(nf) => {
+                              addFruit(nf);
+                              handleItemChange(idx, "fruitCategory", nf);
+                            }}
                           />
                         </td>
                         {/* Variety */}
-                        <td className="p-1.5 col-text" data-inv-cell={`${idx}-1`}>
+                        <td
+                          className="p-1.5 col-text"
+                          data-inv-cell={`${idx}-1`}
+                        >
                           <CommandSelect
                             variant="violet"
                             value={it.lotVariety}
-                            onChange={(val) => handleItemChange(idx, "lotVariety", val)}
-                            options={varieties.map(v => ({ id: v, label: v, emoji: '📦' }))}
+                            onChange={(val) =>
+                              handleItemChange(idx, "lotVariety", val)
+                            }
+                            options={varieties.map((v) => ({
+                              id: v,
+                              label: v,
+                              emoji: "📦",
+                            }))}
                             placeholder="Select variety"
                             creatable={true}
                             onAdd={(nv) => {
@@ -750,10 +886,12 @@ export const SalesBillingModule: React.FC = () => {
                                 handleItemChange(idx, "caret", e.target.value)
                               }
                               onKeyDown={(e) => handleKeyDown(e, idx, 2)}
-                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && !isByKg ? 'ring-2 ring-amber-400/50 border-amber-400/70' : ''}`}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && !isByKg ? "ring-2 ring-amber-400/50 border-amber-400/70" : ""}`}
                             />
                             {!isByKg && (
-                              <span className="absolute -top-2 right-1 text-[8px] font-black text-indigo-500 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">Caret</span>
+                              <span className="absolute -top-2 right-1 text-[8px] font-black text-indigo-500 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">
+                                Caret
+                              </span>
                             )}
                           </div>
                         </td>
@@ -770,10 +908,12 @@ export const SalesBillingModule: React.FC = () => {
                                 handleItemChange(idx, "weight", e.target.value)
                               }
                               onKeyDown={(e) => handleKeyDown(e, idx, 3)}
-                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && isByKg ? 'ring-2 ring-amber-400/50 border-amber-400/70' : ''}`}
+                              className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && isByKg ? "ring-2 ring-amber-400/50 border-amber-400/70" : ""}`}
                             />
                             {isByKg && (
-                              <span className="absolute -top-2 right-1 text-[8px] font-black text-indigo-500 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">KG</span>
+                              <span className="absolute -top-2 right-1 text-[8px] font-black text-indigo-500 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">
+                                KG
+                              </span>
                             )}
                           </div>
                         </td>
@@ -793,7 +933,7 @@ export const SalesBillingModule: React.FC = () => {
                               className={`w-full ${inp} p-2 text-right text-xs font-mono font-bold dark:text-indigo-300 text-indigo-600`}
                             />
                             <span className="absolute -top-2 right-1 text-[8px] font-black text-indigo-500 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">
-                              {isByKg ? '₹/KG' : '₹/Crt'}
+                              {isByKg ? "₹/KG" : "₹/Crt"}
                             </span>
                           </div>
                         </td>
@@ -848,10 +988,24 @@ export const SalesBillingModule: React.FC = () => {
                     >
                       {(() => {
                         // Show avg rate label based on mix of pricing types
-                        const hasKg = items.some(it => (it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '')) === 'kg');
-                        const hasCaret = items.some(it => (it.pricingType ?? getFruitPricingType(it.fruitCategory || it.fruit || '')) === 'caret');
-                        if (hasKg && !hasCaret) return `₹ ${totalWeight > 0 ? (itemsSubtotal / totalWeight).toFixed(1) : '0'}/KG`;
-                        if (hasCaret && !hasKg) return `₹ ${totalCarets > 0 ? (itemsSubtotal / totalCarets).toFixed(1) : '0'}/Crt`;
+                        const hasKg = items.some(
+                          (it) =>
+                            (it.pricingType ??
+                              getFruitPricingType(
+                                it.fruitCategory || it.fruit || "",
+                              )) === "kg",
+                        );
+                        const hasCaret = items.some(
+                          (it) =>
+                            (it.pricingType ??
+                              getFruitPricingType(
+                                it.fruitCategory || it.fruit || "",
+                              )) === "caret",
+                        );
+                        if (hasKg && !hasCaret)
+                          return `₹ ${totalWeight > 0 ? (itemsSubtotal / totalWeight).toFixed(1) : "0"}/KG`;
+                        if (hasCaret && !hasKg)
+                          return `₹ ${totalCarets > 0 ? (itemsSubtotal / totalCarets).toFixed(1) : "0"}/Crt`;
                         return `Mixed Pricing`;
                       })()}
                     </td>
@@ -869,13 +1023,19 @@ export const SalesBillingModule: React.FC = () => {
                       className={`dark:bg-slate-900/50 bg-slate-50/60 font-bold text-xs border-t dark:border-slate-800 border-slate-100`}
                     >
                       {/* Use individual cells matching the colgroup widths — never colSpan with dynamic text */}
-                      <td className={`py-2.5 px-4 col-text ${muted} overflow-hidden`} />
-                      <td className={`py-2.5 px-3 col-text text-right ${muted} overflow-hidden whitespace-nowrap`}>
+                      <td
+                        className={`py-2.5 px-4 col-text ${muted} overflow-hidden`}
+                      />
+                      <td
+                        className={`py-2.5 px-3 col-text text-right ${muted} overflow-hidden whitespace-nowrap`}
+                      >
                         Lorry Freight (Bhaada)
                       </td>
                       <td className={`py-2.5 px-3 col-num overflow-hidden`} />
                       <td className={`py-2.5 px-3 col-num overflow-hidden`} />
-                      <td className={`py-2.5 px-3 col-num text-right ${muted} overflow-hidden whitespace-nowrap`}>
+                      <td
+                        className={`py-2.5 px-3 col-num text-right ${muted} overflow-hidden whitespace-nowrap`}
+                      >
                         ₹ {freight.toLocaleString("en-IN")}
                       </td>
                       <td className="py-2.5 px-4 col-num font-mono text-indigo-600 dark:text-indigo-400 font-black text-base overflow-hidden">
@@ -908,7 +1068,7 @@ export const SalesBillingModule: React.FC = () => {
                   ₹ {todayAmount.toLocaleString("en-IN")}
                 </span>
               </div>
-              <div className="px-5 py-3 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-violet-600">
+              <div className="px-5 py-3 flex items-center justify-between bg-linear-to-r from-indigo-600 to-violet-600">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
                   = Total Receivable
                 </span>
@@ -945,10 +1105,10 @@ export const SalesBillingModule: React.FC = () => {
                   Clear
                 </button>
                 <button
-                    type="button"
-                    onClick={handleSaveInvoice}
-                    className="px-7 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 cursor-pointer transition-all flex items-center gap-2"
-                  >
+                  type="button"
+                  onClick={handleSaveInvoice}
+                  className="px-7 py-3 bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 cursor-pointer transition-all flex items-center gap-2"
+                >
                   <Save className="w-5 h-5 stroke-[2.5]" />
                   <span>Save Invoice</span>
                 </button>
@@ -1068,7 +1228,8 @@ export const SalesBillingModule: React.FC = () => {
                       (s, it) => s + (Number(it.weight) || 0),
                       0,
                     );
-                    return (                      <tr
+                    return (
+                      <tr
                         key={inv.id}
                         className="dark:hover:bg-slate-800/30 hover:bg-slate-50/80 transition-colors font-sans group"
                       >
@@ -1085,7 +1246,7 @@ export const SalesBillingModule: React.FC = () => {
                             <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-600">
                               {inv.customerName.charAt(0)}
                             </div>
-                            <span className="font-semibold text-[var(--text-primary)]">
+                            <span className="font-semibold text-(--text-primary)">
                               {inv.customerName}
                             </span>
                           </div>
@@ -1096,7 +1257,8 @@ export const SalesBillingModule: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3.5 px-3 col-num font-mono font-bold text-slate-600 dark:text-slate-400">
-                          {carets} <span className="text-[9px] font-sans">CRT</span>
+                          {carets}{" "}
+                          <span className="text-[9px] font-sans">CRT</span>
                         </td>
                         <td className="py-3.5 px-3 col-num font-mono font-bold text-slate-600 dark:text-slate-400">
                           {weight.toFixed(1)}{" "}
@@ -1125,20 +1287,21 @@ export const SalesBillingModule: React.FC = () => {
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => {
-                                dialog.confirm({
+                              onClick={async () => {
+                                const confirmed = await dialog.confirm({
                                   title: "Delete Invoice?",
-                                  message: `Are you sure you want to delete ${inv.invoiceNo}? This will also adjust the customer balance and inventory.`,
-                                  confirmLabel: "Delete Invoice",
-                                  confirmVariant: "danger",
-                                  onConfirm: () => {
-                                    deleteInvoice(inv.id);
-                                    toast.success(
-                                      "Invoice Deleted",
-                                      "The invoice record and associated stock have been removed.",
-                                    );
-                                  },
+                                  description: `Are you sure you want to delete ${inv.invoiceNo}? This will also adjust the customer balance and inventory.`,
+                                  confirmText: "Delete Invoice",
+                                  variant: "destructive",
                                 });
+
+                                if (!confirmed) return;
+
+                                deleteInvoice(inv.id);
+                                toast.success(
+                                  "Invoice Deleted",
+                                  "The invoice record and associated stock have been removed.",
+                                );
                               }}
                               className={`p-2 ${muted} hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors`}
                               title="Delete Invoice"

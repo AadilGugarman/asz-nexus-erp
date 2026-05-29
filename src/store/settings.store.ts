@@ -27,15 +27,16 @@ export const DEFAULT_SETTINGS: AppSettings = {
   company: {
     name: "",
     tagline: "",
+    logo: "",
     address: "",
     phone: "",
     email: "",
+    website: "",
     gstin: "",
     bankName: "",
     accountNo: "",
     ifsc: "",
     upiId: "",
-    logo: "",
   },
   financial: {
     financialYearStart: "04-01",
@@ -77,11 +78,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     signatureImage: "",
     invoiceLogo: "",
     enableInvoiceLogo: false,
-  },
-  security: {
-    appPin: "",
-    autoLockMinutes: 0,
-    pinEnabled: false,
   },
   setupCompleted: false,
 };
@@ -133,7 +129,6 @@ function mergeSettings(partial: Partial<AppSettings>): AppSettings {
     company: { ...DEFAULT_SETTINGS.company, ...(partial.company ?? {}) },
     financial: { ...DEFAULT_SETTINGS.financial, ...(partial.financial ?? {}) },
     invoice: { ...DEFAULT_SETTINGS.invoice, ...(partial.invoice ?? {}) },
-    security: { ...DEFAULT_SETTINGS.security, ...(partial.security ?? {}) },
     setupCompleted:
       typeof partial.setupCompleted === "boolean"
         ? partial.setupCompleted
@@ -146,7 +141,9 @@ function mergeSettings(partial: Partial<AppSettings>): AppSettings {
  * objects. Guards against old/partial data causing "Cannot read properties
  * of undefined" crashes at runtime.
  */
-export function normalizeCompanyProfile(raw: Partial<CompanyProfile>): CompanyProfile {
+export function normalizeCompanyProfile(
+  raw: Partial<CompanyProfile>,
+): CompanyProfile {
   return {
     id: raw.id ?? `co-${Date.now()}`,
     createdAt: raw.createdAt ?? new Date().toISOString(),
@@ -174,7 +171,7 @@ function normalizeCompanies(raw: unknown): CompanyProfile[] {
 // Cache version key — bump this whenever the DB schema changes or a restore
 // happens, so the next cold start always reads from SQLite instead of stale cache.
 const CACHE_VERSION_KEY = `${DB_KEY_SETTINGS}_cache_v`;
-const CURRENT_CACHE_VERSION = '2';
+const CURRENT_CACHE_VERSION = "2";
 
 function _isCacheStale(): boolean {
   try {
@@ -187,7 +184,9 @@ function _isCacheStale(): boolean {
 function _stampCacheVersion(): void {
   try {
     localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 function _writeStartupCache(
@@ -232,7 +231,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         if (saved) {
           localData = JSON.parse(saved);
           const companiesSaved = localStorage.getItem(DB_KEY_COMPANIES);
-          if (companiesSaved) localCompanies = normalizeCompanies(JSON.parse(companiesSaved));
+          if (companiesSaved)
+            localCompanies = normalizeCompanies(JSON.parse(companiesSaved));
         }
       } catch (e) {
         console.warn("[SettingsStore] LocalStorage check failed:", e);
@@ -420,7 +420,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   addCompany: async (profile) => {
     const current = get();
     const nextCompanies = [...current.companies, profile];
-    const activeCompanyId = current.activeCompanyId ?? profile.id;
+
+    // IMPORTANT: If this is the first company or there's no active company,
+    // set the new profile as the active company. Otherwise keep the current active company.
+    const activeCompanyId =
+      nextCompanies.length === 1 || !current.activeCompanyId
+        ? profile.id
+        : current.activeCompanyId;
 
     // If this is the first company being added, sync it to the main settings object too
     let nextSettings = current.settings;
@@ -433,11 +439,53 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       };
     }
 
+    console.log(
+      "[SettingsStore] addCompany: setting activeCompanyId to",
+      activeCompanyId,
+      "profile.id:",
+      profile.id,
+    );
+
     set({
       companies: nextCompanies,
       activeCompanyId,
       settings: nextSettings,
     });
+
+    // Verify the state was updated
+    const updatedState = get();
+    console.log(
+      "[SettingsStore] addCompany: after set, activeCompanyId is",
+      updatedState.activeCompanyId,
+    );
+
+    // Persist to SQLite companies table as well (so FK references succeed)
+    if (APP_CONFIG.isTauri) {
+      try {
+        const { dbService } = await import("@/db/services");
+        if (!dbService.isReady) await dbService.init();
+        // Map profile -> companies table columns (only required fields)
+        const fyStart = profile.financial?.financialYearStart ?? "04-01";
+        const month = Number(fyStart.split("-")[0]) || 4;
+        await dbService.companies
+          .insert({
+            id: profile.id,
+            name: profile.company?.name ?? "",
+            legalName: profile.company?.tagline ?? null,
+            gstin: profile.company?.gstin ?? null,
+            address: profile.company?.address ?? null,
+            phone: profile.company?.phone ?? null,
+            email: profile.company?.email ?? null,
+            website: profile.company?.website ?? null,
+            logo: profile.company?.logo ?? null,
+            currency: profile.financial?.currency ?? "INR",
+            fyStartMonth: month,
+          } as any)
+          .catch(() => {});
+      } catch (e) {
+        console.warn("[SettingsStore] Could not persist company to SQLite:", e);
+      }
+    }
 
     await get()._persistToDb(
       nextSettings,
@@ -464,6 +512,35 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         invoice: profile.invoice,
       };
       set({ settings: nextSettings });
+      // Also update companies table in SQLite
+      if (APP_CONFIG.isTauri) {
+        try {
+          const { dbService } = await import("@/db/services");
+          if (!dbService.isReady) await dbService.init();
+          await dbService.companies
+            .update(profile.id, {
+              name: profile.company?.name ?? "",
+              legalName: profile.company?.tagline ?? null,
+              gstin: profile.company?.gstin ?? null,
+              address: profile.company?.address ?? null,
+              phone: profile.company?.phone ?? null,
+              email: profile.company?.email ?? null,
+              website: profile.company?.website ?? null,
+              logo: profile.company?.logo ?? null,
+              currency: profile.financial?.currency ?? "INR",
+              fyStartMonth:
+                Number(profile.financial?.financialYearStart?.split("-")[0]) ||
+                4,
+            })
+            .catch(() => {});
+        } catch (e) {
+          console.warn(
+            "[SettingsStore] Could not update company in SQLite:",
+            e,
+          );
+        }
+      }
+
       await get()._persistToDb(
         nextSettings,
         nextCompanies,
@@ -471,6 +548,34 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         activeFY,
       );
     } else {
+      if (APP_CONFIG.isTauri) {
+        try {
+          const { dbService } = await import("@/db/services");
+          if (!dbService.isReady) await dbService.init();
+          await dbService.companies
+            .update(profile.id, {
+              name: profile.company?.name ?? "",
+              legalName: profile.company?.tagline ?? null,
+              gstin: profile.company?.gstin ?? null,
+              address: profile.company?.address ?? null,
+              phone: profile.company?.phone ?? null,
+              email: profile.company?.email ?? null,
+              website: profile.company?.website ?? null,
+              logo: profile.company?.logo ?? null,
+              currency: profile.financial?.currency ?? "INR",
+              fyStartMonth:
+                Number(profile.financial?.financialYearStart?.split("-")[0]) ||
+                4,
+            })
+            .catch(() => {});
+        } catch (e) {
+          console.warn(
+            "[SettingsStore] Could not update company in SQLite:",
+            e,
+          );
+        }
+      }
+
       await get()._persistToDb(
         current.settings,
         nextCompanies,
@@ -508,6 +613,20 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
 
     set(updates);
+    if (APP_CONFIG.isTauri) {
+      try {
+        const { dbService } = await import("@/db/services");
+        if (!dbService.isReady) await dbService.init();
+        // Remove from companies table as well (this will cascade to company-scoped rows)
+        await dbService.companies.delete(id).catch(() => {});
+      } catch (e) {
+        console.warn(
+          "[SettingsStore] Could not delete company from SQLite:",
+          e,
+        );
+      }
+    }
+
     await get()._persistToDb(
       nextSettings,
       nextCompanies,
@@ -533,12 +652,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const newActiveFY = deriveDefaultActiveFY(nextSettings);
 
     set({ activeCompanyId: id, settings: nextSettings, activeFY: newActiveFY });
-    await get()._persistToDb(
-      nextSettings,
-      current.companies,
-      id,
-      newActiveFY,
-    );
+    await get()._persistToDb(nextSettings, current.companies, id, newActiveFY);
   },
 
   setActiveFY: (fy) => {
@@ -612,5 +726,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 export function invalidateStartupCache(): void {
   try {
     localStorage.removeItem(CACHE_VERSION_KEY);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }

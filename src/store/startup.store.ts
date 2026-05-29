@@ -1,9 +1,18 @@
 import { create } from "zustand";
 import { useAuthStore } from "./auth.store";
 import { useCompanyStore } from "./company.store";
-import { useLockStore } from "./lock.store";
 import { dbService } from "@/db/services";
 import { useSettingsStore } from "./settings.store";
+
+// Module-level lock — prevents double-invocation in React StrictMode where
+// useEffect fires twice in dev. The Zustand state check alone has a TOCTOU
+// gap between the read and the set; this flag closes it.
+let _initInFlight = false;
+
+/** Exported so resetApp() in auth.store can clear the flag before page reload. */
+export function _resetInitFlag(): void {
+  _initInFlight = false;
+}
 
 /** Maximum time (ms) the startup sequence is allowed to run before we
  *  surface an error to the user instead of hanging on the splash screen.
@@ -15,10 +24,10 @@ const STARTUP_TIMEOUT_MS = 30_000;
  * The actual startup work usually finishes in ~300–600ms on a warm machine.
  * This floor ensures the user sees the splash long enough to register it,
  * and gives the icon animation time to complete before routing kicks in.
- * At minimum 4%/s the bar needs ~24s to travel 0→95% — but the store steps
- * push it forward quickly, so in practice it reaches 90%+ well within 2.8s.
+ * At 40%/s the bar needs ~2.4s to travel 0→95% — the store steps push it
+ * forward quickly, so in practice it reaches 90%+ well within 2s.
  */
-const SPLASH_MIN_DISPLAY_MS = 2_800;
+const SPLASH_MIN_DISPLAY_MS = 2_000;
 
 interface StartupState {
   phase: "idle" | "initializing" | "ready" | "error";
@@ -67,6 +76,7 @@ export const useStartupStore = create<StartupState>()((set, get) => ({
   },
 
   retry: async () => {
+    _initInFlight = false; // Allow re-run after error
     set({
       phase: "idle",
       uiReady: false,
@@ -82,7 +92,13 @@ export const useStartupStore = create<StartupState>()((set, get) => ({
   },
 
   initialize: async () => {
-    if (get().initialized || get().phase === "initializing") return;
+    // Double-guard: Zustand state check + module-level flag.
+    // The module flag closes the TOCTOU gap that exists between reading
+    // `initialized`/`phase` and setting `phase = "initializing"` — this
+    // matters in React StrictMode where effects fire twice in dev.
+    if (get().initialized || get().phase === "initializing" || _initInFlight)
+      return;
+    _initInFlight = true;
 
     set({
       phase: "initializing",
@@ -116,17 +132,21 @@ export const useStartupStore = create<StartupState>()((set, get) => ({
       await Promise.race([_runStartupSequence(set), timeoutPromise]);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "An unexpected error occurred during startup.";
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred during startup.";
       console.error("[Startup] Fatal error:", error);
       set({
         phase: "error",
         error: message,
         message: "Startup failed.",
       });
+      _initInFlight = false;
       return;
     } finally {
       if (timeoutId !== null) clearTimeout(timeoutId);
     }
+    _initInFlight = false;
   },
 }));
 
@@ -175,7 +195,10 @@ async function _doStartupWork(set: SetFn): Promise<void> {
     logStartup(`Database init complete: ${dbReady}`);
   } catch (error) {
     // DB failure is non-fatal — app can still run from localStorage cache
-    set({ isDbReady: false, message: "Database unavailable; using local storage." });
+    set({
+      isDbReady: false,
+      message: "Database unavailable; using local storage.",
+    });
     console.warn("[Startup] DB init failed:", error);
   }
 
@@ -207,16 +230,6 @@ async function _doStartupWork(set: SetFn): Promise<void> {
     console.warn("[Startup] Auth initialization failed:", e);
   }
 
-  // ── Step 4: Lock store (depends on auth) ──────────────────────────────────
-  set({ message: "Applying security policies..." });
-  try {
-    const isAuthenticated = useAuthStore.getState().isAuthenticated;
-    await useLockStore.getState().bootstrapForStartup(isAuthenticated);
-    logStartup("Lock store initialized");
-  } catch (error) {
-    console.warn("[Startup] Lock bootstrap failed:", error);
-  }
-
   // ── Final validation (dev only) ───────────────────────────────────────────
   if (import.meta.env.DEV) {
     console.group("[Startup] Final State for Routing");
@@ -225,7 +238,6 @@ async function _doStartupWork(set: SetFn): Promise<void> {
       setupCompleted: useSettingsStore.getState().settings.setupCompleted,
       isAuthenticated: useAuthStore.getState().isAuthenticated,
       hasCompany: useCompanyStore.getState().hasCompany,
-      isLocked: useLockStore.getState().isLocked,
     });
     console.groupEnd();
   }

@@ -14,5 +14,4 @@ export * from './useToast';
 export * from './useWindow';
 export * from './useAppearance';
 export * from './useAppTranslation';
-export * from './useInactivityLock';
 export * from './useDataTable';

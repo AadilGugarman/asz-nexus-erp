@@ -10,7 +10,7 @@
 
 import { ipcInvoke } from '../invoke';
 import { CMD } from '../commands';
-import type { AppInfo, PingResponse } from '../types';
+import type { AppInfo } from '../types';
 
 export const appIpc = {
   /**
@@ -29,18 +29,6 @@ export const appIpc = {
         debug: true,
         build_stamp: 'dev',
       },
-    );
-  },
-
-  /**
-   * Round-trip ping to verify IPC is working.
-   * @param message - Any string to echo back
-   */
-  ping(message: string): Promise<PingResponse> {
-    return ipcInvoke<PingResponse>(
-      CMD.app.ping,
-      { payload: { message } },
-      { echo: message, timestamp_ms: Date.now() },
     );
   },
 };

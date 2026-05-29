@@ -15,9 +15,9 @@ interface AutocompleteProps {
   placeholder?: string;
   className?: string;
   error?: string;
-  icon?: React.ReactNode;
+  icon?: React.ReactElement<{ size?: number }>;
   autoFocus?: boolean;
-  nextFieldRef?: React.RefObject<HTMLInputElement>;
+  nextFieldRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export const Autocomplete: React.FC<AutocompleteProps> = ({
@@ -127,7 +127,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       <div className="relative group">
         {icon && (
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400/70 dark:text-slate-500/60 group-focus-within:text-amber-500/70 dark:group-focus-within:text-amber-400/60 transition-colors z-10">
-            {React.cloneElement(icon as React.ReactElement, { size: 14 })}
+            {React.isValidElement(icon) ? React.cloneElement(icon, { size: 14 }) : icon}
           </div>
         )}
         <input

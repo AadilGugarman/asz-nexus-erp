@@ -16,6 +16,7 @@
  */
 
 import { APP_CONFIG } from "@/config";
+import { ipc } from "@/ipc";
 import { initProductionStartup } from "./production.service";
 
 // ── Timing helpers ────────────────────────────────────────────────────────────
@@ -38,18 +39,7 @@ function log(msg: string): void {
 async function showWindow(): Promise<void> {
   if (!APP_CONFIG.isTauri) return;
   try {
-    // Dynamic import keeps this out of the critical path bundle
-    const { getCurrentWindow } = (await import(
-      "@tauri-apps/api/window" as never as string
-    )) as {
-      getCurrentWindow: () => {
-        show: () => Promise<void>;
-        setFocus: () => Promise<void>;
-      };
-    };
-    const win = getCurrentWindow();
-    await win.show();
-    await win.setFocus();
+    await ipc.win.show();
     log("window shown");
   } catch (e) {
     // Non-fatal — window may already be visible
@@ -59,27 +49,55 @@ async function showWindow(): Promise<void> {
 
 /** Preload the most-visited chunk (dashboard) during idle time. */
 function schedulePreloads(): void {
-  // Fallback for environments without requestIdleCallback (e.g. Safari < 16)
-  const idle =
-    typeof requestIdleCallback !== "undefined"
-      ? requestIdleCallback
-      : (cb: () => void) => setTimeout(cb, 1);
-
-  idle(
-    () => {
-      // Preload dashboard — the first screen after login
+  if (typeof requestIdleCallback !== "undefined") {
+    requestIdleCallback(
+      () => {
+        // Preload dashboard — the first screen after login
+        import("@/components/ExecutiveDashboard").catch((err) => {
+          if (import.meta.env.DEV)
+            console.warn(
+              "[startup] Failed to preload ExecutiveDashboard:",
+              err,
+            );
+        });
+        log("dashboard preloaded");
+      },
+      { timeout: 3000 },
+    );
+  } else {
+    setTimeout(() => {
       import("@/components/ExecutiveDashboard").catch((err) => {
         if (import.meta.env.DEV)
           console.warn("[startup] Failed to preload ExecutiveDashboard:", err);
       });
       log("dashboard preloaded");
-    },
-    { timeout: 3000 },
-  );
+    }, 1);
+  }
 
-  idle(
-    () => {
-      // Preload the two most-used billing modules
+  if (typeof requestIdleCallback !== "undefined") {
+    requestIdleCallback(
+      () => {
+        // Preload the two most-used billing modules
+        void import("@/components/SalesBillingModule").catch((err) => {
+          if (import.meta.env.DEV)
+            console.warn(
+              "[startup] Failed to preload SalesBillingModule:",
+              err,
+            );
+        });
+        void import("@/components/PurchaseBillingModule").catch((err) => {
+          if (import.meta.env.DEV)
+            console.warn(
+              "[startup] Failed to preload PurchaseBillingModule:",
+              err,
+            );
+        });
+        log("billing modules preloaded");
+      },
+      { timeout: 5000 },
+    );
+  } else {
+    setTimeout(() => {
       void import("@/components/SalesBillingModule").catch((err) => {
         if (import.meta.env.DEV)
           console.warn("[startup] Failed to preload SalesBillingModule:", err);
@@ -92,9 +110,8 @@ function schedulePreloads(): void {
           );
       });
       log("billing modules preloaded");
-    },
-    { timeout: 5000 },
-  );
+    }, 1);
+  }
 }
 
 // ── Main orchestrator ─────────────────────────────────────────────────────────

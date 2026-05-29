@@ -7,7 +7,7 @@ export interface Fruit {
   name: string;
   varieties: string[];
   /** 'kg' = priced per KG (Mango), 'caret' = priced per Caret/Crate (all others) */
-  pricingType?: 'kg' | 'caret';
+  pricingType?: "kg" | "caret";
 }
 
 export interface Supplier {
@@ -70,16 +70,16 @@ export interface CustomerLedgerEntry {
 
 export interface PurchaseInvoiceItem {
   id: string;
-  fruitCategory: string;  // e.g. "Mango", "Banana"
-  fruit: string;          // kept for backward compat (same as fruitCategory)
+  fruitCategory: string; // e.g. "Mango", "Banana"
+  fruit: string; // kept for backward compat (same as fruitCategory)
   variety: string;
   caret: number;
   weight: number;
   rate: number;
   amount: number;
-  rowNote?: string;       // per-row supplier note
+  rowNote?: string; // per-row supplier note
   /** Pricing mode: 'kg' = Weight × Rate/KG (Mango), 'caret' = Carets × Rate/Caret (others) */
-  pricingType?: 'kg' | 'caret';
+  pricingType?: "kg" | "caret";
 }
 
 export interface PurchaseInvoice {
@@ -125,15 +125,15 @@ export interface StockMovement {
 
 export interface InvoiceItem {
   id: string;
-  fruitCategory: string;  // e.g. "Mango"
-  fruit: string;          // kept for backward compat
+  fruitCategory: string; // e.g. "Mango"
+  fruit: string; // kept for backward compat
   lotVariety: string;
   caret: number;
   weight: number;
   rate: number;
   amount: number;
   /** Pricing mode: 'kg' = Weight × Rate/KG (Mango), 'caret' = Carets × Rate/Caret (others) */
-  pricingType?: 'kg' | 'caret';
+  pricingType?: "kg" | "caret";
 }
 
 export interface Invoice {
@@ -148,11 +148,12 @@ export interface Invoice {
   items: InvoiceItem[];
   previousBalance: number;
   todayAmount: number;
-  freight?: number;       // Bhaada
-  hamali?: number;        // kept for backward compat on existing records
-  discount?: number;      // legacy field — no longer set by new invoices
+  freight?: number; // Bhaada
+  hamali?: number; // kept for backward compat on existing records
+  discount?: number; // legacy field — no longer set by new invoices
   paidAmount: number;
   remainingBalance: number;
+  otherCharges?: number;
   remainingCaretBalance?: number;
   notes?: string;
   createdAt: string;
@@ -172,7 +173,7 @@ export interface PaymentReceipt {
 
 // ── Caret Transactions ────────────────────────────────────────────────────────
 
-export type CaretTransactionType = 'GIVEN' | 'RETURN';
+export type CaretTransactionType = "GIVEN" | "RETURN";
 
 export interface CaretTransaction {
   id: string;
@@ -238,11 +239,7 @@ export interface InvoiceSettings {
   showUPI: boolean;
   showBankDetails: boolean;
   // Extended fields
-  templateStyle:
-    | "modern"
-    | "watermark"
-    | "thermal"
-    | "initials";
+  templateStyle: "modern" | "watermark" | "thermal" | "initials";
   brandColor: string;
   enableQR: boolean;
   autoInvoiceNo: boolean;
@@ -270,12 +267,6 @@ export interface InvoiceSettings {
   enableInvoiceLogo: boolean; // when false, falls back to company master logo
 }
 
-export interface SecuritySettings {
-  appPin: string;
-  autoLockMinutes: number;
-  pinEnabled: boolean;
-}
-
 export interface CompanyProfile {
   id: string;
   company: CompanySettings;
@@ -293,6 +284,5 @@ export interface AppSettings {
   company: CompanySettings;
   financial: FinancialSettings;
   invoice: InvoiceSettings;
-  security: SecuritySettings;
   setupCompleted: boolean;
 }

@@ -32,7 +32,6 @@ pub struct UpdateInstallResult {
 /// Frontend: ipc.updater.check()
 #[tauri::command]
 pub async fn updater_check() -> AppResult<IpcResponse<UpdateCheckResult>> {
-    // TODO: use tauri_plugin_updater::UpdaterExt once plugin is added
     Ok(IpcResponse::ok(UpdateCheckResult {
         available: false,
         current_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -45,9 +44,8 @@ pub async fn updater_check() -> AppResult<IpcResponse<UpdateCheckResult>> {
 /// Frontend: ipc.updater.install()
 #[tauri::command]
 pub async fn updater_install() -> AppResult<IpcResponse<UpdateInstallResult>> {
-    // TODO: trigger download + install via tauri-plugin-updater
     Ok(IpcResponse::ok(UpdateInstallResult {
         started: false,
-        message: "Updater plugin not yet initialised".to_string(),
+        message: "Updater not configured in this build".to_string(),
     }))
 }

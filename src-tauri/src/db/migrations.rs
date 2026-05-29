@@ -33,18 +33,13 @@ pub struct Migration {
 static MIGRATIONS: &[Migration] = &[
     Migration {
         version: 1,
-        description: "complete ERP schema",
+        description: "Fresh production-grade ERP schema",
         sql: include_str!("migrations/0001_initial.sql"),
     },
     Migration {
         version: 2,
-        description: "caret transactions table",
-        sql: include_str!("migrations/0002_caret_transactions.sql"),
-    },
-    Migration {
-        version: 3,
-        description: "production performance indexes",
-        sql: include_str!("migrations/0003_production_indexes.sql"),
+        description: "Add flat app columns for legacy data model coexistence",
+        sql: include_str!("migrations/0002_app_flat_columns.sql"),
     },
 ];
 

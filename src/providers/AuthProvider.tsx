@@ -10,18 +10,15 @@
  * Components use stores directly to react to auth/lock state changes.
  */
 
-import React from 'react';
-import { useAutoRefresh, useInactivityLock } from '@/hooks';
+import React, { useEffect } from "react";
+import { useAuthStore } from "@/store";
+import { useAutoRefresh } from "@/hooks";
 
-interface AuthProviderProps {
-  children: React.ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   // Keeps access token fresh for authenticated sessions.
   useAutoRefresh();
-  // Locks app after configured inactivity timeout.
-  useInactivityLock();
 
   return <>{children}</>;
 };

@@ -44,7 +44,7 @@ pub fn run() {
 
             // ── Logging (release: warn+, dev: debug+) ─────────────────────────
             let log_level = if cfg!(debug_assertions) {
-                log::LevelFilter::Debug
+                log::LevelFilter::Warn
             } else {
                 log::LevelFilter::Warn
             };
@@ -105,25 +105,18 @@ pub fn run() {
             tauri::generate_handler![
                 // ── App ──────────────────────────────────────────────────────
                 commands::app::get_app_info,
-                commands::app::ping,
                 // ── Auth ─────────────────────────────────────────────────────
                 commands::auth::auth_is_setup_done,
                 commands::auth::auth_setup,
                 commands::auth::auth_login,
                 commands::auth::auth_refresh,
                 commands::auth::auth_restore_session,
-                commands::auth::auth_get_lock_config,
-                commands::auth::auth_set_lock_config,
-                commands::auth::auth_verify_pin,
                 commands::auth::auth_logout,
                 commands::auth::auth_check,
                 commands::auth::auth_reset_app,
                 commands::auth::auth_change_password,
                 // ── Database ─────────────────────────────────────────────────
                 commands::db::db_get_stats,
-                commands::db::db_get_seed_plan,
-                commands::db::db_reseed_demo_data,
-                commands::db::db_reset_demo_data,
                 commands::db::db_reset_company_data,
                 // ── Backup ───────────────────────────────────────────────────
                 commands::backup::backup_create,
@@ -133,26 +126,6 @@ pub fn run() {
                 commands::backup::backup_restore,
                 commands::backup::backup_prune,
                 commands::backup::backup_get_dir,
-                // ── Employee ─────────────────────────────────────────────────
-                commands::employee::employee_list,
-                commands::employee::employee_get,
-                commands::employee::employee_create,
-                commands::employee::employee_update,
-                commands::employee::employee_delete,
-                commands::employee::employee_set_active,
-                commands::employee::employee_bulk_insert,
-                // ── Supplier ─────────────────────────────────────────────────
-                commands::supplier::supplier_list,
-                commands::supplier::supplier_get,
-                commands::supplier::supplier_create,
-                commands::supplier::supplier_update,
-                commands::supplier::supplier_delete,
-                // ── Customer ─────────────────────────────────────────────────
-                commands::customer::customer_list,
-                commands::customer::customer_get,
-                commands::customer::customer_create,
-                commands::customer::customer_update,
-                commands::customer::customer_delete,
                 // ── Sales Invoices ────────────────────────────────────────────
                 commands::invoice::invoice_list,
                 commands::invoice::invoice_get,
@@ -208,6 +181,17 @@ pub fn run() {
                 // ── System ───────────────────────────────────────────────────
                 commands::system::get_system_info,
                 commands::system::get_app_data_dir,
+                // ── Company ──────────────────────────────────────────────────
+                commands::company::company_list,
+                commands::company::company_create,
+                // ── Ledger ───────────────────────────────────────────────────
+                commands::ledger::ledger_list,
+                commands::ledger::ledger_get,
+                commands::ledger::ledger_create,
+                commands::ledger::ledger_delete,
+                // ── Items (Fruits) ────────────────────────────────────────────
+                commands::item::fruit_list,
+                commands::item::fruit_create,
                 // ── Updater ──────────────────────────────────────────────────
                 commands::updater::updater_check,
                 commands::updater::updater_install,

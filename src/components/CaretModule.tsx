@@ -11,7 +11,7 @@ import {
   Phone, Edit3
 } from 'lucide-react';
 
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { CommandSelect, CommandOption } from './ui/CommandSelect';

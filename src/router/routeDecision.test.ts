@@ -8,10 +8,8 @@ import {
 const routeByPriority = (input: RouteDecisionInput): string | null => {
   if (!input.startupReady) return null;
   if (!input.isSetupDone) return ROUTES.setup;
-  if (!input.isSetupComplete) return ROUTES.setup;
   if (!input.isAuthenticated) return ROUTES.login;
-  if (!input.hasCompany) return ROUTES.setup;
-  if (input.isLocked) return ROUTES.lock;
+  if (!input.hasCompany) return ROUTES.companySetup;
   return ROUTES.dashboard;
 };
 
@@ -30,57 +28,63 @@ describe("routeDecision matrix", () => {
           isSetupComplete: true,
           isAuthenticated: true,
           hasCompany: true,
-          isLocked: true,
         },
         expected: null,
       },
       {
-        name: "setup takes precedence over auth/company/lock",
+        name: "setup takes precedence over auth/company when no password yet",
         input: {
           startupReady: true,
           isSetupDone: false,
           isSetupComplete: false,
           isAuthenticated: true,
           hasCompany: true,
-          isLocked: true,
         },
         expected: ROUTES.setup,
       },
       {
-        name: "unauthenticated goes to login before company/lock checks",
+        name: "unauthenticated goes to login before company checks",
         input: {
           startupReady: true,
           isSetupDone: true,
           isSetupComplete: true,
           isAuthenticated: false,
           hasCompany: true,
-          isLocked: true,
         },
         expected: ROUTES.login,
       },
       {
-        name: "missing company goes to setup until onboarding is complete",
+        name: "authenticated with company goes to dashboard even if setupCompleted is false",
+        input: {
+          startupReady: true,
+          isSetupDone: true,
+          isSetupComplete: false,
+          isAuthenticated: true,
+          hasCompany: true,
+        },
+        expected: ROUTES.dashboard,
+      },
+      {
+        name: "authenticated, no company (just created password) goes to company setup",
         input: {
           startupReady: true,
           isSetupDone: true,
           isSetupComplete: false,
           isAuthenticated: true,
           hasCompany: false,
-          isLocked: true,
         },
-        expected: ROUTES.setup,
+        expected: ROUTES.companySetup,
       },
       {
-        name: "locked authenticated company goes to lock screen",
+        name: "authenticated, no company (setup complete) goes to company setup",
         input: {
           startupReady: true,
           isSetupDone: true,
           isSetupComplete: true,
           isAuthenticated: true,
-          hasCompany: true,
-          isLocked: true,
+          hasCompany: false,
         },
-        expected: ROUTES.lock,
+        expected: ROUTES.companySetup,
       },
       {
         name: "happy path reaches dashboard",
@@ -90,7 +94,6 @@ describe("routeDecision matrix", () => {
           isSetupComplete: true,
           isAuthenticated: true,
           hasCompany: true,
-          isLocked: false,
         },
         expected: ROUTES.dashboard,
       },
@@ -101,26 +104,23 @@ describe("routeDecision matrix", () => {
     }
   });
 
-  it("validates all 32 setup/auth/company/lock combinations", () => {
+  it("validates all 16 setup/auth/company combinations", () => {
     const bools = [false, true] as const;
 
     for (const startupReady of bools) {
       for (const isSetupDone of bools) {
         for (const isAuthenticated of bools) {
           for (const hasCompany of bools) {
-            for (const isLocked of bools) {
-              const input: RouteDecisionInput = {
-                startupReady,
-                isSetupDone,
-                isSetupComplete: isSetupDone,
-                isAuthenticated,
-                hasCompany,
-                isLocked,
-              };
+            const input: RouteDecisionInput = {
+              startupReady,
+              isSetupDone,
+              isSetupComplete: isSetupDone,
+              isAuthenticated,
+              hasCompany,
+            };
 
-              const expected = routeByPriority(input);
-              expect(decidePostStartupRoute(input)).toBe(expected);
-            }
+            const expected = routeByPriority(input);
+            expect(decidePostStartupRoute(input)).toBe(expected);
           }
         }
       }

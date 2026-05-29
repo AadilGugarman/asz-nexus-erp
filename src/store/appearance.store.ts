@@ -20,6 +20,8 @@ interface AppearancePersistedState {
   fontSize: FontSizeOption;
   accentColor: string;
   language: AppLanguage;
+  lowStockAlerts: boolean;
+  animationsEnabled: boolean;
 }
 
 interface AppearanceState extends AppearancePersistedState {
@@ -42,6 +44,8 @@ const DEFAULT_APPEARANCE: AppearancePersistedState = {
   fontSize: "large",
   accentColor: "#fbbf24", // Mango / Amber 400
   language: DEFAULT_LANGUAGE,
+  lowStockAlerts: true,
+  animationsEnabled: true,
 };
 
 const FONT_MAP: Record<FontFamilyOption, string> = {
@@ -332,6 +336,8 @@ export const useAppearanceStore = create<AppearanceState>()(
         fontSize: state.fontSize,
         accentColor: state.accentColor,
         language: state.language,
+        lowStockAlerts: state.lowStockAlerts,
+        animationsEnabled: state.animationsEnabled,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

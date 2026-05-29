@@ -7,7 +7,7 @@ import {
   ArrowUpDown, ArrowLeft, ArrowUpRight, ArrowDownRight, Calendar
 } from 'lucide-react';
 
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { DataTable, Pagination } from './ui/table';

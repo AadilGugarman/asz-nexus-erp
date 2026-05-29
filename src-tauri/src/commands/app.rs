@@ -6,7 +6,7 @@
 //   "get_app_info"   → get_app_info()
 //   "ping"           → ping()
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use crate::ipc::IpcResponse;
 use crate::error::AppResult;
 use crate::services::app as app_service;
@@ -25,19 +25,6 @@ pub struct AppInfo {
     pub build_stamp: String,
 }
 
-/// Request payload for ping.
-#[derive(Debug, Deserialize)]
-pub struct PingRequest {
-    pub message: String,
-}
-
-/// Response payload for ping.
-#[derive(Debug, Serialize)]
-pub struct PingResponse {
-    pub echo: String,
-    pub timestamp_ms: u64,
-}
-
 // ── Command handlers ──────────────────────────────────────────────────────────
 
 /// Returns static app metadata.
@@ -53,24 +40,5 @@ pub async fn get_app_info(
         tauri_version: tauri::VERSION.to_string(),
         debug: cfg.debug,
         build_stamp: app_service::build_stamp(),
-    }))
-}
-
-/// Round-trip ping — validates input via service, returns echo + timestamp.
-/// Frontend: ipc.app.ping({ message: "hello" })
-#[tauri::command]
-pub async fn ping(payload: PingRequest) -> AppResult<IpcResponse<PingResponse>> {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    let echo = app_service::process_ping(&payload.message)?;
-
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0);
-
-    Ok(IpcResponse::ok(PingResponse {
-        echo,
-        timestamp_ms: ts,
     }))
 }

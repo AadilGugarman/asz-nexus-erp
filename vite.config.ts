@@ -147,9 +147,6 @@ export default defineConfig(({ command, mode }) => {
             // so the user only loads the code for the tab they visit
             const moduleMap: Record<string, string> = {
               'ExecutiveDashboard':   'mod-dashboard',
-              'VehicleArrivalModule': 'mod-arrival',
-              'VehicleSpreadsheet':   'mod-arrival',
-              'VehiclePreviewModal':  'mod-arrival',
               'PurchaseBillingModule':'mod-purchase',
               'PurchasePreviewModal': 'mod-purchase',
               'SalesBillingModule':   'mod-sales',

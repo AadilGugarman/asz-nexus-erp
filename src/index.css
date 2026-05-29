@@ -312,7 +312,8 @@
    */
 
   /* ── 1. The paper container ─────────────────────── */
-  .printable-patti {
+  .printable-patti,
+  .dark .printable-patti {
     background-color: #ffffff !important;
     color: #0f172a !important;
     color-scheme: light !important;
@@ -322,6 +323,23 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     color-adjust: exact;
+
+    /* Force light mode variables inside the printable paper regardless of theme */
+    --page-bg: #ffffff !important;
+    --card-bg: #ffffff !important;
+    --card-border: #dde3ec !important;
+    --card-hover-border: #b8c5d6 !important;
+    --surface-bg: #f7f9fc !important;
+    --surface-border: #dde3ec !important;
+    --input-bg: #ffffff !important;
+    --input-border: #c8d3e0 !important;
+    --input-focus-border: #2563eb !important;
+    --text-primary: #0d1b2e !important;
+    --text-secondary: #3d5166 !important;
+    --text-muted: #5e7490 !important;
+    --table-row-hover: #eef2f8 !important;
+    --table-header-bg: #f2f6fb !important;
+    --table-border: #dde3ec !important;
   }
 
   /* ── 2. Force ALL descendants to light values ────── */
@@ -729,26 +747,39 @@
       color-adjust: exact !important;
     }
 
-    /* ── When erp-printing class is on body:
-          hide everything via visibility, show only the target.
-          visibility:hidden on parent + visibility:visible on child
-          is the standard CSS trick — child overrides parent. ── */
-    body.erp-printing * {
-      visibility: hidden !important;
+    /* ── Advanced `:has()` Layout Collapse System ── */
+    /* Hide all elements that do not contain the print target and are not descendants */
+    body.erp-printing *:not(:has([data-print-target])):not([data-print-target]):not([data-print-target] *) {
+      display: none !important;
     }
 
-    body.erp-printing [data-print-target],
-    body.erp-printing [data-print-target] * {
-      visibility: visible !important;
-    }
-
-    /* Position the target at the top-left of the page */
-    body.erp-printing [data-print-target] {
-      position: fixed !important;
+    /* Reset all layout wrappers (ancestors) of the print target so they do not restrict size or add visual elements */
+    body.erp-printing html,
+    body.erp-printing body,
+    body.erp-printing *:has([data-print-target]) {
+      display: block !important;
+      position: relative !important;
       top: 0 !important;
       left: 0 !important;
       width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+      overflow: visible !important;
+    }
+
+    /* Reset the print target container to have natural static block flow and fit exactly on paper */
+    body.erp-printing [data-print-target] {
+      display: block !important;
+      position: relative !important;
+      width: 100% !important;
       max-width: none !important;
+      height: auto !important;
       margin: 0 !important;
       padding: 0 !important;
       border: none !important;
@@ -756,6 +787,39 @@
       box-shadow: none !important;
       overflow: visible !important;
       background: white !important;
+    }
+
+    /* Force removal of heavy on-screen rounded corners, borders, and shadows on paper */
+    body.erp-printing [data-print-target] .printable-patti,
+    body.erp-printing [data-print-target] .group\/invoice,
+    body.erp-printing [data-print-target] [class*="rounded-"] {
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    /* Tighten spacings and paddings for paper printing to keep invoices beautiful and fitting on exactly 1 page */
+    body.erp-printing [data-print-target] [class*="p-10"],
+    body.erp-printing [data-print-target] [class*="p-14"],
+    body.erp-printing [data-print-target] [class*="p-8"] {
+      padding: 1.5rem !important;
+    }
+
+    body.erp-printing [data-print-target] [class*="mt-12"],
+    body.erp-printing [data-print-target] [class*="mt-16"],
+    body.erp-printing [data-print-target] [class*="mt-10"],
+    body.erp-printing [data-print-target] [class*="mt-8"] {
+      margin-top: 1rem !important;
+    }
+
+    body.erp-printing [data-print-target] table th {
+      padding-top: 0.5rem !important;
+      padding-bottom: 0.5rem !important;
+    }
+
+    body.erp-printing [data-print-target] table td {
+      padding-top: 0.4rem !important;
+      padding-bottom: 0.4rem !important;
     }
 
     /* Inline styles (gradients, brand colors) must print */
@@ -995,26 +1059,221 @@
     background-image: linear-gradient(135deg, #6366f1, #4f46e5);
   }
 
-  /* ── Print Styles ──────────────────────────────── */
+  /* ── Print Styles & Single-Page Layout Optimizations ──────────────── */
+  
+  /* Spacing optimizations for printable paper and print preview - forces 1 page */
+  .printable-patti .p-10,
+  .printable-patti .sm\:p-14,
+  .printable-patti .p-14,
+  .printable-patti .p-8,
+  .printable-patti .sm\:p-12 {
+    padding: 1.25rem !important;
+  }
+  
+  .printable-patti .mt-12 {
+    margin-top: 0.75rem !important;
+  }
+  
+  .printable-patti .mt-10 {
+    margin-top: 0.75rem !important;
+  }
+  
+  .printable-patti .mt-8 {
+    margin-top: 0.5rem !important;
+  }
+  
+  .printable-patti .mt-16 {
+    margin-top: 1rem !important;
+  }
+  
+  .printable-patti .pt-10 {
+    padding-top: 0.5rem !important;
+  }
+
+  .printable-patti .pb-6 {
+    padding-bottom: 0.5rem !important;
+  }
+  
+  .printable-patti .mb-6 {
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .printable-patti .mb-8 {
+    margin-bottom: 0.5rem !important;
+  }
+
+  .printable-patti .gap-10 {
+    gap: 0.5rem !important;
+  }
+
+  .printable-patti .gap-12 {
+    gap: 0.5rem !important;
+  }
+
+  .printable-patti .py-4 {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+  }
+
+  .printable-patti .px-6 {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .printable-patti .h-14, .printable-patti .w-14 {
+    height: 2.75rem !important;
+    width: 2.75rem !important;
+  }
+
+  .printable-patti .h-16, .printable-patti .w-16 {
+    height: 3.25rem !important;
+    width: 3.25rem !important;
+  }
+
+  /* ── 8. Table formatting: Premium, High-Contrast slate headers & Legible Data ── */
+  .printable-patti table th,
+  .printable-patti .erp-table thead th {
+    background: #0f172a !important;   /* Professional deep slate background */
+    color: #ffffff !important;        /* Pure white text for high-contrast readability */
+    font-size: 0.78rem !important;    /* Highly legible 11px font size (from 0.65rem) */
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.75rem 0.6rem !important;
+    border: none !important;
+  }
+  
+  .printable-patti table td,
+  .printable-patti .erp-table tbody td {
+    color: #0f172a !important;        /* Deep charcoal for comfortable reading */
+    font-size: 0.84rem !important;    /* Highly visible 12px text size (from 0.72rem) */
+    font-weight: 600 !important;      /* Crisp weight for maximum visual clarity */
+    padding: 0.45rem 0.6rem !important;
+  }
+
+  /* Re-correct dark theme slate corrections inside printable paper both on-screen and in print */
+  .dark .printable-patti .bg-slate-950 { background-color: #f7f9fc !important; }
+  .dark .printable-patti .bg-slate-900 { background-color: #ffffff !important; }
+  .dark .printable-patti .bg-slate-800 { background-color: #f7f9fc !important; }
+  .dark .printable-patti .border-slate-800 { border-color: #dde3ec !important; }
+  .dark .printable-patti .border-slate-700 { border-color: #dde3ec !important; }
+
+  .dark .printable-patti .text-slate-100 { color: #0d1b2e !important; }
+  .dark .printable-patti .text-slate-200 { color: #0d1b2e !important; }
+  .dark .printable-patti .text-slate-300 { color: #3d5166 !important; }
+  .dark .printable-patti .text-slate-400 { color: #5e7490 !important; }
+  .dark .printable-patti .text-slate-500 { color: #5e7490 !important; }
+
+  /* 
+   * FORCE DESKTOP COLUMNS & GRIDS ON A4 / PRINT
+   * Prevent browser from collapsing flex-row and grid-cols-2 layouts
+   * inside the paper container when printing (due to small print width).
+   */
+  .printable-patti .flex-col.md\:flex-row {
+    flex-direction: row !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+  }
+
+  .printable-patti .w-full.md\:w-80 {
+    width: 20rem !important; /* Forces right totals section (w-80 = 20rem) */
+  }
+
+  .printable-patti .grid-cols-1.md\:grid-cols-2 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Make sure flex layout children behave correctly when forced to row */
+  .printable-patti .flex-col.md\:flex-row > .flex-1 {
+    flex: 1 1 0% !important;
+  }
+
   @media print {
-    *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    *, *::before, *::after { 
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important; 
+      color-adjust: exact !important;
+    }
+    
     /* Force light color-scheme so dark-mode OS/browser settings don't bleed into print */
-    html, body { color-scheme: light !important; width: 210mm !important; margin: 0 !important; padding: 0 !important; background: white !important; color: black !important; font-size: 11pt !important; line-height: 1.45 !important; }
-    /* Ensure dark-mode CSS variables are overridden for print */
-    html.dark, html.dark body { --page-bg: #ffffff !important; --card-bg: #ffffff !important; --card-border: #e2e8f0 !important; --surface-bg: #f8fafc !important; --surface-border: #e2e8f0 !important; --input-bg: #ffffff !important; --input-border: #e2e8f0 !important; --text-primary: #0f172a !important; --text-secondary: #334155 !important; --text-muted: #64748b !important; --table-header-bg: #f8fafc !important; --table-border: #e2e8f0 !important; --table-row-hover: #f8fafc !important; }
-    body > div > div > header, body > div > div > main, body > div > div > footer, .no-print, nav, button:not(.print-keep) { display: none !important; }
-    .printable-patti { display: block !important; position: fixed !important; left: 0 !important; top: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; color: #0f172a !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; z-index: 999999 !important; }
-    .printable-patti, .printable-patti * { color-scheme: light !important; }
-    .printable-patti > div { padding: 8mm 10mm !important; max-width: 100% !important; }
+    html, body { 
+      color-scheme: light !important; 
+      width: 210mm !important; 
+      margin: 0 !important; 
+      padding: 0 !important; 
+      background: white !important; 
+      color: #0d1b2e !important; 
+      font-size: 10pt !important; 
+      line-height: 1.35 !important; 
+    }
+
+    /* Collapse screen-only elements from layout completely */
+    body.erp-printing *:not(:has([data-print-target])):not([data-print-target]):not([data-print-target] *) {
+      display: none !important;
+    }
+
+    body > div > div > header, 
+    body > div > div > main, 
+    body > div > div > footer, 
+    .no-print, 
+    nav, 
+    button:not(.print-keep) { 
+      display: none !important; 
+    }
+
+    /* Reset target container spacing and layout for natural page break and paper alignment */
+    .printable-patti { 
+      display: block !important; 
+      position: relative !important; 
+      left: auto !important; 
+      top: auto !important; 
+      width: 100% !important; 
+      height: auto !important; 
+      margin: 0 !important; 
+      padding: 0 !important; 
+      overflow: visible !important; 
+      background: white !important; 
+      color: #0d1b2e !important; 
+      box-shadow: none !important; 
+      border: none !important; 
+      border-radius: 0 !important; 
+    }
+    
+    .printable-patti * { 
+      color-scheme: light !important; 
+    }
+
+    .printable-patti .printable-patti,
+    .printable-patti .group\/invoice,
+    .printable-patti [class*="rounded-"],
+    .printable-patti .rounded-xl,
+    .printable-patti .rounded-2xl,
+    .printable-patti .rounded-3xl {
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    .printable-patti > div { 
+      padding: 4mm 6mm !important; 
+      max-width: 100% !important; 
+    }
+    
     table { page-break-inside: auto; border-collapse: collapse !important; }
     tr { page-break-inside: avoid; page-break-after: auto; }
     thead { display: table-header-group; }
     tfoot { display: table-footer-group; }
     .no-break, .grid { page-break-inside: avoid !important; break-inside: avoid !important; }
+    
     .fixed.inset-0 { position: static !important; background: transparent !important; backdrop-filter: none !important; }
     .fixed.inset-0 > div { position: static !important; max-height: none !important; overflow: visible !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
-    @page { size: A4 portrait; margin: 6mm 8mm; }
-    @page :first { margin-top: 6mm; }
+    
+    @page { 
+      size: A4 portrait; 
+      margin: 4mm 6mm; 
+    }
   }
 }
 

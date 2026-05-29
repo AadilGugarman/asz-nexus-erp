@@ -23,7 +23,6 @@ export const ROUTES = {
   // ── Auth (public) ─────────────────────────────────────────────────────────
   login: "/login",
   setup: "/setup",
-  lock: "/lock",
 
   // ── Onboarding (authenticated, no-company guard) ──────────────────────────
   companySetup: "/company-setup",
@@ -59,8 +58,7 @@ export function makeSettingsRoute(options?: {
     | "INVOICE"
     | "MASTERS"
     | "BACKUP"
-    | "APPEARANCE"
-    | "SECURITY";
+    | "APPEARANCE";
   action?: "create" | "edit";
   companyId?: string;
 }) {

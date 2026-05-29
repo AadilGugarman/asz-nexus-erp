@@ -24,7 +24,6 @@ import type {
   Invoice,
   PurchaseInvoice,
   PaymentReceipt,
-  VehicleArrival,
 } from "@/types";
 
 // ── Migration tracking ────────────────────────────────────────────────────
@@ -88,7 +87,6 @@ function createRollbackBackup(): void {
       fruits: safeReadJson(STORAGE_KEYS.fruits),
       suppliers: safeReadJson(STORAGE_KEYS.suppliers),
       customers: safeReadJson(STORAGE_KEYS.customers),
-      vehicles: safeReadJson(STORAGE_KEYS.vehicles),
       invoices: safeReadJson(STORAGE_KEYS.invoices),
       purchaseInvoices: safeReadJson(STORAGE_KEYS.purchaseInvoices),
       payments: safeReadJson(STORAGE_KEYS.payments),
@@ -99,17 +97,34 @@ function createRollbackBackup(): void {
   }
 }
 
+const LEGACY_MIGRATION_COMPANY_ID = "tfc_erp_legacy_company";
+const LEGACY_MIGRATION_COMPANY_NAME = "Legacy Company";
+
+function getDefaultFinancialYearName(): string {
+  const now = new Date();
+  const fyStartMonth = 4; // April
+  const year = now.getFullYear();
+  if (now.getMonth() + 1 >= fyStartMonth) {
+    return `${year}-${String(year + 1).slice(-2)}`;
+  }
+  return `${year - 1}-${String(year).slice(-2)}`;
+}
+
+function scopedGroupId(companyId: string, slug: string): string {
+  return `${companyId}__${slug}`;
+}
+
 // ── Migration stats tracking ──────────────────────────────────────────────
 
 export interface DataMigrationStats {
   alreadyRun: boolean;
   fruitsInserted: number;
+  varietiesInserted: number;
   suppliersInserted: number;
   customersInserted: number;
   invoicesInserted: number;
   purchaseInvoicesInserted: number;
   paymentsInserted: number;
-  vehicleArrivalsInserted: number;
   errorCount: number;
   warningCount: number;
   timestamp: string;
@@ -121,9 +136,6 @@ export interface DataMigrationStats {
  *
  * Safe to call multiple times — uses marker to prevent re-running.
  * Returns detailed statistics for logging and debugging.
- *
- * Should be called early in app startup, after dbService.init() but before
- * AppContext renders.
  */
 export async function runDataMigration(): Promise<DataMigrationStats> {
   const startTime = performance.now();
@@ -131,12 +143,12 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
   const stats: DataMigrationStats = {
     alreadyRun: false,
     fruitsInserted: 0,
+    varietiesInserted: 0,
     suppliersInserted: 0,
     customersInserted: 0,
     invoicesInserted: 0,
     purchaseInvoicesInserted: 0,
     paymentsInserted: 0,
-    vehicleArrivalsInserted: 0,
     errorCount: 0,
     warningCount: 0,
     timestamp: new Date().toISOString(),
@@ -166,20 +178,44 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
     // Create backup before starting (safety net for rollback)
     createRollbackBackup();
 
-    // ── Migrate Fruits ────────────────────────────────────────────────────────
+    const legacyCompanyId = LEGACY_MIGRATION_COMPANY_ID;
+    const legacyCompanyName = LEGACY_MIGRATION_COMPANY_NAME;
+    const legacyFyName = getDefaultFinancialYearName();
+    const legacyFyId = await dbService.financialYears.ensureFinancialYear(
+      legacyCompanyId,
+      legacyFyName,
+      legacyCompanyName,
+    );
+    await dbService.accountGroups.ensureDefaultGroups(legacyCompanyId);
+
+    // ── Migrate Fruits & Varieties (Normalized) ───────────────────────────────
     const fruits = safeReadJson<Fruit[]>(STORAGE_KEYS.fruits);
     if (fruits && Array.isArray(fruits)) {
       for (const fruit of fruits) {
         try {
+          // 1. Insert Fruit
           await dbService.fruits.insert({
             id: fruit.id,
+            companyId: legacyCompanyId,
             name: fruit.name,
-            varieties: JSON.stringify(fruit.varieties || []),
+            pricingType: fruit.pricingType || "caret",
           });
           stats.fruitsInserted++;
+
+          // 2. Insert Varieties for this fruit
+          if (fruit.varieties && Array.isArray(fruit.varieties)) {
+            for (const vName of fruit.varieties) {
+              await dbService.fruits.addVariety({
+                companyId: legacyCompanyId,
+                fruitId: fruit.id,
+                name: vName,
+              });
+              stats.varietiesInserted++;
+            }
+          }
         } catch (err) {
           console.warn(
-            `[Data Migration] Failed to insert fruit ${fruit.id}:`,
+            `[Data Migration] Failed to insert fruit/variety for ${fruit.id}:`,
             err,
           );
           stats.errorCount++;
@@ -187,18 +223,27 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
       }
     }
 
-    // ── Migrate Suppliers ─────────────────────────────────────────────────────
+    // ── Migrate Suppliers (to Ledgers) ────────────────────────────────────────
     const suppliers = safeReadJson<Supplier[]>(STORAGE_KEYS.suppliers);
     if (suppliers && Array.isArray(suppliers)) {
       for (const supplier of suppliers) {
         try {
           await dbService.suppliers.insert({
             id: supplier.id,
+            companyId: legacyCompanyId,
             name: supplier.name,
             code: supplier.code || "",
             phone: supplier.phone || "",
+            email: supplier.email || "",
+            gstin: supplier.gstin || "",
             city: supplier.city || "",
-            previousBalance: supplier.previousBalance || 0,
+            state: supplier.state || "",
+            billingAddress: supplier.billingAddress || "",
+            shippingAddress: supplier.shippingAddress || "",
+            openingBalance: supplier.previousBalance || 0,
+            openingBalanceType: "Cr", // Suppliers usually have credit balance
+            type: "SUPPLIER",
+            groupId: scopedGroupId(legacyCompanyId, "sundry-creditors"),
           });
           stats.suppliersInserted++;
         } catch (err) {
@@ -211,17 +256,26 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
       }
     }
 
-    // ── Migrate Customers ─────────────────────────────────────────────────────
+    // ── Migrate Customers (to Ledgers) ────────────────────────────────────────
     const customers = safeReadJson<Customer[]>(STORAGE_KEYS.customers);
     if (customers && Array.isArray(customers)) {
       for (const customer of customers) {
         try {
           await dbService.customers.insert({
             id: customer.id,
+            companyId: legacyCompanyId,
             name: customer.name,
             phone: customer.phone || "",
+            email: customer.email || "",
+            gstin: customer.gstin || "",
             city: customer.city || "",
-            previousBalance: customer.previousBalance || 0,
+            state: customer.state || "",
+            billingAddress: customer.billingAddress || "",
+            shippingAddress: customer.shippingAddress || "",
+            openingBalance: customer.previousBalance || 0,
+            openingBalanceType: "Dr", // Customers usually have debit balance
+            type: "CUSTOMER",
+            groupId: scopedGroupId(legacyCompanyId, "sundry-debtors"),
           });
           stats.customersInserted++;
         } catch (err) {
@@ -234,26 +288,32 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
       }
     }
 
-    // ── Migrate Invoices ──────────────────────────────────────────────────────
+    // ── Migrate Invoices (Sales) ──────────────────────────────────────────────
     const invoices = safeReadJson<Invoice[]>(STORAGE_KEYS.invoices);
     if (invoices && Array.isArray(invoices)) {
       for (const invoice of invoices) {
         try {
           await dbService.invoices.insert({
             id: invoice.id,
-            invoiceNo: invoice.invoiceNo,
-            date: invoice.date,
-            customerId: invoice.customerId,
-            customerName: invoice.customerName,
-            items: JSON.stringify(invoice.items || []),
-            previousBalance: invoice.previousBalance || 0,
-            todayAmount: invoice.todayAmount || 0,
-            hamali: invoice.hamali,
-            discount: invoice.discount,
+            companyId: legacyCompanyId,
+            financialYearId: legacyFyId,
+            invoiceNumber: invoice.invoiceNo,
+            date: new Date(invoice.date),
+            ledgerId: invoice.customerId,
+            type: "SALE",
+            vehicleNo: invoice.vehicleNo,
+            declaredWeight: invoice.declaredWeight,
+            subTotal:
+              invoice.todayAmount -
+              (invoice.freight || 0) -
+              (invoice.hamali || 0),
+            freight: invoice.freight || 0,
+            hamali: invoice.hamali || 0,
+            grandTotal: invoice.todayAmount,
             paidAmount: invoice.paidAmount || 0,
-            remainingBalance: invoice.remainingBalance || 0,
             notes: invoice.notes,
-            createdAt: invoice.createdAt || new Date().toISOString(),
+            status: "FINAL",
+            createdAt: new Date(invoice.createdAt || Date.now()),
           });
           stats.invoicesInserted++;
         } catch (err) {
@@ -273,21 +333,25 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
     if (purchaseInvoices && Array.isArray(purchaseInvoices)) {
       for (const pinv of purchaseInvoices) {
         try {
-          await dbService.purchaseInvoices.insert({
+          await dbService.invoices.insert({
             id: pinv.id,
-            billNo: pinv.billNo,
-            date: pinv.date,
-            supplierId: pinv.supplierId,
-            supplierName: pinv.supplierName,
-            items: JSON.stringify(pinv.items || []),
-            previousBalance: pinv.previousBalance || 0,
-            todayAmount: pinv.todayAmount || 0,
-            freight: pinv.freight,
-            hamali: pinv.hamali,
+            companyId: legacyCompanyId,
+            financialYearId: legacyFyId,
+            invoiceNumber: pinv.billNo,
+            date: new Date(pinv.date),
+            ledgerId: pinv.supplierId,
+            type: "PURCHASE",
+            vehicleNo: pinv.vehicleNo,
+            declaredWeight: pinv.declaredWeight,
+            subTotal:
+              pinv.todayAmount - (pinv.freight || 0) - (pinv.hamali || 0),
+            freight: pinv.freight || 0,
+            hamali: pinv.hamali ?? 0,
+            grandTotal: pinv.todayAmount,
             paidAmount: pinv.paidAmount || 0,
-            remainingBalance: pinv.remainingBalance || 0,
             notes: pinv.notes,
-            createdAt: pinv.createdAt || new Date().toISOString(),
+            status: "FINAL",
+            createdAt: new Date(pinv.createdAt || Date.now()),
           });
           stats.purchaseInvoicesInserted++;
         } catch (err) {
@@ -305,16 +369,21 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
     if (payments && Array.isArray(payments)) {
       for (const payment of payments) {
         try {
+          const cashLedgerId =
+            await dbService.payments.ensureCashLedger(legacyCompanyId);
           await dbService.payments.insert({
             id: payment.id,
-            date: payment.date,
-            partyType: payment.partyType,
-            partyId: payment.partyId,
-            partyName: payment.partyName,
+            companyId: legacyCompanyId,
+            financialYearId: legacyFyId,
+            date: new Date(payment.date),
+            type: payment.partyType === "SUPPLIER" ? "PAYMENT" : "RECEIPT",
+            ledgerId: payment.partyId,
+            voucherNumber: payment.id.substring(0, 8).toUpperCase(),
             amount: payment.amount,
             paymentMode: payment.paymentMode,
             referenceNo: payment.referenceNo,
-            notes: payment.notes,
+            narration: payment.notes,
+            offsetLedgerId: cashLedgerId,
           });
           stats.paymentsInserted++;
         } catch (err) {
@@ -327,52 +396,11 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
       }
     }
 
-    // ── Migrate Vehicle Arrivals ──────────────────────────────────────────────
-    const vehicleArrivals = safeReadJson<VehicleArrival[]>(
-      STORAGE_KEYS.vehicles,
-    );
-    if (vehicleArrivals && Array.isArray(vehicleArrivals)) {
-      for (const arrival of vehicleArrivals) {
-        try {
-          await dbService.vehicleArrivals.insert({
-            id: arrival.id,
-            arrivalNo: arrival.arrivalNo,
-            date: arrival.date,
-            day: arrival.day || "",
-            vehicleNo: arrival.vehicleNo,
-            vehicleName: arrival.vehicleName,
-            fruitType: arrival.fruitType,
-            totalVehicleWeight: arrival.totalVehicleWeight || 0,
-            driverName: arrival.driverName,
-            notes: arrival.notes,
-            rows: JSON.stringify(arrival.rows || []),
-            totalCarets: arrival.totalCarets || 0,
-            totalCalculatedWeight: arrival.totalCalculatedWeight || 0,
-            totalAmount: arrival.totalAmount || 0,
-            freightCharge: arrival.freightCharge,
-            hamaliCharge: arrival.hamaliCharge,
-            advancePaid: arrival.advancePaid,
-            status: arrival.status || "SAVED",
-            createdAt: arrival.createdAt || new Date().toISOString(),
-          });
-          stats.vehicleArrivalsInserted++;
-        } catch (err) {
-          console.warn(
-            `[Data Migration] Failed to insert vehicle arrival ${arrival.id}:`,
-            err,
-          );
-          stats.errorCount++;
-        }
-      }
-    }
-
     // ── Clean up: Remove old business data from localStorage ──────────────────
-    // Keep ONLY appearance/theme/preferences
     const businessKeys = [
       STORAGE_KEYS.fruits,
       STORAGE_KEYS.suppliers,
       STORAGE_KEYS.customers,
-      STORAGE_KEYS.vehicles,
       STORAGE_KEYS.invoices,
       STORAGE_KEYS.purchaseInvoices,
       STORAGE_KEYS.payments,
@@ -380,25 +408,6 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
 
     for (const key of businessKeys) {
       safeRemoveKey(key);
-    }
-
-    // Log completion
-    const summary = {
-      fruits: stats.fruitsInserted,
-      suppliers: stats.suppliersInserted,
-      customers: stats.customersInserted,
-      invoices: stats.invoicesInserted,
-      purchaseInvoices: stats.purchaseInvoicesInserted,
-      payments: stats.paymentsInserted,
-      vehicleArrivals: stats.vehicleArrivalsInserted,
-      errors: stats.errorCount,
-      warnings: stats.warningCount,
-    };
-
-    if (stats.errorCount === 0) {
-      console.info("[Data Migration] ✓ Complete:", summary);
-    } else {
-      console.warn("[Data Migration] ⚠ Complete with errors:", summary);
     }
 
     // Mark migration as complete
@@ -414,12 +423,10 @@ export async function runDataMigration(): Promise<DataMigrationStats> {
 
 /**
  * Force re-run data migration (for development/testing).
- * ⚠️ ONLY call in development!
  */
 export function resetDataMigrationMarker(): void {
   try {
     localStorage.removeItem(DATA_MIGRATION_MARKER);
-    console.info("[Data Migration] Marker reset — will re-run on next startup");
   } catch {
     // silent fail
   }
@@ -427,19 +434,14 @@ export function resetDataMigrationMarker(): void {
 
 /**
  * Restore from rollback backup if migration failed.
- * ⚠️ ONLY use if migration had critical failures!
  */
 export function rollbackDataMigration(): void {
   try {
     const backup = safeReadJson<Record<string, unknown>>(
       DATA_MIGRATION_ROLLBACK,
     );
-    if (!backup) {
-      console.warn("[Data Migration] No rollback backup found");
-      return;
-    }
+    if (!backup) return;
 
-    // Restore each dataset to localStorage
     if (backup.fruits)
       localStorage.setItem(STORAGE_KEYS.fruits, JSON.stringify(backup.fruits));
     if (backup.suppliers)
@@ -467,18 +469,8 @@ export function rollbackDataMigration(): void {
         STORAGE_KEYS.payments,
         JSON.stringify(backup.payments),
       );
-    if (backup.vehicles)
-      localStorage.setItem(
-        STORAGE_KEYS.vehicles,
-        JSON.stringify(backup.vehicles),
-      );
 
-    // Reset migration marker so it runs again next time
     resetDataMigrationMarker();
-
-    console.info(
-      "[Data Migration] ⚠ Rollback complete — data restored to localStorage",
-    );
   } catch (err) {
     console.error("[Data Migration] Rollback failed:", err);
   }
@@ -492,14 +484,12 @@ export function checkRemainingBusinessData(): Record<string, boolean> {
     STORAGE_KEYS.fruits,
     STORAGE_KEYS.suppliers,
     STORAGE_KEYS.customers,
-    STORAGE_KEYS.vehicles,
     STORAGE_KEYS.invoices,
     STORAGE_KEYS.purchaseInvoices,
     STORAGE_KEYS.payments,
     LEGACY_KEYS.fruits,
     LEGACY_KEYS.suppliers,
     LEGACY_KEYS.customers,
-    LEGACY_KEYS.vehicles,
     LEGACY_KEYS.invoices,
     LEGACY_KEYS.purchaseInvoices,
     LEGACY_KEYS.payments,
@@ -519,19 +509,4 @@ export function checkRemainingBusinessData(): Record<string, boolean> {
   }
 
   return remaining;
-}
-
-/**
- * Debug: Get migration stats from marker and current state.
- */
-export function getMigrationStatus(): {
-  hasRun: boolean;
-  hasRollbackBackup: boolean;
-  remainingBusinessData: Record<string, boolean>;
-} {
-  return {
-    hasRun: hasMigrationRun(),
-    hasRollbackBackup: !!safeReadJson(DATA_MIGRATION_ROLLBACK),
-    remainingBusinessData: checkRemainingBusinessData(),
-  };
 }

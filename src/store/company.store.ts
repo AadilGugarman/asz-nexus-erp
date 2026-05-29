@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { useSettingsStore } from "./settings.store";
-import { STORAGE_KEYS } from "@/config";
 import type { CompanyProfile } from "@/types";
 
 interface CompanyState {
@@ -59,112 +58,53 @@ export const useCompanyStore = create<CompanyState>()((set, get) => ({
 
       const settingsState = useSettingsStore.getState();
 
-      // 1. Direct query to SQLite as source of truth
-      const [persistedCompanies, dbSettings, rawCheck] = await Promise.all([
-        dbService.settings.get<CompanyProfile[]>(STORAGE_KEYS.companies),
-        dbService.settings.get<{ company?: { name?: string } }>(STORAGE_KEYS.settings),
-        // Raw SQL check as a failsafe to confirm table has data
-        (async () => {
-          try {
-             const { getDb } = await import("@/db/client");
-             const db = await getDb();
-             // Check if app_settings table has any records related to companies
-             const result = await db.select(`SELECT * FROM app_settings WHERE key = '${STORAGE_KEYS.companies}' OR key = '${STORAGE_KEYS.settings}'`);
-             return result;
-          } catch (e) {
-             return null;
-          }
-        })()
-      ]);
+      // Query SQLite for companies
+      const persistedCompanies = await dbService.companies.findAll();
 
-      const hasDbCompanyList =
-        Array.isArray(persistedCompanies) && persistedCompanies.length > 0;
-      const hasDbSingleCompany = !!dbSettings?.company?.name;
-      
-      // Check raw result as well
-      const hasRawData = Array.isArray(rawCheck) && rawCheck.length > 0;
-
-      const hasDbCompany = hasDbCompanyList || hasDbSingleCompany || hasRawData;
+      const hasDbCompany = persistedCompanies && persistedCompanies.length > 0;
 
       if (import.meta.env.DEV) {
-        console.info("[CompanyStore] bootstrapFromDb status:", {
-          hasDbCompanyList,
-          hasDbSingleCompany,
-          hasRawData,
-          persistedCompaniesCount: persistedCompanies?.length ?? 0,
-          dbSettingsCompanyName: dbSettings?.company?.name,
-          rawCheckKeys: Array.isArray(rawCheck) ? rawCheck.map((r: any) => r.key) : 'none'
+        console.info("[CompanyStore] bootstrapFromDb:", {
+          hasDbCompany,
+          count: persistedCompanies?.length ?? 0,
         });
       }
 
       if (hasDbCompany) {
-        // Sync back to settings store if needed
-        if (hasDbCompanyList) {
-          const { normalizeCompanyProfile } = await import("./settings.store");
-          useSettingsStore.setState({
-            companies: persistedCompanies.map((c: CompanyProfile) =>
-              normalizeCompanyProfile(c),
-            ),
-          });
-        }
-
-        const activeCompanyId = 
-          settingsState.activeCompanyId ?? 
-          (hasDbCompanyList ? persistedCompanies[0].id : null);
-
-        if (import.meta.env.DEV) {
-          console.info("[CompanyStore] Verified company in DB:", { activeCompanyId });
-        }
-
+        // Prefer the persisted active company from settings store if it exists in DB.
+        // Fall back to the first company only if the persisted ID is not found.
+        const settingsActiveId = settingsState.activeCompanyId;
+        const resolvedActiveId =
+          settingsActiveId && persistedCompanies.some((c: { id: string }) => c.id === settingsActiveId)
+            ? settingsActiveId
+            : persistedCompanies[0].id;
         set({
           hasCompany: true,
-          activeCompanyId,
+          activeCompanyId: resolvedActiveId,
+          initialized: true,
         });
       } else {
-        // Fallback: Check localStorage regardless of environment (dual-persistence recovery)
-        const savedCompanies = localStorage.getItem(STORAGE_KEYS.companies);
-        const savedSettings = localStorage.getItem(STORAGE_KEYS.settings);
-        
-        if (savedCompanies || savedSettings) {
-          try {
-            const parsedCompanies = savedCompanies ? JSON.parse(savedCompanies) : [];
-            const parsedSettings = savedSettings ? JSON.parse(savedSettings) : {};
-            
-            const hasLocalData = (Array.isArray(parsedCompanies) && parsedCompanies.length > 0) || !!parsedSettings?.company?.name;
-            
-            if (hasLocalData) {
-              if (import.meta.env.DEV) console.info("[CompanyStore] Verified company in LocalStorage recovery path");
-              set({ 
-                hasCompany: true, 
-                activeCompanyId: parsedCompanies[0]?.id || settingsState.activeCompanyId 
-              });
-              return;
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-        
-        if (import.meta.env.DEV) console.warn("[CompanyStore] No company found in DB or LocalStorage.");
-        set({ hasCompany: false, activeCompanyId: null });
+        // Fallback to settings store if DB is empty
+        const hasSettingsCompany =
+          settingsState.companies.length > 0 ||
+          !!settingsState.settings.company?.name;
+        set({
+          hasCompany: hasSettingsCompany,
+          activeCompanyId: settingsState.activeCompanyId,
+          initialized: true,
+        });
       }
     } catch (error) {
-      if (import.meta.env.DEV)
-        console.warn("[CompanyStore] bootstrapFromDb failed:", error);
-    } finally {
+      console.error("[CompanyStore] bootstrapFromDb failed:", error);
+      // Ensure we don't stay in uninitialized state
       set({ initialized: true });
     }
   },
 
-  markCompanyCreated: (companyId) => {
-    const activeCompanyId =
-      companyId ??
-      useSettingsStore.getState().activeCompanyId ??
-      get().activeCompanyId;
+  markCompanyCreated: (companyId?: string) => {
     set({
       hasCompany: true,
-      activeCompanyId,
-      initialized: true,
+      activeCompanyId: companyId ?? get().activeCompanyId,
     });
   },
 }));

@@ -24,32 +24,51 @@ pub fn find_by_id(conn: &Connection, id: &str) -> AppResult<Option<Payment>> {
     }
 }
 
+pub fn insert(conn: &Connection, input: &CreatePayment) -> AppResult<Payment> {
+    let id = Uuid::new_v4().to_string();
+    let created_at = chrono::Utc::now().timestamp();
+    
+    conn.execute(
+        "INSERT INTO payments
+         (id, company_id, financial_year_id, type, voucher_number, date, ledger_id, offset_ledger_id, amount, payment_mode, reference_no, narration, created_at)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",
+        params![
+            id, input.company_id, input.financial_year_id, input.payment_type, 
+            "TEMP_VOUCHER", // Voucher number should probably be generated
+            input.date, input.ledger_id, input.offset_ledger_id,
+            input.amount, input.payment_mode, input.reference_no, input.narration,
+            created_at
+        ],
+    ).map_err(|e| AppError::Database(e.to_string()))?;
+
+    match find_by_id(conn, &id)? {
+        Some(p) => Ok(p),
+        None => Err(AppError::Database("Failed to retrieve created payment".to_string())),
+    }
+}
+
 pub fn find_all(conn: &Connection, filter: &PaymentFilter) -> AppResult<PagedResult<Payment>> {
     let pagination = Pagination::new(filter.page.unwrap_or(1), filter.limit.unwrap_or(20));
 
     let mut conditions: Vec<String> = Vec::new();
-    let mut count_params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
-    let mut list_params:  Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+    let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
     if let Some(ref pid) = filter.party_id {
         let idx = conditions.len() + 1;
-        conditions.push(format!("party_id = ?{idx}"));
-        count_params.push(Box::new(pid.clone()));
-        list_params.push(Box::new(pid.clone()));
+        conditions.push(format!("ledger_id = ?{idx}"));
+        params_vec.push(Box::new(pid.clone()) as Box<dyn rusqlite::ToSql>);
     }
 
     if let Some(ref pt) = filter.party_type {
         let idx = conditions.len() + 1;
-        conditions.push(format!("party_type = ?{idx}"));
-        count_params.push(Box::new(pt.clone()));
-        list_params.push(Box::new(pt.clone()));
+        conditions.push(format!("type = ?{idx}"));
+        params_vec.push(Box::new(pt.clone()) as Box<dyn rusqlite::ToSql>);
     }
 
     if let Some(ref from) = filter.date_from {
         let idx = conditions.len() + 1;
         conditions.push(format!("date >= ?{idx}"));
-        count_params.push(Box::new(from.clone()));
-        list_params.push(Box::new(from.clone()));
+        params_vec.push(Box::new(*from) as Box<dyn rusqlite::ToSql>);
     }
 
     let where_sql = if conditions.is_empty() {
@@ -62,7 +81,7 @@ pub fn find_all(conn: &Connection, filter: &PaymentFilter) -> AppResult<PagedRes
     let total: u32 = {
         let mut stmt = conn.prepare(&count_sql)
             .map_err(|e| AppError::Database(e.to_string()))?;
-        let refs: Vec<&dyn rusqlite::ToSql> = count_params.iter().map(|p| p.as_ref()).collect();
+        let refs: Vec<&dyn rusqlite::ToSql> = params_vec.iter().map(|p| p.as_ref()).collect();
         stmt.query_row(refs.as_slice(), |row| row.get::<_, i64>(0))
             .map(|n| n as u32)
             .map_err(|e| AppError::Database(e.to_string()))?
@@ -71,11 +90,13 @@ pub fn find_all(conn: &Connection, filter: &PaymentFilter) -> AppResult<PagedRes
     let list_sql = format!(
         "SELECT {} FROM payments {where_sql} ORDER BY date DESC LIMIT ?{} OFFSET ?{}",
         Payment::COLUMNS,
-        list_params.len() + 1,
-        list_params.len() + 2,
+        params_vec.len() + 1,
+        params_vec.len() + 2,
     );
-    list_params.push(Box::new(pagination.limit() as i64));
-    list_params.push(Box::new(pagination.offset() as i64));
+    
+    let mut list_params = params_vec;
+    list_params.push(Box::new(pagination.limit() as i64) as Box<dyn rusqlite::ToSql>);
+    list_params.push(Box::new(pagination.offset() as i64) as Box<dyn rusqlite::ToSql>);
 
     let mut stmt = conn.prepare(&list_sql)
         .map_err(|e| AppError::Database(e.to_string()))?;
@@ -89,40 +110,16 @@ pub fn find_all(conn: &Connection, filter: &PaymentFilter) -> AppResult<PagedRes
     Ok(PagedResult::new(items, total, &pagination))
 }
 
-pub fn insert(conn: &Connection, input: &CreatePayment) -> AppResult<Payment> {
-    let id = Uuid::new_v4().to_string();
-    conn.execute(
-        "INSERT INTO payments
-         (id, date, party_type, party_id, party_name, amount, payment_mode, reference_no, notes)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
-        params![
-            id, input.date, input.party_type, input.party_id, input.party_name,
-            input.amount, input.payment_mode, input.reference_no, input.notes,
-        ],
-    ).map_err(|e| AppError::Database(e.to_string()))?;
-
-    find_by_id(conn, &id)?
-        .ok_or_else(|| AppError::Internal("Insert succeeded but record not found".into()))
-}
-
 pub fn delete(conn: &Connection, id: &str) -> AppResult<()> {
-    let affected = conn
-        .execute("DELETE FROM payments WHERE id = ?1", params![id])
+    conn.execute("DELETE FROM payments WHERE id = ?1", params![id])
         .map_err(|e| AppError::Database(e.to_string()))?;
-    if affected == 0 {
-        return Err(AppError::NotFound(format!("Payment '{id}' not found")));
-    }
     Ok(())
 }
 
-/// Sum of all payments for a party — used for balance calculations.
 pub fn total_paid_by_party(conn: &Connection, party_id: &str) -> AppResult<f64> {
-    let total: f64 = conn
-        .query_row(
-            "SELECT COALESCE(SUM(amount), 0.0) FROM payments WHERE party_id = ?1",
-            params![party_id],
-            |row| row.get(0),
-        )
+    let mut stmt = conn.prepare("SELECT SUM(amount) FROM payments WHERE ledger_id = ?1")
         .map_err(|e| AppError::Database(e.to_string()))?;
-    Ok(total)
+    let total: Option<f64> = stmt.query_row(params![party_id], |row| row.get(0))
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    Ok(total.unwrap_or(0.0))
 }

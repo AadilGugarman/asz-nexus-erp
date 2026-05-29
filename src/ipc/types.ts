@@ -55,15 +55,6 @@ export interface AppInfo {
   build_stamp: string;
 }
 
-export interface PingRequest {
-  message: string;
-}
-
-export interface PingResponse {
-  echo: string;
-  timestamp_ms: number;
-}
-
 // ── Auth domain types ─────────────────────────────────────────────────────────
 
 export interface SetupRequest {
@@ -83,6 +74,14 @@ export interface ChangePasswordRequest {
   new_password: string;
 }
 
+export interface PingRequest {
+  message: string;
+}
+
+export interface PingResponse {
+  message: string;
+}
+
 export interface AuthTokenResponse {
   access_token: string;
   refresh_token: string;
@@ -90,21 +89,6 @@ export interface AuthTokenResponse {
   refresh_expires_at: number;
   user_id: string;
   role: string;
-}
-
-export interface LockConfigRequest {
-  pin_enabled: boolean;
-  app_pin: string | null;
-  auto_lock_minutes: number;
-}
-
-export interface LockConfigResponse {
-  pin_enabled: boolean;
-  auto_lock_minutes: number;
-}
-
-export interface VerifyPinRequest {
-  pin: string;
 }
 
 export interface SessionStatus {
@@ -127,55 +111,6 @@ export interface EmployeeStats {
 export interface DbStats {
   status: string;
   employees: EmployeeStats;
-}
-
-export type SeedProfileKey = "lightweight" | "medium" | "heavy";
-
-export interface SeedTableCounts {
-  fruits: number;
-  suppliers: number;
-  customers: number;
-  purchase_invoices: number;
-  sales_invoices: number;
-  payments: number;
-  app_settings: number;
-}
-
-export interface SeedProfileRecommendation {
-  key: SeedProfileKey;
-  display_name: string;
-  description: string;
-  recommended_for: string;
-  approx_history_days: number;
-  counts: SeedTableCounts;
-}
-
-export interface DbSeedPlan {
-  recommended_default: SeedProfileKey;
-  profiles: SeedProfileRecommendation[];
-  scaling_strategy: string;
-  notes: string[];
-}
-
-export interface DbReseedDemoDataRequest {
-  profile: SeedProfileKey;
-}
-
-export interface DbSeedResetResult {
-  deleted_counts: SeedTableCounts;
-  reset_at: string;
-}
-
-export interface DbSeedExecutionResult {
-  profile: SeedProfileKey;
-  reset_performed: boolean;
-  deleted_counts: SeedTableCounts;
-  inserted_counts: SeedTableCounts;
-  started_on: string;
-  ended_on: string;
-  seeded_at: string;
-  company_name: string;
-  settings_keys: string[];
 }
 
 // ── Employee domain types ─────────────────────────────────────────────────────

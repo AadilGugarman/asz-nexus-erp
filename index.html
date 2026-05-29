@@ -8,13 +8,13 @@
       /* Prevent white flash before theme is applied */
       html,
       body {
-        background-color: #0f172a; /* Default to dark theme slate-900 */
+        background-color: #060d18; /* Match dark initial-loader bg exactly */
         margin: 0;
         padding: 0;
       }
       html.light,
       html.light body {
-        background-color: #f0f4f8; /* Light theme page-bg */
+        background-color: #f8fafc; /* Match light initial-loader bg exactly */
       }
 
       #initial-loader {
@@ -25,11 +25,11 @@
         align-items: center;
         justify-content: center;
         z-index: 9999;
-        background-color: #f8fafc;
-        transition: opacity 0.35s ease-out;
+        background-color: #f8fafc; /* slate-50 — matches React StartupScreen bg-slate-50 */
+        transition: opacity 0.3s ease-out;
         overflow: hidden;
       }
-      html.dark #initial-loader { background-color: #060d18; }
+      html.dark #initial-loader { background-color: #060d18; } /* matches dark:bg-[#060d18] */
 
       /* ── Dot-grid background ── */
       #initial-loader::before {
@@ -133,6 +133,94 @@
       .loader-tile {
         animation: loaderFadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both;
       }
+
+      /* ── App name + subtitle ── */
+      .loader-title {
+        text-align: center;
+        margin-bottom: 48px;
+        animation: loaderFadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.25s both;
+      }
+      .loader-title h1 {
+        font-family: 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #0f172a;
+        margin: 0 0 6px 0;
+      }
+      html.dark .loader-title h1 { color: #ffffff; }
+      .loader-title p {
+        font-family: 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        color: #64748b;
+        margin: 0;
+      }
+
+      /* ── Progress bar track ── */
+      .loader-progress-wrap {
+        width: 100%;
+        max-width: 320px;
+        animation: loaderFadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.35s both;
+      }
+      .loader-progress-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 4px;
+        padding: 0 2px;
+      }
+      .loader-progress-label span:first-child {
+        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #00aeef;
+      }
+      .loader-progress-label span:last-child {
+        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        font-size: 10px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #94a3b8;
+      }
+      .loader-progress-track {
+        height: 6px;
+        width: 100%;
+        background: #e2e8f0;
+        border-radius: 9999px;
+        overflow: hidden;
+      }
+      html.dark .loader-progress-track { background: #1e293b; }
+      .loader-progress-bar {
+        height: 100%;
+        width: 4%;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, #00c896, #00aeef);
+        box-shadow: 0 0 10px rgba(0,174,239,0.6);
+      }
+
+      /* ── Step dots ── */
+      .loader-dots {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding-top: 4px;
+        margin-top: 8px;
+      }
+      .loader-dot {
+        height: 7px;
+        border-radius: 9999px;
+        background: #cbd5e1;
+        transition: all 0.3s;
+      }
+      .loader-dot.active {
+        width: 18px;
+        background: linear-gradient(90deg, #00c896, #00aeef);
+      }
+      .loader-dot.inactive { width: 7px; }
     </style>
     <script>
       (function () {
@@ -238,6 +326,32 @@
         <!-- Spinner badge -->
         <div class="loader-badge">
           <div class="loader-spinner"></div>
+        </div>
+      </div>
+
+      <!-- App name + subtitle — matches React StartupScreen exactly -->
+      <div class="loader-title">
+        <h1>ASZ Nexus ERP</h1>
+        <p>Smart Billing &amp; Trading Management System</p>
+      </div>
+
+      <!-- Progress bar + dots — matches React StartupScreen layout -->
+      <div class="loader-progress-wrap">
+        <div class="loader-progress-label">
+          <span>Setting Up Your Workspace…</span>
+          <span>v1.0.0</span>
+        </div>
+        <div class="loader-progress-track">
+          <div class="loader-progress-bar"></div>
+        </div>
+        <div class="loader-dots">
+          <div class="loader-dot active"></div>
+          <div class="loader-dot inactive"></div>
+          <div class="loader-dot inactive"></div>
+          <div class="loader-dot inactive"></div>
+          <div class="loader-dot inactive"></div>
+          <div class="loader-dot inactive"></div>
+          <div class="loader-dot inactive"></div>
         </div>
       </div>
     </div>

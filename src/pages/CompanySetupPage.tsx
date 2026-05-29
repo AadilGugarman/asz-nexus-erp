@@ -1,109 +1,120 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCompanyStore, useSettingsStore, useAuthStore } from "@/store";
+import { useAuthStore, useCompanyStore, useSettingsStore } from "@/store";
 import { ROUTES } from "@/config";
-import { STORAGE_KEYS } from "@/config";
-import { ipc } from "@/ipc";
-import { useToast } from "@/hooks/useToast";
 
 const SetupWizard = lazy(() =>
   import("@/components/SetupWizard").then((m) => ({ default: m.SetupWizard })),
 );
 
 export const CompanySetupPage: React.FC = () => {
-  const navigate = useNavigate();
-  const toast = useToast();
-  const hasCompany = useCompanyStore((s) => s.hasCompany);
-  const setupCompleted = useSettingsStore((s) => s.settings.setupCompleted);
+  const navigate           = useNavigate();
+  const hasCompany         = useCompanyStore((s) => s.hasCompany);
+  const setupCompleted     = useSettingsStore((s) => s.settings.setupCompleted);
   const markCompanyCreated = useCompanyStore((s) => s.markCompanyCreated);
-  const updateSettings = useSettingsStore((s) => s.updateSettings);
-  const initializeAuth = useAuthStore((s) => s.initialize);
+  const updateSettings     = useSettingsStore((s) => s.updateSettings);
+  const resetApp           = useAuthStore((s) => s.resetApp);
 
-  // Failsafe: If we land here but a company already exists,
-  // try to repair the setupCompleted flag and redirect to dashboard.
+  // Prevent double-navigation from both the useEffect and handleComplete
+  const navigatingRef = useRef(false);
+
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting]           = useState(false);
+
+  // Failsafe: already has a company AND setup is complete → go to dashboard.
+  // Only redirect when BOTH are true to avoid redirecting mid-wizard-completion.
   useEffect(() => {
-    if (hasCompany) {
-      if (!setupCompleted) {
-        if (import.meta.env.DEV)
-          console.info(
-            "[CompanySetupPage] Failsafe: Company exists but setup incomplete. Repairing...",
-          );
-        updateSettings({ setupCompleted: true });
-      }
+    if (hasCompany && setupCompleted && !navigatingRef.current) {
+      navigatingRef.current = true;
       navigate(ROUTES.dashboard, { replace: true });
     }
-  }, [hasCompany, setupCompleted, navigate, updateSettings]);
+  }, [hasCompany, setupCompleted, navigate]);
 
   const handleComplete = async () => {
-    markCompanyCreated();
+    if (navigatingRef.current) return;
+    navigatingRef.current = true;
+    // 1. Persist setupCompleted to store + DB (synchronous store update)
     await updateSettings({ setupCompleted: true });
+    // 2. Navigate to dashboard
     navigate(ROUTES.dashboard, { replace: true });
+    // 3. Mark company in store so ProtectedRoute sees hasCompany=true
+    markCompanyCreated();
   };
 
-  const handleSeedDemo = async () => {
-    const confirmed = window.confirm(
-      "This will clear all current progress and seed the database with professional demo data (Medium profile: 6 months of history). Continue?",
-    );
-
-    if (!confirmed) return;
-
+  const handleForceReset = async () => {
+    setIsResetting(true);
     try {
-      toast.info("Seeding demo data... this may take a few seconds.");
-
-      // 1. Call the backend seeding engine
-      await ipc.db.reseedDemoData("medium");
-
-      // 2. FAILSAFE: Update local stores and storage BEFORE reloading.
-      // Use the actual company name from the settings store if available,
-      // otherwise fall back to a generic name — never hardcode "ASZ Nexus ERP".
-      const existingSettings = useSettingsStore.getState().settings;
-      const existingCompanies = useSettingsStore.getState().companies;
-      const companyName = existingSettings.company?.name?.trim() || "Demo Company";
-      const companyId = useSettingsStore.getState().activeCompanyId || "co-demo-main";
-
-      localStorage.setItem(STORAGE_KEYS.setupDone, "true");
-      localStorage.setItem(STORAGE_KEYS.activeCompany, companyId);
-
-      // Derive the current FY from the company's financialYearStart instead of hardcoding
-      const fyStartMD = existingSettings.financial?.financialYearStart ?? "04-01";
-      const fyStartMonth = parseInt(fyStartMD.split("-")[0], 10) || 4;
-      const now = new Date();
-      const baseYear = now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
-      const derivedActiveFY = `${baseYear}-${String(baseYear + 1).slice(-2)}`;
-      localStorage.setItem(STORAGE_KEYS.activeFY, derivedActiveFY);
-
-      const settings = {
-        ...existingSettings,
-        setupCompleted: true,
-        company: { ...existingSettings.company, name: companyName },
-      };
-      localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
-
-      // Preserve existing companies list — don't overwrite with a fake one
-      if (existingCompanies.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.companies, JSON.stringify(existingCompanies));
-      } else {
-        localStorage.setItem(
-          STORAGE_KEYS.companies,
-          JSON.stringify([{ id: companyId, company: { name: companyName } }]),
-        );
-      }
-
-      toast.success("Demo data seeded successfully!");
-
-      // 3. Give SQLite a moment to finish its commit before reloading
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
-    } catch (error) {
-      console.error("[CompanySetupPage] Seeding failed:", error);
-      toast.error("Failed to seed demo data. See console for details.");
+      await resetApp();
+    } catch {
+      setIsResetting(false);
     }
   };
 
+  // ── Force Reset confirmation ───────────────────────────────────────────────
+  if (showResetConfirm) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        onClick={() => setShowResetConfirm(false)}
+      >
+        <div
+          className="bg-[#131e30] border border-[#1e3048] rounded-2xl p-8 w-full max-w-sm shadow-2xl space-y-5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-red-400 mb-1">Force Reset</h2>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              This will permanently delete all data — password, company settings,
+              invoices, and transactions. The app restarts as if never used.
+            </p>
+            <p className="text-red-400 text-xs font-semibold mt-3 uppercase tracking-wide">
+              This cannot be undone.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowResetConfirm(false)}
+              disabled={isResetting}
+              className="flex-1 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50 font-medium transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleForceReset}
+              disabled={isResetting}
+              className="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-medium transition-colors text-sm"
+            >
+              {isResetting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Resetting…
+                </span>
+              ) : "Yes, Reset Everything"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Suspense fallback={null}>
-      <SetupWizard onComplete={handleComplete} onSeedDemo={handleSeedDemo} />
-    </Suspense>
+    <>
+      <Suspense fallback={null}>
+        <SetupWizard onComplete={handleComplete} />
+      </Suspense>
+
+      {/* Force Reset — accessible during company setup */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
+        <button
+          type="button"
+          onClick={() => setShowResetConfirm(true)}
+          className="px-4 py-1.5 text-xs text-slate-600 hover:text-red-400 transition-colors rounded-full border border-slate-800 bg-slate-950/80 backdrop-blur-sm"
+        >
+          Force Reset
+        </button>
+      </div>
+    </>
   );
 };

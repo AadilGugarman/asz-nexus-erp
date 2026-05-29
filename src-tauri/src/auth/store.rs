@@ -41,17 +41,15 @@ pub struct AuthStore {
     /// Whether initial setup has been completed.
     pub setup_done: bool,
 
-    /// Whether app PIN lock is enabled.
-    pub pin_enabled: bool,
+    /// Number of consecutive failed login attempts since last success.
+    /// Reset to 0 on successful login or after the cooldown window passes.
+    #[serde(default)]
+    pub failed_login_attempts: Option<u32>,
 
-    /// Argon2id PHC hash of the user-defined app PIN.
-    pub pin_hash: Option<String>,
-
-    /// Optional salt used for app PIN hashing.
-    pub pin_salt: Option<String>,
-
-    /// Auto-lock timeout in minutes.
-    pub auto_lock_minutes: i64,
+    /// Unix timestamp of the most recent failed login attempt.
+    /// Used to calculate the remaining cooldown window.
+    #[serde(default)]
+    pub last_failed_login_at: Option<i64>,
 }
 
 // ── File path ─────────────────────────────────────────────────────────────────

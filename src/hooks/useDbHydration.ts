@@ -19,7 +19,6 @@ import type {
   Invoice,
   PurchaseInvoice,
   PaymentReceipt,
-  VehicleArrival,
   CaretTransaction,
 } from "@/types";
 
@@ -64,8 +63,7 @@ function createDbLoader<TDb, TClient>(
             ? `${storageKey}__${activeCompanyId}`
             : storageKey;
           const saved =
-            localStorage.getItem(scopedKey) ??
-            localStorage.getItem(storageKey);
+            localStorage.getItem(scopedKey) ?? localStorage.getItem(storageKey);
           if (saved) {
             const parsed = JSON.parse(saved);
             setData(Array.isArray(parsed) ? parsed : []);
@@ -73,7 +71,10 @@ function createDbLoader<TDb, TClient>(
             setData([]);
           }
         } catch (e) {
-          console.warn(`[useDbHydration] Browser fallback failed for ${name}:`, e);
+          console.warn(
+            `[useDbHydration] Browser fallback failed for ${name}:`,
+            e,
+          );
           setData([]);
         } finally {
           setIsLoading(false);
@@ -94,13 +95,16 @@ function createDbLoader<TDb, TClient>(
         if (import.meta.env.DEV) {
           console.info(
             `[useDbHydration] ${name}: loaded ${dbRecords.length} records` +
-            (activeCompanyId ? ` for company ${activeCompanyId}` : " (no company filter)"),
+              (activeCompanyId
+                ? ` for company ${activeCompanyId}`
+                : " (no company filter)"),
           );
         }
 
         setData(dbRecords.map(transformer));
       } catch (err) {
-        const e = err instanceof Error ? err : new Error(`Failed to load ${name}`);
+        const e =
+          err instanceof Error ? err : new Error(`Failed to load ${name}`);
         setError(e);
         console.warn(`[useDbHydration] ${name} load failed:`, e);
       } finally {
@@ -140,7 +144,7 @@ function dbToSupplier(db: any): Supplier {
     state: db.state || "",
     billingAddress: db.billingAddress || "",
     shippingAddress: db.shippingAddress || "",
-    previousBalance: db.previousBalance || 0,
+    previousBalance: db.openingBalance || 0, // Maps openingBalance from ledgers table
     creditLimit: db.creditLimit || 0,
     notes: db.notes || "",
   };
@@ -167,7 +171,7 @@ function dbToCustomer(db: any): Customer {
     state: db.state || "",
     billingAddress: db.billingAddress || "",
     shippingAddress: db.shippingAddress || "",
-    previousBalance: db.previousBalance || 0,
+    previousBalance: db.openingBalance || 0, // Maps openingBalance from ledgers table
     creditLimit: db.creditLimit || 0,
     notes: db.notes || "",
   };
@@ -188,7 +192,9 @@ function dbToFruit(db: any): Fruit {
   try {
     const parsed = JSON.parse(db.varieties);
     varieties = Array.isArray(parsed) ? parsed : [];
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return { id: db.id, name: db.name, varieties };
 }
 
@@ -205,22 +211,26 @@ export const useFruits = createDbLoader(
 function dbToInvoice(db: any): Invoice {
   let items: any[] = [];
   try {
-    const parsed = JSON.parse(db.items);
+    // itemsJson is the new flat column; fall back to legacy `items` field
+    const raw = db.itemsJson ?? db.items;
+    const parsed = JSON.parse(raw);
     items = Array.isArray(parsed) ? parsed : [];
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return {
     id: db.id,
-    invoiceNo: db.invoiceNo,
+    invoiceNo: db.invoiceNo ?? db.invoiceNumber ?? "",
     date: db.date,
-    customerId: db.customerId,
-    customerName: db.customerName,
+    customerId: db.customerId ?? db.ledgerId ?? "",
+    customerName: db.customerName ?? "",
     items,
-    previousBalance: db.previousBalance || 0,
-    todayAmount: db.todayAmount || 0,
+    previousBalance: db.previousBalance ?? 0,
+    todayAmount: db.todayAmount ?? db.subTotal ?? 0,
     hamali: db.hamali,
     discount: db.discount,
-    paidAmount: db.paidAmount || 0,
-    remainingBalance: db.remainingBalance || 0,
+    paidAmount: db.paidAmount ?? 0,
+    remainingBalance: db.remainingBalance ?? 0,
     notes: db.notes,
     createdAt: db.createdAt,
   };
@@ -239,31 +249,36 @@ export const useInvoices = createDbLoader(
 function dbToPurchaseInvoice(db: any): PurchaseInvoice {
   let items: any[] = [];
   try {
-    const parsed = JSON.parse(db.items);
+    // itemsJson is the new flat column; fall back to legacy `items` field
+    const raw = db.itemsJson ?? db.items;
+    const parsed = JSON.parse(raw);
     items = Array.isArray(parsed) ? parsed : [];
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return {
     id: db.id,
-    billNo: db.billNo,
+    billNo: db.billNo ?? db.invoiceNumber ?? "",
     date: db.date,
-    supplierId: db.supplierId,
-    supplierName: db.supplierName,
+    supplierId: db.supplierId ?? db.ledgerId ?? "",
+    supplierName: db.supplierName ?? "",
     vehicleNo: db.vehicleNo,
     declaredWeight: db.declaredWeight,
     items,
-    previousBalance: db.previousBalance || 0,
-    todayAmount: db.todayAmount || 0,
+    previousBalance: db.previousBalance ?? 0,
+    todayAmount: db.todayAmount ?? db.subTotal ?? 0,
     freight: db.freight,
     hamali: db.hamali,
-    paidAmount: db.paidAmount || 0,
-    remainingBalance: db.remainingBalance || 0,
+    paidAmount: db.paidAmount ?? 0,
+    remainingBalance: db.remainingBalance ?? 0,
     notes: db.notes,
     createdAt: db.createdAt,
   };
 }
 
 export const usePurchaseInvoices = createDbLoader(
-  (companyId) => dbService.purchaseInvoices.findAll(undefined, companyId ?? undefined),
+  (companyId) =>
+    dbService.purchaseInvoices.findAll(undefined, companyId ?? undefined),
   dbToPurchaseInvoice,
   "purchaseInvoices",
   // Browser dev fallback only — never written in Tauri/production
@@ -276,13 +291,13 @@ function dbToPayment(db: any): PaymentReceipt {
   return {
     id: db.id,
     date: db.date,
-    partyType: db.partyType,
-    partyId: db.partyId,
-    partyName: db.partyName,
+    partyType: db.partyType as "SUPPLIER" | "CUSTOMER",
+    partyId: db.partyId ?? db.ledgerId ?? "",
+    partyName: db.partyName ?? "",
     amount: db.amount,
-    paymentMode: db.paymentMode,
+    paymentMode: db.paymentMode as PaymentReceipt["paymentMode"],
     referenceNo: db.referenceNo,
-    notes: db.notes,
+    notes: db.paymentNotes ?? db.narration ?? db.notes,
   };
 }
 
@@ -300,12 +315,12 @@ function dbToCaretTransaction(db: any): CaretTransaction {
   return {
     id: db.id,
     date: db.date,
-    customerId: db.customerId,
-    customerName: db.customerName,
-    type: db.type as 'GIVEN' | 'RETURN',
-    fruitName: db.fruitName || '',
-    caretQty: db.caretQty || 0,
-    note: db.note,
+    customerId: db.customerIdFlat ?? db.customerId ?? db.ledgerId ?? "",
+    customerName: db.customerName ?? "",
+    type: (db.type === "RETURNED" ? "RETURN" : db.type) as "GIVEN" | "RETURN",
+    fruitName: db.fruitName || "",
+    caretQty: db.caretQty ?? db.quantity ?? 0,
+    note: db.note ?? db.notes,
     billId: db.billId,
     billNo: db.billNo,
     companyId: db.companyId,
@@ -314,7 +329,8 @@ function dbToCaretTransaction(db: any): CaretTransaction {
 }
 
 export const useCaretTransactions = createDbLoader(
-  (companyId) => dbService.caretTransactions.findAll(undefined, companyId ?? undefined),
+  (companyId) =>
+    dbService.caretTransactions.findAll(undefined, companyId ?? undefined),
   dbToCaretTransaction,
   "caretTransactions",
 );

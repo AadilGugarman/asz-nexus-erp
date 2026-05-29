@@ -10,14 +10,15 @@
 pub mod app;
 pub mod auth;
 pub mod backup;
-pub mod customer;
 pub mod db;
-pub mod employee;
 pub mod file;
 pub mod fs;
 pub mod invoice;
 pub mod payment;
-pub mod supplier;
 pub mod system;
 pub mod updater;
 pub mod window;
+pub mod company;
+pub mod ledger;
+pub mod item;
+

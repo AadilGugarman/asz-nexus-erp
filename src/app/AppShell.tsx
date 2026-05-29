@@ -13,7 +13,7 @@
  *     the active tab changes to a different tab.
  */
 
-import React, { lazy, Suspense, useEffect, memo } from "react";
+import React, { lazy, Suspense, useEffect, useRef, memo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useUIStore, useCompanyStore, useSettingsStore, useStartupStore } from "@/store";
@@ -207,12 +207,11 @@ TabContent.displayName = "TabContent";
 export const AppShell: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const hasCompany = useCompanyStore((s) => s.hasCompany);
+  const hasCompany     = useCompanyStore((s) => s.hasCompany);
   const setupCompleted = useSettingsStore((s) => s.settings.setupCompleted);
-  const updateSettings = useSettingsStore((s) => s.updateSettings);
-  const { isAppReady } = useStartupStore();
-  const { initialized } = useCompanyStore();
-  const { isLoaded } = useSettingsStore();
+  const isAppReady     = useStartupStore((s) => s.isAppReady);
+  const initialized    = useCompanyStore((s) => s.initialized);
+  const isLoaded       = useSettingsStore((s) => s.isLoaded);
 
   const {
     activeTab,
@@ -226,14 +225,18 @@ export const AppShell: React.FC = () => {
     toggleCalculator,
   } = useUIStore();
 
-  // Failsafe: Ensure setupCompleted is true if we are in the shell and have a company
+  // Failsafe: Ensure setupCompleted is true if we are in the shell and have a company.
+  // Use a ref so this only fires once — calling updateSettings on every render
+  // causes an infinite loop because updateSettings is a new reference each render.
+  const repairedRef = useRef(false);
   useEffect(() => {
-    if (hasCompany && !setupCompleted) {
+    if (hasCompany && !setupCompleted && !repairedRef.current) {
+      repairedRef.current = true;
       if (import.meta.env.DEV)
         console.info("[AppShell] Repairing setupCompleted flag...");
-      updateSettings({ setupCompleted: true });
+      void useSettingsStore.getState().updateSettings({ setupCompleted: true });
     }
-  }, [hasCompany, setupCompleted, updateSettings]);
+  }, [hasCompany, setupCompleted]);
 
   // Preload adjacent tabs during idle time
   usePreload(activeTab);
@@ -247,7 +250,18 @@ export const AppShell: React.FC = () => {
   }, [location.pathname, activeTab, setActiveTab]);
 
   if (!isAppReady || !hasCompany || !isLoaded || !initialized) {
-    return <TabSkeleton />;
+    // These flags should all be true before uiReady=true in normal startup.
+    // After company wizard completes, they are set synchronously before
+    // navigation fires. Show a minimal skeleton to avoid a blank screen
+    // in any edge case where stores haven't propagated yet.
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-screen">
+        <div
+          className="h-3.5 w-3.5 rounded-full border-2 border-t-transparent animate-spin"
+          style={{ borderColor: "#00aeef", borderTopColor: "transparent" }}
+        />
+      </div>
+    );
   }
 
   //        Sync store     URL

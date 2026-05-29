@@ -1,4 +1,4 @@
-﻿/**
+/**
  * router/PublicRoute.tsx
  * Guards routes that should NOT be accessible once authenticated.
  * (e.g. /login — redirect already-logged-in users to the dashboard)
@@ -10,7 +10,6 @@ import { ROUTES } from "@/config";
 import {
   useAuthStore,
   useCompanyStore,
-  useLockStore,
   useSettingsStore,
   useStartupStore,
 } from "@/store";
@@ -18,17 +17,16 @@ import { StartupScreen } from "@/components/router/StartupScreen";
 import { decidePostStartupRoute } from "./routeDecision";
 
 export const PublicRoute: React.FC = () => {
-  const uiReady        = useStartupStore((s) => s.uiReady);
-  const startupPhase   = useStartupStore((s) => s.phase);
+  const uiReady = useStartupStore((s) => s.uiReady);
+  const startupPhase = useStartupStore((s) => s.phase);
   const settingsLoaded = useSettingsStore((s) => s.isLoaded);
-  const companyReady   = useCompanyStore((s) => s.initialized);
+  const companyReady = useCompanyStore((s) => s.initialized);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const isSetupDone    = useAuthStore((s) => s.isSetupDone);
+  const isSetupDone = useAuthStore((s) => s.isSetupDone);
   const isSetupComplete = useSettingsStore((s) => s.settings.setupCompleted);
-  const hasCompany     = useCompanyStore((s) => s.hasCompany);
-  const isLocked       = useLockStore((s) => s.isLocked);
+  const hasCompany = useCompanyStore((s) => s.hasCompany);
 
-  if (startupPhase === 'error') return <StartupScreen />;
+  if (startupPhase === "error") return <StartupScreen />;
   if (!uiReady || !settingsLoaded || !companyReady) return <StartupScreen />;
 
   if (isAuthenticated) {
@@ -38,7 +36,7 @@ export const PublicRoute: React.FC = () => {
       isSetupComplete,
       isAuthenticated,
       hasCompany,
-      isLocked,
+      isLocked: false,
     });
     return <Navigate to={target ?? ROUTES.dashboard} replace />;
   }

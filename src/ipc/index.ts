@@ -29,10 +29,10 @@
  */
 
 // ── Core utilities ────────────────────────────────────────────────────────────
-export { ipcInvoke, ipcInvokeSafe, IpcCallError } from './invoke';
-export { CMD } from './commands';
-export { AppEvents, EVENT_NAMES } from './events';
-export type { EventName } from './events';
+export { ipcInvoke, ipcInvokeSafe, IpcCallError } from "./invoke";
+export { CMD } from "./commands";
+export { AppEvents, EVENT_NAMES } from "./events";
+export type { EventName } from "./events";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type {
@@ -54,22 +54,16 @@ export type {
   // Database
   EmployeeStats,
   DbStats,
-  SeedProfileKey,
-  SeedTableCounts,
-  SeedProfileRecommendation,
-  DbSeedPlan,
-  DbReseedDemoDataRequest,
-  DbSeedResetResult,
-  DbSeedExecutionResult,
+
   // Employee
-    // Backup
-    BackupEntry,
-    BackupCreateRequest,
-    BackupDeleteRequest,
-    BackupValidateRequest,
-    BackupRestoreRequest,
-    BackupPruneRequest,
-    RestoreResult,
+  // Backup
+  BackupEntry,
+  BackupCreateRequest,
+  BackupDeleteRequest,
+  BackupValidateRequest,
+  BackupRestoreRequest,
+  BackupPruneRequest,
+  RestoreResult,
   Employee,
   EmployeeRole,
   CreateEmployeeRequest,
@@ -149,23 +143,23 @@ export type {
   TaskCompletePayload,
   TaskErrorPayload,
   DataChangedPayload,
-} from './types';
+} from "./types";
 
 // ── Domain modules ────────────────────────────────────────────────────────────
-import { appIpc }      from './modules/app.ipc';
-import { authIpc }     from './modules/auth.ipc';
-import { backupIpc }   from './modules/backup.ipc';
-import { customerIpc } from './modules/customer.ipc';
-import { dbIpc }       from './modules/db.ipc';
-import { employeeIpc } from './modules/employee.ipc';
-import { fileIpc }     from './modules/file.ipc';
-import { fsIpc }       from './modules/fs.ipc';
-import { invoiceIpc }  from './modules/invoice.ipc';
-import { paymentIpc }  from './modules/payment.ipc';
-import { supplierIpc } from './modules/supplier.ipc';
-import { systemIpc }   from './modules/system.ipc';
-import { updaterIpc }  from './modules/updater.ipc';
-import { windowIpc }   from './modules/window.ipc';
+import { appIpc } from "./modules/app.ipc";
+import { authIpc } from "./modules/auth.ipc";
+import { backupIpc } from "./modules/backup.ipc";
+import { customerIpc } from "./modules/customer.ipc";
+import { dbIpc } from "./modules/db.ipc";
+import { employeeIpc } from "./modules/employee.ipc";
+import { fileIpc } from "./modules/file.ipc";
+import { fsIpc } from "./modules/fs.ipc";
+import { invoiceIpc } from "./modules/invoice.ipc";
+import { paymentIpc } from "./modules/payment.ipc";
+import { supplierIpc } from "./modules/supplier.ipc";
+import { systemIpc } from "./modules/system.ipc";
+import { updaterIpc } from "./modules/updater.ipc";
+import { windowIpc } from "./modules/window.ipc";
 
 /**
  * The main IPC facade — the only import you need in components.
@@ -185,18 +179,18 @@ import { windowIpc }   from './modules/window.ipc';
  * ipc.updater.*  → check/install updates
  */
 export const ipc = {
-  app:      appIpc,
-  auth:     authIpc,
-    backup:   backupIpc,
+  app: appIpc,
+  auth: authIpc,
+  backup: backupIpc,
   customer: customerIpc,
-  db:       dbIpc,
+  db: dbIpc,
   employee: employeeIpc,
-  file:     fileIpc,
-  fs:       fsIpc,
-  invoice:  invoiceIpc,
-  payment:  paymentIpc,
+  file: fileIpc,
+  fs: fsIpc,
+  invoice: invoiceIpc,
+  payment: paymentIpc,
   supplier: supplierIpc,
-  system:   systemIpc,
-  updater:  updaterIpc,
-  win:      windowIpc,
+  system: systemIpc,
+  updater: updaterIpc,
+  win: windowIpc,
 } as const;

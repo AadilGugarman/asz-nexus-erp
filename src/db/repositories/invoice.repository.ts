@@ -1,26 +1,26 @@
 /**
  * db/repositories/invoice.repository.ts
- * Drizzle queries for sales invoices and purchase invoices.
+ * Drizzle queries for invoices (Sales & Purchase).
  */
 
 import { eq, like, desc, and } from 'drizzle-orm';
 import { BaseRepository } from './base.repository';
-import { invoices, purchaseInvoices } from '../schema/billing';
-import type {
-  DbInvoice, DbInvoiceInsert,
-  DbPurchaseInvoice, DbPurchaseInvoiceInsert,
-} from '../schema/billing';
+import { invoices, invoiceItems } from '../schema/transactions';
 import type { DrizzleDb } from '../client';
 import type { PaginationParams, PagedResult } from './base.repository';
-import type { InvoiceItem, PurchaseInvoiceItem } from '@/types';
 
-// ── Sales Invoice Repository ──────────────────────────────────────────────────
+export type DbInvoice = typeof invoices.$inferSelect;
+export type DbInvoiceInsert = typeof invoices.$inferInsert;
+export type DbInvoiceItem = typeof invoiceItems.$inferSelect;
+export type DbInvoiceItemInsert = typeof invoiceItems.$inferInsert;
+
+// ── Invoice Repository ────────────────────────────────────────────────────────
 
 export interface InvoiceFilter extends PaginationParams {
-  customerId?: string;
+  ledgerId?: string;
+  type?:      'SALE' | 'PURCHASE';
   dateFrom?:   string;
-  dateTo?:     string;
-  search?:     string; // matches invoiceNo or customerName
+  search?:     string; // matches invoiceNumber
 }
 
 export class InvoiceRepository extends BaseRepository<
@@ -35,10 +35,11 @@ export class InvoiceRepository extends BaseRepository<
   async search(filter: InvoiceFilter): Promise<PagedResult<DbInvoice>> {
     const conditions = [];
 
-    if (filter.customerId) conditions.push(eq(invoices.customerId, filter.customerId));
-    if (filter.dateFrom)   conditions.push(eq(invoices.date, filter.dateFrom));
+    if (filter.ledgerId) conditions.push(eq(invoices.ledgerId, filter.ledgerId));
+    if (filter.type)     conditions.push(eq(invoices.type, filter.type));
+    if (filter.dateFrom) conditions.push(eq(invoices.date, new Date(filter.dateFrom)));
     if (filter.search) {
-      conditions.push(like(invoices.customerName, `%${filter.search}%`));
+      conditions.push(like(invoices.invoiceNumber, `%${filter.search}%`));
     }
 
     const where = conditions.length === 0
@@ -50,74 +51,28 @@ export class InvoiceRepository extends BaseRepository<
     return this.findPaged(filter, where, desc(invoices.date));
   }
 
-  async findByCustomer(customerId: string): Promise<DbInvoice[]> {
+  async findByLedger(ledgerId: string): Promise<DbInvoice[]> {
     return this.db
       .select()
       .from(invoices)
-      .where(eq(invoices.customerId, customerId))
+      .where(eq(invoices.ledgerId, ledgerId))
       .orderBy(desc(invoices.date));
   }
 
-  async getLastInvoiceNo(): Promise<string | null> {
+  async getLastInvoiceNo(type: 'SALE' | 'PURCHASE'): Promise<string | null> {
     const rows = await this.db
-      .select({ invoiceNo: invoices.invoiceNo })
+      .select({ invoiceNumber: invoices.invoiceNumber })
       .from(invoices)
+      .where(eq(invoices.type, type))
       .orderBy(desc(invoices.createdAt))
       .limit(1);
-    return rows[0]?.invoiceNo ?? null;
+    return rows[0]?.invoiceNumber ?? null;
   }
 
-  parseItems(invoice: DbInvoice): InvoiceItem[] {
-    try { return JSON.parse(invoice.items) as InvoiceItem[]; }
-    catch { return []; }
-  }
-}
-
-// ── Purchase Invoice Repository ───────────────────────────────────────────────
-
-export interface PurchaseInvoiceFilter extends PaginationParams {
-  supplierId?: string;
-  dateFrom?:   string;
-  search?:     string;
-}
-
-export class PurchaseInvoiceRepository extends BaseRepository<
-  typeof purchaseInvoices,
-  DbPurchaseInvoice,
-  DbPurchaseInvoiceInsert
-> {
-  constructor(db: DrizzleDb) {
-    super(db, purchaseInvoices);
-  }
-
-  async search(filter: PurchaseInvoiceFilter): Promise<PagedResult<DbPurchaseInvoice>> {
-    const conditions = [];
-
-    if (filter.supplierId) conditions.push(eq(purchaseInvoices.supplierId, filter.supplierId));
-    if (filter.dateFrom)   conditions.push(eq(purchaseInvoices.date, filter.dateFrom));
-    if (filter.search) {
-      conditions.push(like(purchaseInvoices.supplierName, `%${filter.search}%`));
-    }
-
-    const where = conditions.length === 0
-      ? undefined
-      : conditions.length === 1
-        ? conditions[0]
-        : and(...conditions);
-
-    return this.findPaged(filter, where, desc(purchaseInvoices.date));
-  }
-
-  async findBySupplier(supplierId: string): Promise<DbPurchaseInvoice[]> {
+  async getItems(invoiceId: string): Promise<DbInvoiceItem[]> {
     return this.db
       .select()
-      .from(purchaseInvoices)
-      .where(eq(purchaseInvoices.supplierId, supplierId))
-      .orderBy(desc(purchaseInvoices.date));
-  }
-
-  parseItems(invoice: DbPurchaseInvoice): PurchaseInvoiceItem[] {
-    try { return JSON.parse(invoice.items) as PurchaseInvoiceItem[]; }
-    catch { return []; }
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, invoiceId));
   }
 }

@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { createContext, useState, useEffect, useMemo } from "react";
 import {
   Fruit,
   Supplier,
@@ -56,14 +50,14 @@ interface AppContextType {
   savePayment: (payment: PaymentReceipt) => void;
   addPayment: (payment: PaymentReceipt) => void;
   deletePayment: (id: string) => void;
-  addSupplier: (supplier: Omit<Supplier, "id">) => void;
+  addSupplier: (supplier: Omit<Supplier, "id">) => string;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (id: string) => void;
-  addCustomer: (customer: Omit<Customer, "id">) => void;
+  addCustomer: (customer: Omit<Customer, "id">) => string;
   updateCustomer: (customer: Customer) => void;
   deleteCustomer: (id: string) => void;
   addFruitVariety: (fruitId: string, varietyName: string) => void;
-  addFruit: (fruitName: string) => void;
+  addFruit: (fruitName: string) => string;
   settings: AppSettings;
   updateSettings: (s: Partial<AppSettings>) => void;
   resetAllData: () => void;
@@ -80,12 +74,13 @@ interface AppContextType {
   switchCompany: (id: string) => void;
   // ── Caret Transactions ──────────────────────────────────────────────────────
   caretTransactions: CaretTransaction[];
-  addCaretTransaction: (tx: Omit<CaretTransaction, 'id' | 'createdAt'>) => void;
+  addCaretTransaction: (tx: Omit<CaretTransaction, "id" | "createdAt">) => void;
   updateCaretTransaction: (tx: CaretTransaction) => void;
   deleteCaretTransaction: (id: string) => void;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
+export type { AppContextType };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -106,38 +101,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(
+    [],
+  );
   const [payments, setPayments] = useState<PaymentReceipt[]>([]);
   const [caretTxList, setCaretTxList] = useState<CaretTransaction[]>([]);
 
   // Sync local state when DB data loads or refreshes
-  useEffect(() => { if (dbFruits) setFruits(dbFruits); }, [dbFruits]);
-  useEffect(() => { if (dbSuppliers) setSuppliers(dbSuppliers); }, [dbSuppliers]);
-  useEffect(() => { if (dbCustomers) setCustomers(dbCustomers); }, [dbCustomers]);
-  useEffect(() => { if (dbInvoices) setInvoices(dbInvoices); }, [dbInvoices]);
-  useEffect(() => { if (dbPurchaseInvoices) setPurchaseInvoices(dbPurchaseInvoices); }, [dbPurchaseInvoices]);
-  useEffect(() => { if (dbPayments) setPayments(dbPayments); }, [dbPayments]);
-  useEffect(() => { if (dbCaretTransactions) setCaretTxList(dbCaretTransactions); }, [dbCaretTransactions]);
+  useEffect(() => {
+    if (dbFruits) setFruits(dbFruits);
+  }, [dbFruits]);
+  useEffect(() => {
+    if (dbSuppliers) setSuppliers(dbSuppliers);
+  }, [dbSuppliers]);
+  useEffect(() => {
+    if (dbCustomers) setCustomers(dbCustomers);
+  }, [dbCustomers]);
+  useEffect(() => {
+    if (dbInvoices) setInvoices(dbInvoices);
+  }, [dbInvoices]);
+  useEffect(() => {
+    if (dbPurchaseInvoices) setPurchaseInvoices(dbPurchaseInvoices);
+  }, [dbPurchaseInvoices]);
+  useEffect(() => {
+    if (dbPayments) setPayments(dbPayments);
+  }, [dbPayments]);
+  useEffect(() => {
+    if (dbCaretTransactions) setCaretTxList(dbCaretTransactions);
+  }, [dbCaretTransactions]);
 
   const safeDbWrite = async (
     label: string,
     action: () => Promise<unknown>,
     onRollback?: () => void,
   ) => {
-    if (!dbService.isReady) return;
+    if (!dbService.isReady) {
+      console.warn(
+        `[AppContext] DB service not ready for (${label}); attempting init...`,
+      );
+      try {
+        const initialized = await dbService.init();
+        if (!initialized) {
+          console.warn(
+            `[AppContext] DB service initialization failed for (${label})`,
+          );
+          if (onRollback) onRollback();
+          return;
+        }
+      } catch (err) {
+        console.error(
+          `[AppContext] DB service init failed for (${label}):`,
+          err,
+        );
+        if (onRollback) onRollback();
+        return;
+      }
+    }
+
     // Guard: never write to DB without a valid company context
     if (!activeCompanyId) {
-      console.warn(`[AppContext] Blocked DB write (${label}): no active company`);
+      console.warn(
+        `[AppContext] Blocked DB write (${label}): no active company`,
+      );
       if (onRollback) onRollback();
       return;
     }
+
     try {
       await action();
     } catch (err) {
       console.error(`[AppContext] DB write failed (${label}):`, err);
       // Roll back optimistic UI state if a rollback function was provided
       if (onRollback) {
-        console.warn(`[AppContext] Rolling back optimistic state for (${label})`);
+        console.warn(
+          `[AppContext] Rolling back optimistic state for (${label})`,
+        );
         onRollback();
       }
     }
@@ -177,7 +215,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     // Fallback: derive from current date
     const now = new Date();
     const currentYear = now.getFullYear();
-    const baseYear = now.getMonth() + 1 >= month ? currentYear : currentYear - 1;
+    const baseYear =
+      now.getMonth() + 1 >= month ? currentYear : currentYear - 1;
     return `${baseYear}-${String(month).padStart(2, "0")}-01`;
   }, [settings?.financial?.financialYearStart, activeFY]);
 
@@ -422,22 +461,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     void safeDbWrite("invoice.save", async () => {
+      const fyId = await dbService.financialYears.ensureFinancialYear(
+        cid,
+        activeFY,
+        settings?.company?.name,
+      );
+      await dbService.accountGroups.ensureDefaultGroups(cid);
       const payload = {
         id: newInvoice.id,
+        companyId: cid,
+        financialYearId: fyId,
+        type: "SALE" as const,
+        invoiceNumber: newInvoice.invoiceNo,
+        date: new Date(newInvoice.date),
+        ledgerId: newInvoice.customerId,
+        vehicleNo: newInvoice.vehicleNo,
+        declaredWeight: newInvoice.declaredWeight,
+        subTotal: newInvoice.todayAmount || 0,
+        grandTotal: newInvoice.todayAmount || 0,
+        hamali: newInvoice.hamali ?? 0,
+        freight: newInvoice.freight ?? 0,
+        discountTotal: newInvoice.discount ?? 0,
+        paidAmount: newInvoice.paidAmount || 0,
+        notes: newInvoice.notes,
+        status: "FINAL" as const,
+        // flat app columns
         invoiceNo: newInvoice.invoiceNo,
-        date: newInvoice.date,
         customerId: newInvoice.customerId,
         customerName: newInvoice.customerName,
-        items: JSON.stringify(newInvoice.items || []),
+        itemsJson: JSON.stringify(newInvoice.items || []),
         previousBalance: newInvoice.previousBalance || 0,
         todayAmount: newInvoice.todayAmount || 0,
-        hamali: newInvoice.hamali,
-        discount: newInvoice.discount,
-        paidAmount: newInvoice.paidAmount || 0,
         remainingBalance: newInvoice.remainingBalance || 0,
-        notes: newInvoice.notes,
-        createdAt: newInvoice.createdAt || new Date().toISOString(),
-        companyId: cid,
+        discount: newInvoice.discount ?? 0,
       };
       if (isUpdate) {
         await dbService.invoices.update(newInvoice.id, payload);
@@ -452,8 +508,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setInvoices((prev) => prev.filter((i) => i.id !== id));
     void safeDbWrite(
       "invoice.delete",
-      async () => { await dbService.invoices.delete(id); },
-      () => { if (previous) setInvoices((prev) => [previous, ...prev]); },
+      async () => {
+        await dbService.invoices.delete(id);
+      },
+      () => {
+        if (previous) setInvoices((prev) => [previous, ...prev]);
+      },
     );
   };
 
@@ -470,24 +530,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     void safeDbWrite("purchaseInvoice.save", async () => {
+      const fyId = await dbService.financialYears.ensureFinancialYear(
+        cid,
+        activeFY,
+        settings?.company?.name,
+      );
+      await dbService.accountGroups.ensureDefaultGroups(cid);
       const payload = {
         id: newInvoice.id,
-        billNo: newInvoice.billNo,
-        date: newInvoice.date,
-        supplierId: newInvoice.supplierId,
-        supplierName: newInvoice.supplierName,
+        companyId: cid,
+        financialYearId: fyId,
+        type: "PURCHASE" as const,
+        invoiceNumber: newInvoice.billNo,
+        date: new Date(newInvoice.date),
+        ledgerId: newInvoice.supplierId,
         vehicleNo: newInvoice.vehicleNo,
         declaredWeight: newInvoice.declaredWeight,
-        items: JSON.stringify(newInvoice.items || []),
+        subTotal: newInvoice.todayAmount || 0,
+        grandTotal: newInvoice.todayAmount || 0,
+        hamali: newInvoice.hamali ?? 0,
+        freight: newInvoice.freight ?? 0,
+        paidAmount: newInvoice.paidAmount || 0,
+        notes: newInvoice.notes,
+        status: "FINAL" as const,
+        // flat app columns
+        billNo: newInvoice.billNo,
+        supplierId: newInvoice.supplierId,
+        supplierName: newInvoice.supplierName,
+        itemsJson: JSON.stringify(newInvoice.items || []),
         previousBalance: newInvoice.previousBalance || 0,
         todayAmount: newInvoice.todayAmount || 0,
-        freight: newInvoice.freight,
-        hamali: newInvoice.hamali,
-        paidAmount: newInvoice.paidAmount || 0,
         remainingBalance: newInvoice.remainingBalance || 0,
-        notes: newInvoice.notes,
-        createdAt: newInvoice.createdAt || new Date().toISOString(),
-        companyId: cid,
       };
       if (isUpdate) {
         await dbService.purchaseInvoices.update(newInvoice.id, payload);
@@ -502,8 +575,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setPurchaseInvoices((prev) => prev.filter((i) => i.id !== id));
     void safeDbWrite(
       "purchaseInvoice.delete",
-      async () => { await dbService.purchaseInvoices.delete(id); },
-      () => { if (previous) setPurchaseInvoices((prev) => [previous, ...prev]); },
+      async () => {
+        await dbService.purchaseInvoices.delete(id);
+      },
+      () => {
+        if (previous) setPurchaseInvoices((prev) => [previous, ...prev]);
+      },
     );
   };
 
@@ -520,17 +597,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     void safeDbWrite("payment.save", async () => {
+      const fyId = await dbService.financialYears.ensureFinancialYear(
+        cid,
+        activeFY,
+        settings?.company?.name,
+      );
+      await dbService.accountGroups.ensureDefaultGroups(cid);
+      const cashLedgerId = await dbService.payments.ensureCashLedger(cid);
+      const voucherNo = `PMT-${newPayment.id}`;
       const payload = {
         id: newPayment.id,
-        date: newPayment.date,
-        partyType: newPayment.partyType,
-        partyId: newPayment.partyId,
-        partyName: newPayment.partyName,
+        companyId: cid,
+        financialYearId: fyId,
+        type:
+          newPayment.partyType === "SUPPLIER"
+            ? ("PAYMENT" as const)
+            : ("RECEIPT" as const),
+        voucherNumber: voucherNo,
+        date: new Date(newPayment.date),
+        ledgerId: newPayment.partyId,
+        offsetLedgerId: cashLedgerId,
         amount: newPayment.amount,
         paymentMode: newPayment.paymentMode,
         referenceNo: newPayment.referenceNo,
-        notes: newPayment.notes,
-        companyId: cid,
+        narration: newPayment.notes,
+        // flat app columns
+        partyType: newPayment.partyType,
+        partyId: newPayment.partyId,
+        partyName: newPayment.partyName,
+        paymentNotes: newPayment.notes,
       };
       if (isUpdate) {
         await dbService.payments.update(newPayment.id, payload);
@@ -549,8 +644,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setPayments((prev) => prev.filter((p) => p.id !== id));
     void safeDbWrite(
       "payment.delete",
-      async () => { await dbService.payments.delete(id); },
-      () => { if (previous) setPayments((prev) => [previous, ...prev]); },
+      async () => {
+        await dbService.payments.delete(id);
+      },
+      () => {
+        if (previous) setPayments((prev) => [previous, ...prev]);
+      },
     );
   };
 
@@ -562,6 +661,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     void safeDbWrite(
       "supplier.insert",
       async () => {
+        await dbService.accountGroups.ensureDefaultGroups(cid);
         await dbService.suppliers.insert({
           id: newSupplier.id,
           name: newSupplier.name,
@@ -573,7 +673,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           state: newSupplier.state || "",
           billingAddress: newSupplier.billingAddress || "",
           shippingAddress: newSupplier.shippingAddress || "",
-          previousBalance: newSupplier.previousBalance || 0,
+          openingBalance: newSupplier.previousBalance || 0,
+          openingBalanceType: "Cr",
+          type: "SUPPLIER",
+          groupId: `${cid}__sundry-creditors`,
           creditLimit: newSupplier.creditLimit || 0,
           notes: newSupplier.notes || "",
           companyId: cid,
@@ -581,6 +684,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       () => setSuppliers((prev) => prev.filter((s) => s.id !== newId)),
     );
+    return newId;
   };
 
   const updateSupplier = (supplier: Supplier) => {
@@ -601,14 +705,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           state: supplier.state || "",
           billingAddress: supplier.billingAddress || "",
           shippingAddress: supplier.shippingAddress || "",
-          previousBalance: supplier.previousBalance || 0,
+          openingBalance: supplier.previousBalance || 0,
           creditLimit: supplier.creditLimit || 0,
           notes: supplier.notes || "",
         });
       },
       () => {
         if (previous)
-          setSuppliers((prev) => prev.map((s) => (s.id === supplier.id ? previous : s)));
+          setSuppliers((prev) =>
+            prev.map((s) => (s.id === supplier.id ? previous : s)),
+          );
       },
     );
   };
@@ -635,6 +741,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     void safeDbWrite(
       "customer.insert",
       async () => {
+        await dbService.accountGroups.ensureDefaultGroups(cid);
         await dbService.customers.insert({
           id: newCustomer.id,
           name: newCustomer.name,
@@ -645,7 +752,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           state: newCustomer.state || "",
           billingAddress: newCustomer.billingAddress || "",
           shippingAddress: newCustomer.shippingAddress || "",
-          previousBalance: newCustomer.previousBalance || 0,
+          openingBalance: newCustomer.previousBalance || 0,
+          openingBalanceType: "Dr",
+          type: "CUSTOMER",
+          groupId: `${cid}__sundry-debtors`,
           creditLimit: newCustomer.creditLimit || 0,
           notes: newCustomer.notes || "",
           companyId: cid,
@@ -653,6 +763,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       () => setCustomers((prev) => prev.filter((c) => c.id !== newId)),
     );
+    return newId;
   };
 
   const updateCustomer = (customer: Customer) => {
@@ -672,14 +783,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           state: customer.state || "",
           billingAddress: customer.billingAddress || "",
           shippingAddress: customer.shippingAddress || "",
-          previousBalance: customer.previousBalance || 0,
+          openingBalance: customer.previousBalance || 0,
           creditLimit: customer.creditLimit || 0,
           notes: customer.notes || "",
         });
       },
       () => {
         if (previous)
-          setCustomers((prev) => prev.map((c) => (c.id === customer.id ? previous : c)));
+          setCustomers((prev) =>
+            prev.map((c) => (c.id === customer.id ? previous : c)),
+          );
       },
     );
   };
@@ -699,10 +812,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // ── Caret Transactions ────────────────────────────────────────────────────
-  const addCaretTransaction = (tx: Omit<CaretTransaction, 'id' | 'createdAt'>) => {
+  const addCaretTransaction = (
+    tx: Omit<CaretTransaction, "id" | "createdAt">,
+  ) => {
+    const newId = `crt-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     const newTx: CaretTransaction = {
       ...tx,
-      id: `crt-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: newId,
       createdAt: new Date().toISOString(),
     };
     setCaretTxList((prev) => [newTx, ...prev]);
@@ -710,19 +826,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     void safeDbWrite(
       "caretTransaction.insert",
       async () => {
+        const fyId = await dbService.financialYears.ensureFinancialYear(
+          cid,
+          activeFY,
+          settings?.company?.name,
+        );
         await dbService.caretTransactions.insert({
           id: newTx.id,
-          date: newTx.date,
-          customerId: newTx.customerId,
+          companyId: cid,
+          financialYearId: fyId,
+          ledgerId: newTx.customerId,
+          type:
+            newTx.type === "RETURN"
+              ? ("RETURNED" as const)
+              : ("GIVEN" as const),
+          quantity: newTx.caretQty,
+          date: new Date(newTx.date),
+          fruitName: newTx.fruitName || "",
+          // flat app columns
+          customerIdFlat: newTx.customerId,
           customerName: newTx.customerName,
-          type: newTx.type,
-          fruitName: newTx.fruitName || '',
           caretQty: newTx.caretQty,
           note: newTx.note,
           billId: newTx.billId,
           billNo: newTx.billNo,
-          companyId: cid,
-          createdAt: newTx.createdAt,
         });
       },
       () => setCaretTxList((prev) => prev.filter((t) => t.id !== newTx.id)),
@@ -731,19 +858,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateCaretTransaction = (tx: CaretTransaction) => {
     const previous = caretTxList.find((t) => t.id === tx.id);
-    setCaretTxList((prev) =>
-      prev.map((t) => (t.id === tx.id ? tx : t)),
-    );
+    setCaretTxList((prev) => prev.map((t) => (t.id === tx.id ? tx : t)));
 
     void safeDbWrite(
       "caretTransaction.update",
       async () => {
         await dbService.caretTransactions.update(tx.id, {
-          date: tx.date,
-          customerId: tx.customerId,
-          customerName: tx.customerName,
-          type: tx.type,
+          date: new Date(tx.date),
+          type:
+            tx.type === "RETURN" ? ("RETURNED" as const) : ("GIVEN" as const),
+          quantity: tx.caretQty,
+          ledgerId: tx.customerId,
           fruitName: tx.fruitName,
+          // flat app columns
+          customerIdFlat: tx.customerId,
+          customerName: tx.customerName,
           caretQty: tx.caretQty,
           note: tx.note,
           billId: tx.billId,
@@ -764,8 +893,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     setCaretTxList((prev) => prev.filter((t) => t.id !== id));
     void safeDbWrite(
       "caretTransaction.delete",
-      async () => { await dbService.caretTransactions.delete(id); },
-      () => { if (previous) setCaretTxList((prev) => [previous, ...prev]); },
+      async () => {
+        await dbService.caretTransactions.delete(id);
+      },
+      () => {
+        if (previous) setCaretTxList((prev) => [previous, ...prev]);
+      },
     );
   };
 
@@ -788,14 +921,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addFruit = (fruitName: string) => {
     const trimmed = fruitName.trim();
-    if (!trimmed) return;
+    if (!trimmed) return "";
+    const existing = fruits.find(
+      (f) => f.name.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (existing) return existing.id;
+
+    const newId = `f-${Date.now()}`;
     const newFruit: Fruit = {
-      id: `f-${Date.now()}`,
+      id: newId,
       name: trimmed,
       varieties: ["Standard", "Premium"],
     };
-    // Guard: don't add duplicate (check before optimistic update)
-    if (fruits.some((f) => f.name.toLowerCase() === trimmed.toLowerCase())) return;
 
     setFruits((prev) => [...prev, newFruit]);
     void safeDbWrite(
@@ -808,8 +945,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           companyId: cid,
         });
       },
-      () => setFruits((prev) => prev.filter((f) => f.id !== newFruit.id)),
+      () => setFruits((prev) => prev.filter((f) => f.id !== newId)),
     );
+    return newId;
   };
 
   // ── App Settings ────────────────────────────
@@ -888,125 +1026,201 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         if (data.fruits?.length) {
           await Promise.all(
             (data.fruits as Fruit[]).map((f) =>
-              dbService.fruits.insert({
-                id: f.id,
-                name: f.name,
-                varieties: JSON.stringify(f.varieties || []),
-                companyId: importCid,
-              }).catch(() => dbService.fruits.update(f.id, {
-                name: f.name,
-                varieties: JSON.stringify(f.varieties || []),
-              }))
-            )
+              dbService.fruits
+                .insert({
+                  id: f.id,
+                  name: f.name,
+                  varieties: JSON.stringify(f.varieties || []),
+                  companyId: importCid,
+                })
+                .catch(() =>
+                  dbService.fruits.update(f.id, {
+                    name: f.name,
+                    varieties: JSON.stringify(f.varieties || []),
+                  }),
+                ),
+            ),
           );
         }
 
         if (data.suppliers?.length) {
+          await dbService.accountGroups.ensureDefaultGroups(importCid);
           await Promise.all(
             (data.suppliers as Supplier[]).map((s) =>
-              dbService.suppliers.insert({
-                id: s.id,
-                name: s.name,
-                code: s.code || "",
-                phone: s.phone || "",
-                city: s.city || "",
-                previousBalance: s.previousBalance || 0,
-                companyId: importCid,
-              }).catch(() => dbService.suppliers.update(s.id, {
-                name: s.name,
-                code: s.code || "",
-                phone: s.phone || "",
-                city: s.city || "",
-                previousBalance: s.previousBalance || 0,
-              }))
-            )
+              dbService.suppliers
+                .insert({
+                  id: s.id,
+                  name: s.name,
+                  code: s.code || "",
+                  phone: s.phone || "",
+                  city: s.city || "",
+                  openingBalance: s.previousBalance || 0,
+                  openingBalanceType: "Cr",
+                  type: "SUPPLIER",
+                  groupId: `${importCid}__sundry-creditors`,
+                  companyId: importCid,
+                })
+                .catch(() =>
+                  dbService.suppliers.update(s.id, {
+                    name: s.name,
+                    code: s.code || "",
+                    phone: s.phone || "",
+                    city: s.city || "",
+                    openingBalance: s.previousBalance || 0,
+                  }),
+                ),
+            ),
           );
         }
 
         if (data.customers?.length) {
+          await dbService.accountGroups.ensureDefaultGroups(importCid);
           await Promise.all(
             (data.customers as Customer[]).map((c) =>
-              dbService.customers.insert({
-                id: c.id,
-                name: c.name,
-                phone: c.phone || "",
-                city: c.city || "",
-                previousBalance: c.previousBalance || 0,
-                companyId: importCid,
-              }).catch(() => dbService.customers.update(c.id, {
-                name: c.name,
-                phone: c.phone || "",
-                city: c.city || "",
-                previousBalance: c.previousBalance || 0,
-              }))
-            )
+              dbService.customers
+                .insert({
+                  id: c.id,
+                  name: c.name,
+                  phone: c.phone || "",
+                  city: c.city || "",
+                  openingBalance: c.previousBalance || 0,
+                  openingBalanceType: "Dr",
+                  type: "CUSTOMER",
+                  groupId: `${importCid}__sundry-debtors`,
+                  companyId: importCid,
+                })
+                .catch(() =>
+                  dbService.customers.update(c.id, {
+                    name: c.name,
+                    phone: c.phone || "",
+                    city: c.city || "",
+                    openingBalance: c.previousBalance || 0,
+                  }),
+                ),
+            ),
           );
         }
 
         if (data.invoices?.length) {
+          const fyId = await dbService.financialYears.ensureFinancialYear(
+            importCid,
+            activeFY,
+            settings?.company?.name,
+          );
           await Promise.all(
             (data.invoices as Invoice[]).map((inv) =>
-              dbService.invoices.insert({
-                id: inv.id,
-                invoiceNo: inv.invoiceNo,
-                date: inv.date,
-                customerId: inv.customerId,
-                customerName: inv.customerName,
-                items: JSON.stringify(inv.items || []),
-                previousBalance: inv.previousBalance || 0,
-                todayAmount: inv.todayAmount || 0,
-                hamali: inv.hamali,
-                discount: inv.discount,
-                paidAmount: inv.paidAmount || 0,
-                remainingBalance: inv.remainingBalance || 0,
-                notes: inv.notes,
-                createdAt: inv.createdAt || new Date().toISOString(),
-                companyId: importCid,
-              }).catch(() => { /* skip duplicates */ })
-            )
+              dbService.invoices
+                .insert({
+                  id: inv.id,
+                  companyId: importCid,
+                  financialYearId: fyId,
+                  type: "SALE" as const,
+                  invoiceNumber: inv.invoiceNo,
+                  date: new Date(inv.date),
+                  ledgerId: inv.customerId,
+                  subTotal: inv.todayAmount || 0,
+                  grandTotal: inv.todayAmount || 0,
+                  hamali: inv.hamali ?? 0,
+                  freight: inv.freight ?? 0,
+                  discountTotal: inv.discount ?? 0,
+                  paidAmount: inv.paidAmount || 0,
+                  notes: inv.notes,
+                  status: "FINAL" as const,
+                  // flat columns
+                  invoiceNo: inv.invoiceNo,
+                  customerId: inv.customerId,
+                  customerName: inv.customerName,
+                  itemsJson: JSON.stringify(inv.items || []),
+                  previousBalance: inv.previousBalance || 0,
+                  todayAmount: inv.todayAmount || 0,
+                  remainingBalance: inv.remainingBalance || 0,
+                  discount: inv.discount ?? 0,
+                })
+                .catch(() => {
+                  /* skip duplicates */
+                }),
+            ),
           );
         }
 
         if (data.purchaseInvoices?.length) {
+          const fyId = await dbService.financialYears.ensureFinancialYear(
+            importCid,
+            activeFY,
+            settings?.company?.name,
+          );
           await Promise.all(
             (data.purchaseInvoices as PurchaseInvoice[]).map((inv) =>
-              dbService.purchaseInvoices.insert({
-                id: inv.id,
-                billNo: inv.billNo,
-                date: inv.date,
-                supplierId: inv.supplierId,
-                supplierName: inv.supplierName,
-                items: JSON.stringify(inv.items || []),
-                previousBalance: inv.previousBalance || 0,
-                todayAmount: inv.todayAmount || 0,
-                freight: inv.freight,
-                hamali: inv.hamali,
-                paidAmount: inv.paidAmount || 0,
-                remainingBalance: inv.remainingBalance || 0,
-                notes: inv.notes,
-                createdAt: inv.createdAt || new Date().toISOString(),
-                companyId: importCid,
-              }).catch(() => { /* skip duplicates */ })
-            )
+              dbService.purchaseInvoices
+                .insert({
+                  id: inv.id,
+                  companyId: importCid,
+                  financialYearId: fyId,
+                  type: "PURCHASE" as const,
+                  invoiceNumber: inv.billNo,
+                  date: new Date(inv.date),
+                  ledgerId: inv.supplierId,
+                  subTotal: inv.todayAmount || 0,
+                  grandTotal: inv.todayAmount || 0,
+                  hamali: inv.hamali ?? 0,
+                  freight: inv.freight ?? 0,
+                  paidAmount: inv.paidAmount || 0,
+                  notes: inv.notes,
+                  status: "FINAL" as const,
+                  // flat columns
+                  billNo: inv.billNo,
+                  supplierId: inv.supplierId,
+                  supplierName: inv.supplierName,
+                  itemsJson: JSON.stringify(inv.items || []),
+                  previousBalance: inv.previousBalance || 0,
+                  todayAmount: inv.todayAmount || 0,
+                  remainingBalance: inv.remainingBalance || 0,
+                })
+                .catch(() => {
+                  /* skip duplicates */
+                }),
+            ),
           );
         }
 
         if (data.payments?.length) {
+          const fyId = await dbService.financialYears.ensureFinancialYear(
+            importCid,
+            activeFY,
+            settings?.company?.name,
+          );
+          await dbService.accountGroups.ensureDefaultGroups(importCid);
+          const cashLedgerId =
+            await dbService.payments.ensureCashLedger(importCid);
           await Promise.all(
             (data.payments as PaymentReceipt[]).map((p) =>
-              dbService.payments.insert({
-                id: p.id,
-                date: p.date,
-                partyType: p.partyType,
-                partyId: p.partyId,
-                partyName: p.partyName,
-                amount: p.amount,
-                paymentMode: p.paymentMode,
-                referenceNo: p.referenceNo,
-                notes: p.notes,
-                companyId: importCid,
-              }).catch(() => { /* skip duplicates */ })
-            )
+              dbService.payments
+                .insert({
+                  id: p.id,
+                  companyId: importCid,
+                  financialYearId: fyId,
+                  type:
+                    p.partyType === "SUPPLIER"
+                      ? ("PAYMENT" as const)
+                      : ("RECEIPT" as const),
+                  voucherNumber: `PMT-${p.id}`,
+                  date: new Date(p.date),
+                  ledgerId: p.partyId,
+                  offsetLedgerId: cashLedgerId,
+                  amount: p.amount,
+                  paymentMode: p.paymentMode,
+                  referenceNo: p.referenceNo,
+                  narration: p.notes,
+                  // flat columns
+                  partyType: p.partyType,
+                  partyId: p.partyId,
+                  partyName: p.partyName,
+                  paymentNotes: p.notes,
+                })
+                .catch(() => {
+                  /* skip duplicates */
+                }),
+            ),
           );
         }
       });
@@ -1022,9 +1236,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   // This ensures switching companies also updates the available FY options.
   const fyStartMD = useMemo(() => {
     const activeCompany = companies.find((c) => c.id === activeCompanyId);
-    return activeCompany?.financial?.financialYearStart
-      ?? settings?.financial?.financialYearStart
-      ?? "04-01"; // MM-DD
+    return (
+      activeCompany?.financial?.financialYearStart ??
+      settings?.financial?.financialYearStart ??
+      "04-01"
+    ); // MM-DD
   }, [companies, activeCompanyId, settings?.financial?.financialYearStart]);
 
   const fyOptions = useMemo(() => {
@@ -1092,27 +1308,4 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       {children}
     </AppContext.Provider>
   );
-};
-
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error(
-      "[useApp] Context is undefined. This usually means:\n" +
-      "  1. The component is rendered outside <AppProvider> — check your provider tree in providers/index.tsx\n" +
-      "  2. A module-casing mismatch caused AppContext to be bundled twice (two separate context instances)\n" +
-      "  3. The component is used in a lazy-loaded chunk that mounted before <AppProvider> was ready\n\n" +
-      "Fix: ensure every import of AppContext uses the exact path '@/context/AppContext' (matching case)."
-    );
-  }
-  return context;
-};
-
-/**
- * Safe variant — returns null instead of throwing when used outside the provider.
- * Use this only in components that can genuinely render before the provider is ready
- * (e.g. error screens, startup screens). Prefer useApp() everywhere else.
- */
-export const useAppSafe = (): AppContextType | null => {
-  return useContext(AppContext) ?? null;
 };

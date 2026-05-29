@@ -12,7 +12,6 @@ import { CompanyFormData, ValidationErrors } from "@/types/company";
 import { useSettingsStore } from "@/store";
 import { DEFAULT_SETTINGS } from "@/store/settings.store";
 import { useToast } from "@/hooks/useToast";
-import { ipc } from "@/ipc";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { ROUTES, makeSettingsRoute } from "@/config";
 import type { NavigateFunction } from "react-router-dom";
@@ -83,7 +82,6 @@ interface CompanyWizardProps {
   /** Pass companyId directly when embedding in a modal (bypasses URL params). */
   companyId?: string;
   onComplete?: () => void | Promise<void>;
-  onSeedDemo?: () => void | Promise<void>;
 }
 
 function generateInvoicePrefix(companyName: string): string {
@@ -100,7 +98,6 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
   mode = "create",
   companyId: companyIdProp,
   onComplete,
-  onSeedDemo,
 }) => {
   const navigate = useNavigate();
   const { companyId: companyIdParam } = useParams<{ companyId: string }>();
@@ -117,7 +114,9 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
     if (mode === "edit" && companyId && companies.length > 0) {
       const company = companies.find((c) => c.id === companyId);
       if (company) {
-        const [monthStr] = (company.financial?.financialYearStart ?? "04-01").split("-");
+        const [monthStr] = (
+          company.financial?.financialYearStart ?? "04-01"
+        ).split("-");
         const fyStartMonth = parseInt(monthStr, 10) || 4;
 
         setFormData({
@@ -142,7 +141,9 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             currencySymbol: "₹",
             taxType: "gst",
             invoicePrefix: company.invoice?.salesPrefix ?? "INV",
-            invoiceStartingNumber: String(company.invoice?.salesNextNo ?? 1001).padStart(4, "0"),
+            invoiceStartingNumber: String(
+              company.invoice?.salesNextNo ?? 1001,
+            ).padStart(4, "0"),
             decimalPrecision: 2,
             enableMultiTax: true,
             enableRoundOff: true,
@@ -238,8 +239,13 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
       // currency is fixed to INR — no validation needed
 
       if (strict) {
-        if (!data.financial.fyStartMonth || data.financial.fyStartMonth < 1 || data.financial.fyStartMonth > 12)
-          newErrors.financial.fyStartMonth = "Financial year start month is required";
+        if (
+          !data.financial.fyStartMonth ||
+          data.financial.fyStartMonth < 1 ||
+          data.financial.fyStartMonth > 12
+        )
+          newErrors.financial.fyStartMonth =
+            "Financial year start month is required";
         if (!data.financial.invoicePrefix)
           newErrors.financial.invoicePrefix = "Invoice prefix is required";
         if (!data.financial.invoiceStartingNumber)
@@ -355,7 +361,8 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
             phone2: formData.details.phone2 || undefined,
             phone3: formData.details.phone3 || undefined,
             email: formData.details.email ?? existingCompany.company.email,
-            website: formData.details.website ?? existingCompany.company.website,
+            website:
+              formData.details.website ?? existingCompany.company.website,
             gstin: formData.details.gstin,
           },
           financial: {
@@ -465,9 +472,7 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950"
-    >
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
       <Header
         title={mode === "edit" ? "Edit Company" : "Create New Company"}
         onBackClick={() => {
@@ -491,7 +496,6 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
         lastSavedTime={lastSavedTime}
         isDirty={isDirty}
         onResetForm={handleReset}
-        onSeedDemo={onSeedDemo}
       />
 
       <Stepper
@@ -586,11 +590,6 @@ export const CompanyWizard: React.FC<CompanyWizardProps> = ({
         }}
         onConfigureTemplates={() => {
           navigate(makeSettingsRoute({ section: "INVOICE" }));
-        }}
-        onSeedDemo={async (profile) => {
-          const { useSettingsStore } = await import("@/store/settings.store");
-          const companyId = useSettingsStore.getState().activeCompanyId;
-          await ipc.db.reseedDemoData(profile, companyId);
         }}
       />
 

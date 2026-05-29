@@ -1,154 +1,202 @@
--- Migration 0001: complete ERP schema
--- Single authoritative migration for all tables.
--- company_id is on every business table for multi-company data isolation.
--- NULL company_id = legacy/unscoped data (treated as belonging to any company).
+-- 0001_initial.sql
+-- ERP/Billing Software Perfect Schema (Production Grade)
 
--- ── Master data ───────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS fruits (
-    id          TEXT PRIMARY KEY NOT NULL,
-    name        TEXT NOT NULL,
-    varieties   TEXT NOT NULL DEFAULT '[]',   -- JSON: string[]
-    company_id  TEXT                          -- NULL = shared/legacy
+-- 1. COMPANIES
+CREATE TABLE `companies` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`legal_name` text,
+	`gstin` text,
+	`address` text,
+	`phone` text,
+	`email` text,
+	`website` text,
+	`logo` text,
+	`currency` text DEFAULT 'INR',
+	`fy_start_month` integer DEFAULT 4,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP
 );
 
--- ── Parties ───────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS suppliers (
-    id                TEXT NOT NULL PRIMARY KEY,
-    name              TEXT NOT NULL,
-    code              TEXT NOT NULL DEFAULT '',
-    phone             TEXT NOT NULL DEFAULT '',
-    city              TEXT NOT NULL DEFAULT '',
-    previous_balance  REAL NOT NULL DEFAULT 0,
-    company_id        TEXT
+-- 2. FINANCIAL YEARS
+CREATE TABLE `financial_years` (
+	`id` text PRIMARY KEY NOT NULL,
+	`company_id` text NOT NULL,
+	`name` text NOT NULL,
+	`start_date` integer NOT NULL,
+	`end_date` integer NOT NULL,
+	`is_closed` integer DEFAULT 0,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS customers (
-    id                TEXT NOT NULL PRIMARY KEY,
-    name              TEXT NOT NULL,
-    phone             TEXT NOT NULL DEFAULT '',
-    city              TEXT NOT NULL DEFAULT '',
-    previous_balance  REAL NOT NULL DEFAULT 0,
-    company_id        TEXT
+-- 3. USERS
+CREATE TABLE `users` (
+	`id` text PRIMARY KEY NOT NULL,
+	`username` text NOT NULL UNIQUE,
+	`password_hash` text NOT NULL,
+	`full_name` text,
+	`role` text DEFAULT 'user',
+	`is_active` integer DEFAULT 1,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP
 );
 
--- ── Inventory ─────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS vehicle_arrivals (
-    id                       TEXT NOT NULL PRIMARY KEY,
-    arrival_no               TEXT NOT NULL,
-    date                     TEXT NOT NULL,
-    day                      TEXT NOT NULL DEFAULT '',
-    vehicle_no               TEXT NOT NULL,
-    vehicle_name             TEXT,
-    fruit_type               TEXT NOT NULL,
-    total_vehicle_weight     REAL NOT NULL DEFAULT 0,
-    driver_name              TEXT,
-    notes                    TEXT,
-    rows                     TEXT NOT NULL DEFAULT '[]',
-    total_carets             REAL NOT NULL DEFAULT 0,
-    total_calculated_weight  REAL NOT NULL DEFAULT 0,
-    total_amount             REAL NOT NULL DEFAULT 0,
-    freight_charge           REAL,
-    hamali_charge            REAL,
-    advance_paid             REAL,
-    status                   TEXT NOT NULL DEFAULT 'DRAFT',
-    created_at               TEXT NOT NULL,
-    company_id               TEXT
+-- 4. USER COMPANY ACCESS
+CREATE TABLE `user_companies` (
+	`user_id` text NOT NULL,
+	`company_id` text NOT NULL,
+	PRIMARY KEY (`user_id`, `company_id`),
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE
 );
 
--- ── Billing ───────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS invoices (
-    id                 TEXT NOT NULL PRIMARY KEY,
-    invoice_no         TEXT NOT NULL,
-    date               TEXT NOT NULL,
-    customer_id        TEXT NOT NULL,
-    customer_name      TEXT NOT NULL,
-    items              TEXT NOT NULL DEFAULT '[]',
-    previous_balance   REAL NOT NULL DEFAULT 0,
-    today_amount       REAL NOT NULL DEFAULT 0,
-    hamali             REAL,
-    discount           REAL,
-    paid_amount        REAL NOT NULL DEFAULT 0,
-    remaining_balance  REAL NOT NULL DEFAULT 0,
-    notes              TEXT,
-    created_at         TEXT NOT NULL,
-    company_id         TEXT
+-- 5. ACCOUNT GROUPS
+CREATE TABLE `account_groups` (
+	`id` text PRIMARY KEY NOT NULL,
+	`company_id` text NOT NULL,
+	`name` text NOT NULL,
+	`parent_group_id` text,
+	`nature` text NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS purchase_invoices (
-    id                 TEXT NOT NULL PRIMARY KEY,
-    bill_no            TEXT NOT NULL,
-    date               TEXT NOT NULL,
-    supplier_id        TEXT NOT NULL,
-    supplier_name      TEXT NOT NULL,
-    items              TEXT NOT NULL DEFAULT '[]',
-    previous_balance   REAL NOT NULL DEFAULT 0,
-    today_amount       REAL NOT NULL DEFAULT 0,
-    freight            REAL,
-    hamali             REAL,
-    paid_amount        REAL NOT NULL DEFAULT 0,
-    remaining_balance  REAL NOT NULL DEFAULT 0,
-    notes              TEXT,
-    created_at         TEXT NOT NULL,
-    company_id         TEXT
+-- 6. LEDGERS (Parties)
+CREATE TABLE `ledgers` (
+	`id` text PRIMARY KEY NOT NULL,
+	`company_id` text NOT NULL,
+	`group_id` text NOT NULL,
+	`name` text NOT NULL,
+	`code` text,
+	`type` text NOT NULL, -- CUSTOMER, SUPPLIER, BOTH
+	`phone` text,
+	`email` text,
+	`gstin` text,
+	`billing_address` text,
+	`shipping_address` text,
+	`city` text,
+	`state` text,
+	`opening_balance` real DEFAULT 0,
+	`opening_balance_type` text DEFAULT 'Dr',
+	`credit_limit` real DEFAULT 0,
+	`notes` text,
+	`is_system` integer DEFAULT 0,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE,
+	FOREIGN KEY (`group_id`) REFERENCES `account_groups`(`id`)
 );
 
--- ── Payments ──────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS payments (
-    id            TEXT NOT NULL PRIMARY KEY,
-    date          TEXT NOT NULL,
-    party_type    TEXT NOT NULL,
-    party_id      TEXT NOT NULL,
-    party_name    TEXT NOT NULL,
-    amount        REAL NOT NULL,
-    payment_mode  TEXT NOT NULL,
-    reference_no  TEXT,
-    notes         TEXT,
-    company_id    TEXT
+-- 7. FRUITS
+CREATE TABLE `fruits` (
+	`id` text PRIMARY KEY NOT NULL,
+	`company_id` text NOT NULL,
+	`name` text NOT NULL,
+	`pricing_type` text DEFAULT 'caret',
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE
 );
 
--- ── HR ────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS departments (
-    id          TEXT NOT NULL PRIMARY KEY,
-    name        TEXT NOT NULL,
-    created_at  TEXT NOT NULL,
-    company_id  TEXT
+-- 8. VARIETIES
+CREATE TABLE `varieties` (
+	`id` text PRIMARY KEY NOT NULL,
+	`company_id` text NOT NULL,
+	`fruit_id` text NOT NULL,
+	`name` text NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE,
+	FOREIGN KEY (`fruit_id`) REFERENCES `fruits`(`id`) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS employees (
-    id             TEXT NOT NULL PRIMARY KEY,
-    name           TEXT NOT NULL,
-    department_id  TEXT,
-    phone          TEXT NOT NULL DEFAULT '',
-    email          TEXT NOT NULL DEFAULT '',
-    salary         REAL NOT NULL DEFAULT 0,
-    joined_at      TEXT,
-    created_at     TEXT NOT NULL,
-    company_id     TEXT,
-    FOREIGN KEY (department_id) REFERENCES departments(id)
+-- 9. INVOICES
+CREATE TABLE `invoices` (
+	`id` text PRIMARY KEY NOT NULL,
+	`company_id` text NOT NULL,
+	`financial_year_id` text NOT NULL,
+	`type` text NOT NULL, -- SALE, PURCHASE
+	`invoice_number` text NOT NULL,
+	`date` integer NOT NULL,
+	`ledger_id` text NOT NULL,
+	`vehicle_no` text,
+	`declared_weight` real,
+	`sub_total` real NOT NULL,
+	`tax_total` real DEFAULT 0,
+	`discount_total` real DEFAULT 0,
+	`freight` real DEFAULT 0,
+	`hamali` real DEFAULT 0,
+	`other_charges` real DEFAULT 0,
+	`round_off` real DEFAULT 0,
+	`grand_total` real NOT NULL,
+	`paid_amount` real DEFAULT 0,
+	`notes` text,
+	`status` text DEFAULT 'DRAFT',
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE,
+	FOREIGN KEY (`financial_year_id`) REFERENCES `financial_years`(`id`),
+	FOREIGN KEY (`ledger_id`) REFERENCES `ledgers`(`id`)
 );
 
--- ── App settings (key/value store) ───────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS app_settings (
-    id     INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    key    TEXT    NOT NULL,
-    value  TEXT    NOT NULL
+-- 10. INVOICE ITEMS
+CREATE TABLE `invoice_items` (
+	`id` text PRIMARY KEY NOT NULL,
+	`invoice_id` text NOT NULL,
+	`variety_id` text NOT NULL,
+	`quantity` real NOT NULL,
+	`weight` real,
+	`rate` real NOT NULL,
+	`pricing_type` text DEFAULT 'caret',
+	`amount` real NOT NULL,
+	`tax_rate` real DEFAULT 0,
+	`tax_amount` real DEFAULT 0,
+	`row_note` text,
+	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON DELETE CASCADE,
+	FOREIGN KEY (`variety_id`) REFERENCES `varieties`(`id`)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS app_settings_key_unique ON app_settings (key);
+-- 11. PAYMENTS / RECEIPTS
+CREATE TABLE `payments` (
+	`id` text PRIMARY KEY NOT NULL,
+	`company_id` text NOT NULL,
+	`financial_year_id` text NOT NULL,
+	`type` text NOT NULL, -- PAYMENT, RECEIPT
+	`voucher_number` text NOT NULL,
+	`date` integer NOT NULL,
+	`ledger_id` text NOT NULL,
+	`offset_ledger_id` text NOT NULL,
+	`amount` real NOT NULL,
+	`payment_mode` text DEFAULT 'CASH',
+	`reference_no` text,
+	`narration` text,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE,
+	FOREIGN KEY (`financial_year_id`) REFERENCES `financial_years`(`id`),
+	FOREIGN KEY (`ledger_id`) REFERENCES `ledgers`(`id`),
+	FOREIGN KEY (`offset_ledger_id`) REFERENCES `ledgers`(`id`)
+);
 
--- ── Indexes for company_id filtering (performance) ───────────────────────────
+-- 12. CARET TRANSACTIONS
+CREATE TABLE `caret_transactions` (
+	`id` text PRIMARY KEY NOT NULL,
+	`company_id` text NOT NULL,
+	`financial_year_id` text NOT NULL,
+	`ledger_id` text NOT NULL,
+	`type` text NOT NULL, -- GIVEN, RETURNED
+	`quantity` integer NOT NULL,
+	`date` integer NOT NULL,
+	`fruit_name` text,
+	`notes` text,
+	`invoice_id` text,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (`company_id`) REFERENCES `companies`(`id`) ON DELETE CASCADE,
+	FOREIGN KEY (`financial_year_id`) REFERENCES `financial_years`(`id`),
+	FOREIGN KEY (`ledger_id`) REFERENCES `ledgers`(`id`),
+	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON DELETE SET NULL
+);
 
-CREATE INDEX IF NOT EXISTS idx_fruits_company            ON fruits           (company_id);
-CREATE INDEX IF NOT EXISTS idx_suppliers_company         ON suppliers        (company_id);
-CREATE INDEX IF NOT EXISTS idx_customers_company         ON customers        (company_id);
-CREATE INDEX IF NOT EXISTS idx_vehicle_arrivals_company  ON vehicle_arrivals (company_id);
-CREATE INDEX IF NOT EXISTS idx_invoices_company          ON invoices         (company_id);
-CREATE INDEX IF NOT EXISTS idx_purchase_invoices_company ON purchase_invoices(company_id);
-CREATE INDEX IF NOT EXISTS idx_payments_company          ON payments         (company_id);
+-- INDEXES
+CREATE INDEX `idx_invoice_company_fy` ON `invoices` (`company_id`, `financial_year_id`);
+CREATE INDEX `idx_invoice_number` ON `invoices` (`invoice_number`);
+CREATE INDEX `idx_payment_company_fy` ON `payments` (`company_id`, `financial_year_id`);
+CREATE INDEX `idx_caret_company_fy` ON `caret_transactions` (`company_id`, `financial_year_id`, `ledger_id`);
+CREATE INDEX `idx_ledger_company` ON `ledgers` (`company_id`, `type`);

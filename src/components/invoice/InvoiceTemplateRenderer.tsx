@@ -1,9 +1,11 @@
 import React from 'react';
 import QRCode from 'react-qr-code';
-import { Phone, MapPin, Mail, Building2, User, Landmark } from 'lucide-react';
+import { Phone, MapPin, Mail, Building2, User, Landmark, Package } from 'lucide-react';
 import { CompanySettings, Invoice, InvoiceSettings } from '../../types';
 import { normalizeInvoiceTemplate } from '../../utils/invoice-number';
 import { fmtDate, sumCurrency, roundCurrency, getFruitPricingType } from '../../utils/format';
+import { useApp } from '@/context/useApp';
+
 
 interface InvoiceTemplateRendererProps {
   invoice: Invoice;
@@ -221,7 +223,7 @@ const ModernItemTable: React.FC<{ invoice: Invoice; accent: string }> = ({ invoi
       <table className="w-full border-collapse text-[11px] sm:text-[12px] erp-table">
         <thead>
           <tr style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}dd 100%)` }}>
-            <th className="py-4 px-6 col-text font-black uppercase tracking-wider w-12 text-white">#</th>
+            <th className="py-4 px-2 col-text text-center font-black uppercase tracking-wider w-16 text-white">SR No.</th>
             <th className="py-4 px-2 col-text font-black uppercase tracking-wider text-white">Description</th>
             <th className="py-4 px-2 col-text font-black uppercase tracking-wider text-white">Variety</th>
             <th className="py-4 px-2 col-num font-black uppercase tracking-wider w-20 text-white">Carets</th>
@@ -236,7 +238,7 @@ const ModernItemTable: React.FC<{ invoice: Invoice; accent: string }> = ({ invoi
             const isByKg = pricingType === 'kg';
             return (
               <tr key={item.id} style={idx % 2 === 1 ? { backgroundColor: `${accent}08` } : {}}>
-                <td className="py-4 px-6 col-text text-slate-400 font-mono">{idx + 1}</td>
+                <td className="py-4 px-2 col-text text-center text-slate-400 font-mono">{idx + 1}</td>
                 <td className="py-4 px-2 col-text font-black text-slate-900">{item.fruit}</td>
                 <td className="py-4 px-2 col-text text-slate-600 font-bold uppercase tracking-tight">{item.lotVariety}</td>
                 <td className="py-4 px-2 col-num font-mono font-black text-slate-700">{item.caret}</td>
@@ -279,36 +281,33 @@ const ModernTotals: React.FC<{ invoice: Invoice; settings: InvoiceSettings; acce
           </div>
 
           <div className="px-5 py-4 space-y-3 bg-white">
-            {/* Previous Balance — neutral */}
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-slate-500 uppercase tracking-wider">Previous Balance</span>
+            {/* Previous Balance */}
+            <div className="flex justify-between items-center text-[12px] font-bold text-slate-500">
+              <span className="uppercase tracking-wider">Previous Balance</span>
               <span className="font-mono font-black text-slate-700">{currency(invoice.previousBalance)}</span>
             </div>
 
-            {/* Current Invoice — debit / payable → rose */}
-            <div className="flex justify-between items-center text-xs px-3 py-2 rounded-xl bg-rose-50 border border-rose-100">
-              <span className="font-bold text-rose-700 uppercase tracking-wider">+ Current Invoice</span>
-              <span className="font-mono font-black text-rose-700">{currency(invoice.todayAmount)}</span>
+            {/* Current Invoice */}
+            <div className="flex justify-between items-center text-[12px] font-bold text-slate-500">
+              <span className="uppercase tracking-wider">+ Current Invoice</span>
+              <span className="font-mono font-black text-slate-700">{currency(invoice.todayAmount)}</span>
             </div>
 
-            {/* Final Ledger Balance — violet/primary */}
-            <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-              <div>
-                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Final Ledger</p>
-                <p className="text-[11px] font-black text-slate-900 uppercase">Running Balance</p>
-              </div>
-              <span className="text-xl font-black font-mono" style={{ color: accent }}>{currency(runningBalance)}</span>
+            {/* Running Balance */}
+            <div className="pt-2.5 border-t border-slate-200 flex justify-between items-center text-[12px] font-black">
+              <span className="uppercase tracking-wider text-slate-900">Running Balance</span>
+              <span className="font-mono font-black text-[12px]" style={{ color: accent }}>{currency(runningBalance)}</span>
             </div>
           </div>
         </div>
 
         {/* Caret Balance — amber */}
-        <div className="mt-3 px-5 py-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+        <div className="mt-3 px-5 py-3 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-[9px] font-black text-amber-700 leading-none">
-              CARET
+            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+              <Package className="w-4 h-4" />
             </div>
-            <span className="text-[10px] font-black text-amber-900 uppercase tracking-wider">Caret Balance</span>
+            <span className="text-[11px] font-black text-amber-900 uppercase tracking-wider">Caret Balance</span>
           </div>
           <span className="text-base font-black font-mono text-amber-700">
             {(Number(invoice.remainingCaretBalance) || 0)} <span className="text-[9px] font-bold">Carets</span>
@@ -495,6 +494,25 @@ const ThermalTemplate: React.FC<{ invoice: Invoice; company: CompanySettings; se
 };
 
 export const InvoiceTemplateRenderer: React.FC<InvoiceTemplateRendererProps> = ({ invoice, company, invoiceSettings, className = '' }) => {
+  const { customers } = useApp();
+  let customer = customers.find(c => c.id === invoice.customerId || c.name === invoice.customerName);
+  
+  if (!customer && invoice.id === 'sample-invoice') {
+    customer = {
+      id: 'sample-customer',
+      name: 'Metro Fresh Supermarket',
+      phone: '9876543210',
+      email: 'buyer@metrofresh.in',
+      gstin: '24BBBBB0000B1Z8',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      billingAddress: 'G-14, APMC Market Yard, Vashi, Navi Mumbai - 400703',
+      shippingAddress: 'G-14, APMC Market Yard, Vashi, Navi Mumbai - 400703',
+      previousBalance: 35000,
+      creditLimit: 200000,
+      notes: ''
+    };
+  }
   const template = normalizeInvoiceTemplate(invoiceSettings.templateStyle);
   const accent = invoiceSettings.brandColor || '#4f46e5';
 
@@ -515,12 +533,34 @@ export const InvoiceTemplateRenderer: React.FC<InvoiceTemplateRendererProps> = (
         <div className="mt-12 flex flex-col sm:flex-row justify-between items-start gap-10">
           <div className="flex-1">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Billed To — Customer</p>
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-[1.25rem] bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-[1.25rem] bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner shrink-0">
                 <User className="w-7 h-7" />
               </div>
-              <div>
+              <div className="space-y-1">
                 <h3 className="text-2xl font-black text-slate-900 leading-none tracking-tight">{invoice.customerName}</h3>
+                {customer && (
+                  <div className="text-[12px] font-bold text-slate-600 space-y-2 mt-3.5">
+                    {customer.billingAddress && (
+                      <p className="flex items-start gap-2 leading-tight">
+                        <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                        <span className="text-slate-800">{customer.billingAddress}</span>
+                      </p>
+                    )}
+                    {customer.phone && (
+                      <p className="flex items-center gap-2 leading-tight">
+                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{customer.phone}</span>
+                      </p>
+                    )}
+                    {customer.gstin && (
+                      <p className="flex items-center gap-2 leading-tight">
+                        <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>GSTIN: <span className="font-mono font-black text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200/60">{customer.gstin}</span></span>
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

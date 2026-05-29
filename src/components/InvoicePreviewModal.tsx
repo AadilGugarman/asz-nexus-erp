@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Invoice } from '../types';
 import { X, Printer, FileText, Download, Share2 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useToast } from './ui/Toast';
 import { InvoiceTemplateRenderer } from './invoice/InvoiceTemplateRenderer';
 import { normalizeInvoiceTemplate } from '../utils/invoice-number';

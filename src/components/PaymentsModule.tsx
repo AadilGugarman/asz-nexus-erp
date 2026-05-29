@@ -2,10 +2,11 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   Wallet, Plus, Search, Trash2, Eye, Calendar, ArrowUpRight, ArrowDownRight,
   DollarSign, CreditCard, Banknote, Smartphone, FileText,
-  Printer, X, Building2, Users, UserCheck, ArrowUpDown, Edit3
+  Printer, X, Building2, Users, UserCheck, ArrowUpDown, Edit3,
+  MapPin, Mail, Phone
 } from 'lucide-react';
 
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 
 import { useToast } from './ui/Toast';
 import { useConfirmDialog } from './ui/ConfirmDialog';
@@ -17,6 +18,7 @@ import { DataTable, Pagination } from './ui/table';
 
 import { PaymentReceipt } from '../types';
 import { fmtDate, roundCurrency } from '@/utils/format';
+import { printElement } from '@/utils/print';
 
 const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   CASH: { label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" />, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
@@ -33,6 +35,12 @@ export const PaymentsModule: React.FC = () => {
   const cs = settings.company;
   const toast = useToast();
   const dialog = useConfirmDialog();
+  const paperRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    if (paperRef.current) printElement(paperRef.current);
+    else window.print();
+  };
 
   // Derive FY date range from active company + activeFY
   const { fyStartDate, fyEndDate } = useMemo(() => {
@@ -772,7 +780,7 @@ export const PaymentsModule: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <button onClick={() => window.print()} className="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer active:scale-95">
+                <button onClick={handlePrint} className="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer active:scale-95">
                   <Printer className="w-4 h-4" /><span>Print Receipt</span>
                 </button>
                 <button onClick={() => setPreviewPayment(null)} className="p-2.5 dark:text-slate-400 text-slate-500 dark:hover:text-white hover:text-slate-900 dark:bg-slate-800 bg-white rounded-xl cursor-pointer transition-all border dark:border-slate-700 border-slate-200 shadow-sm active:scale-95">
@@ -782,77 +790,150 @@ export const PaymentsModule: React.FC = () => {
             </div>
 
             {/* The Actual White Paper Sheet */}
-            <div className="w-full max-w-[650px] bg-white rounded-xl shadow-2xl dark:shadow-black/60 shadow-slate-400/20 overflow-hidden border border-slate-200/50 dark:border-slate-700/30 printable-patti animate-slide-up">
-              <div className="p-10 max-w-[600px] mx-auto font-[system-ui,sans-serif] text-[13px] leading-relaxed text-slate-900">
-                {/* Header */}
-                <div className="flex justify-between items-start border-b-[3px] border-slate-900 pb-5 mb-6">
-                  <div>
-                    <div className="flex items-center space-x-3 mb-1">
-                      {cs.logo && <img src={cs.logo} alt="Logo" className="h-9 max-w-[90px] object-contain shrink-0" />}
-                      <h1 className="text-[24px] font-black tracking-tight text-slate-950 leading-none">{cs.name.toUpperCase()}</h1>
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-600 mt-1 tracking-[0.15em] uppercase">{cs.tagline}</p>
-                    <p className="text-[10.5px] text-slate-500 mt-1.5 leading-relaxed">{cs.address}<br/>Phone: {cs.phone} &nbsp;|&nbsp; Email: {cs.email}</p>
-                  </div>
-                  <div className="text-right shrink-0 ml-6">
-                    <div className="inline-block border-2 border-amber-700 px-5 py-3 rounded-lg bg-amber-50">
-                      <div className="text-[9px] font-black tracking-[0.2em] uppercase text-amber-500">
-                        {previewPayment.partyType === 'SUPPLIER' ? 'PAYMENT VOUCHER' : 'PAYMENT RECEIPT'}
+            <div ref={paperRef} className="w-full max-w-[650px] bg-white rounded-xl shadow-2xl dark:shadow-black/60 shadow-slate-400/20 overflow-hidden border border-slate-200/50 dark:border-slate-700/30 printable-patti animate-slide-up">
+              {(() => {
+                const ini = getInitials(cs.name) || cs.name.slice(0, 2).toUpperCase();
+                const contacts = [cs.phone, cs.phone2, cs.phone3].filter(Boolean);
+                return (
+                  <div className="p-10 max-w-[600px] mx-auto font-[system-ui,sans-serif] text-[13px] leading-relaxed text-slate-900">
+                    {/* Header */}
+                    <div className="pb-6 border-b-2 border-slate-100 mb-6">
+                      <div className="flex items-start justify-between gap-6">
+
+                        {/* Left: Logo / Initials + Company Info */}
+                        <div className="flex items-start gap-5 flex-1 min-w-0">
+                          {/* Logo or Initials badge */}
+                          <div className="shrink-0">
+                            {cs.logo ? (
+                              <img
+                                src={cs.logo}
+                                alt={cs.name}
+                                className="h-16 w-16 object-contain rounded-2xl bg-slate-50 border border-slate-100 p-1.5"
+                              />
+                            ) : (
+                              <div
+                                className="shrink-0 rounded-2xl text-white font-black select-none overflow-hidden flex items-center justify-center shadow-md"
+                                style={{
+                                  width: 64,
+                                  height: 64,
+                                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                  fontSize: `${initialsFontSize(ini.length, 64)}px`,
+                                  lineHeight: 1,
+                                  letterSpacing: ini.length >= 3 ? '0.04em' : '0.02em',
+                                }}
+                              >
+                                {ini}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Company text */}
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">
+                              {cs.name}
+                            </h1>
+                            {cs.tagline && (
+                              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] mt-1">
+                                {cs.tagline}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2.5 text-[10.5px] font-semibold text-slate-500">
+                              {cs.address && (
+                                <span className="flex items-center gap-1.5">
+                                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  {cs.address}
+                                </span>
+                              )}
+                              {cs.gstin && (
+                                <span className="flex items-center gap-1.5">
+                                  <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  GSTIN: <span className="font-mono font-black text-slate-700">{cs.gstin}</span>
+                                </span>
+                              )}
+                              {cs.email && (
+                                <span className="flex items-center gap-1.5">
+                                  <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  {cs.email}
+                                </span>
+                              )}
+                            </div>
+                            {/* Contact numbers row */}
+                            {contacts.length > 0 && (
+                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
+                                {contacts.map((c, i) => (
+                                  <span key={i} className="flex items-center gap-1 text-[10.5px] font-bold text-slate-500">
+                                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    {c}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right: Voucher Info Badge */}
+                        <div className="shrink-0 text-right">
+                          <div className="inline-block px-5 py-3.5 rounded-2xl border-2 text-right border-amber-700/20 bg-amber-500/5">
+                            <p className="text-[9px] font-black text-amber-500 uppercase tracking-[0.2em] mb-0.5">
+                              {previewPayment.partyType === 'SUPPLIER' ? 'PAYMENT VOUCHER' : 'PAYMENT RECEIPT'}
+                            </p>
+                            <div className="text-xl font-black font-mono text-amber-900 leading-tight mt-0.5">{fmtDate(previewPayment.date)}</div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-[20px] font-black font-mono text-amber-900 leading-tight mt-0.5">{fmtDate(previewPayment.date)}</div>
+                    </div>
+
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-2 gap-0 border border-slate-300 rounded-lg overflow-hidden mb-8 text-[11px]">
+                      <div className="p-4 bg-slate-50 border-r border-slate-300">
+                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                          {previewPayment.partyType === 'SUPPLIER' ? 'Paid To (Supplier)' : 'Received From (Customer)'}
+                        </div>
+                        <div className="font-black text-slate-950 text-[16px]">{previewPayment.partyName}</div>
+                      </div>
+                      <div className="p-4 bg-white">
+                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Payment Mode</div>
+                        <div className="font-black text-slate-950 text-[14px]">{getPaymentModeMeta(previewPayment.paymentMode).label}</div>
+                      </div>
+                      <div className="p-4 bg-white border-r border-slate-300 border-t">
+                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Reference / UTR No.</div>
+                        <div className="font-mono font-bold text-slate-700 text-[12px]">{previewPayment.referenceNo || '—'}</div>
+                      </div>
+                      <div className="p-4 bg-slate-50 border-t">
+                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Remarks</div>
+                        <div className="text-slate-600 font-medium italic">{previewPayment.notes || '—'}</div>
+                      </div>
+                    </div>
+
+                    {/* BIG Amount */}
+                    <div className="border-2 border-slate-900 rounded-xl p-5 text-center mb-6 bg-slate-50">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">
+                        {previewPayment.partyType === 'SUPPLIER' ? 'AMOUNT PAID' : 'AMOUNT RECEIVED'}
+                      </div>
+                      <div className="text-[32px] font-black font-mono text-slate-950 leading-none">
+                        ₹ {previewPayment.amount.toLocaleString('en-IN')}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-2 font-semibold">
+                        ({numberToWords(previewPayment.amount)} Rupees Only)
+                      </div>
+                    </div>
+
+                    {/* Signatures */}
+                    <div className="mt-10 grid grid-cols-2 gap-8 text-[10px] text-slate-600">
+                      {[previewPayment.partyType === 'SUPPLIER' ? 'Supplier Acknowledgment' : 'Customer Acknowledgment', `For ${cs.name}`].map((label, i) => (
+                        <div key={i} className={i === 1 ? 'text-right' : ''}>
+                          <div className={`border-b border-slate-400 mb-2 ${i === 1 ? 'ml-auto w-44' : 'w-44'}`} style={{height:'1px'}}></div>
+                          <div className="font-bold text-slate-800 uppercase tracking-wider">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 pt-2 border-t border-slate-200 text-center text-[9px] text-slate-400 font-mono">
+                      Computer generated payment record &nbsp;•&nbsp; ASZ Nexus ERP System
                     </div>
                   </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="grid grid-cols-2 gap-0 border border-slate-300 rounded-lg overflow-hidden mb-8 text-[11px]">
-                  <div className="p-4 bg-slate-50 border-r border-slate-300">
-                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                      {previewPayment.partyType === 'SUPPLIER' ? 'Paid To (Supplier)' : 'Received From (Customer)'}
-                    </div>
-                    <div className="font-black text-slate-950 text-[16px]">{previewPayment.partyName}</div>
-                  </div>
-                  <div className="p-4 bg-white">
-                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Payment Mode</div>
-                    <div className="font-black text-slate-950 text-[14px]">{getPaymentModeMeta(previewPayment.paymentMode).label}</div>
-                  </div>
-                  <div className="p-4 bg-white border-r border-slate-300 border-t">
-                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Reference / UTR No.</div>
-                    <div className="font-mono font-bold text-slate-700 text-[12px]">{previewPayment.referenceNo || '—'}</div>
-                  </div>
-                  <div className="p-4 bg-slate-50 border-t">
-                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Remarks</div>
-                    <div className="text-slate-600 font-medium italic">{previewPayment.notes || '—'}</div>
-                  </div>
-                </div>
-
-                {/* BIG Amount */}
-                <div className="border-2 border-slate-900 rounded-xl p-5 text-center mb-6 bg-slate-50">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">
-                    {previewPayment.partyType === 'SUPPLIER' ? 'AMOUNT PAID' : 'AMOUNT RECEIVED'}
-                  </div>
-                  <div className="text-[32px] font-black font-mono text-slate-950 leading-none">
-                    ₹ {previewPayment.amount.toLocaleString('en-IN')}
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-2 font-semibold">
-                    ({numberToWords(previewPayment.amount)} Rupees Only)
-                  </div>
-                </div>
-
-                {/* Signatures */}
-                <div className="mt-10 grid grid-cols-2 gap-8 text-[10px] text-slate-600">
-                  {[previewPayment.partyType === 'SUPPLIER' ? 'Supplier Acknowledgment' : 'Customer Acknowledgment', `For ${cs.name}`].map((label, i) => (
-                    <div key={i} className={i === 1 ? 'text-right' : ''}>
-                      <div className={`border-b border-slate-400 mb-2 ${i === 1 ? 'ml-auto w-44' : 'w-44'}`} style={{height:'1px'}}></div>
-                      <div className="font-bold text-slate-800 uppercase tracking-wider">{label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-2 border-t border-slate-200 text-center text-[9px] text-slate-400 font-mono">
-                  Computer generated payment record &nbsp;•&nbsp; ASZ Nexus ERP System
-                </div>
-              </div>
+                );
+              })()}
             </div>
             <div className="h-12 shrink-0" />
           </div>
@@ -860,6 +941,24 @@ export const PaymentsModule: React.FC = () => {
       )}
     </div>
   );
+};
+
+// ── Helpers: Initials Generation & Font Sizing ──────
+const getInitials = (name: string): string => {
+  const skip = new Set(['and', '&', 'of', 'the', 'a', 'an', 'co', 'ltd', 'pvt', 'llp']);
+  return name
+    .split(/\s+/)
+    .filter(w => w && !skip.has(w.toLowerCase()))
+    .map(w => w[0].toUpperCase())
+    .slice(0, 3)
+    .join('');
+};
+
+const initialsFontSize = (len: number, size: number): number => {
+  if (len <= 1) return Math.round(size * 0.48);
+  if (len === 2) return Math.round(size * 0.38);
+  if (len === 3) return Math.round(size * 0.30);
+  return Math.round(size * 0.24);
 };
 
 // ── Helper: Number to Words (Indian format) ──────

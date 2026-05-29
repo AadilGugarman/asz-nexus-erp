@@ -4,7 +4,7 @@ import {
   Layers, AlertTriangle, RefreshCw, ArrowUpDown 
 } from 'lucide-react';
 
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useDataTable } from '../hooks/useDataTable';
 
 import { DataTable, Pagination } from './ui/table';
@@ -342,7 +342,7 @@ export const InventoryModule: React.FC = () => {
                     </tr>
                   ) : (
                     movementTable.pageRows.map(m => {
-                      const isStockIn = m.type === 'ARRIVAL' || m.type === 'PURCHASE_BILL';
+                      const isStockIn = m.type === 'PURCHASE_BILL';
                       return (
                         <tr key={m.id} className="font-sans group">
                           <td className="py-3.5 px-4 col-text font-mono text-[#64748b] whitespace-nowrap text-xs">{fmtDate(m.date)}</td>
@@ -350,7 +350,7 @@ export const InventoryModule: React.FC = () => {
                             {isStockIn ? (
                               <span className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase flex items-center w-max font-mono">
                                 <ArrowUpRight className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                                <span>{m.type === 'ARRIVAL' ? 'STOCK IN (GATE)' : 'STOCK IN (BUY)'}</span>
+                                <span>STOCK IN (BUY)</span>
                               </span>
                             ) : (
                               <span className="bg-sky-500/10 text-sky-700 border border-sky-500/30 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase flex items-center w-max font-mono">

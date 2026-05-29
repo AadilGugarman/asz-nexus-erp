@@ -1,172 +1,139 @@
-// models/invoice.rs
-// Sales invoice and purchase invoice domain models.
-
 use serde::{Deserialize, Serialize};
 use rusqlite::Row;
 use crate::error::AppResult;
-use crate::validation;
 
-// ── Sales Invoice ─────────────────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Invoice {
-    pub id:                String,
-    pub invoice_no:        String,
-    pub date:              String,
-    pub customer_id:       String,
-    pub customer_name:     String,
-    pub items:             String, // JSON
-    pub previous_balance:  f64,
-    pub today_amount:      f64,
-    pub hamali:            Option<f64>,
-    pub discount:          Option<f64>,
-    pub paid_amount:       f64,
-    pub remaining_balance: f64,
-    pub notes:             Option<String>,
-    pub created_at:        String,
+    pub id: String,
+    pub company_id: String,
+    pub financial_year_id: String,
+    pub invoice_type: String, // 'SALE', 'PURCHASE'
+    pub invoice_number: String,
+    pub date: i64,
+    pub ledger_id: String,
+    pub vehicle_no: Option<String>,
+    pub declared_weight: Option<f64>,
+    pub sub_total: f64,
+    pub tax_total: f64,
+    pub discount_total: f64,
+    pub freight: f64,
+    pub hamali: f64,
+    pub other_charges: f64,
+    pub round_off: f64,
+    pub grand_total: f64,
+    pub paid_amount: f64,
+    pub notes: Option<String>,
+    pub status: String,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
-impl Invoice {
-    pub const COLUMNS: &'static str =
-        "id, invoice_no, date, customer_id, customer_name, items, \
-         previous_balance, today_amount, hamali, discount, \
-         paid_amount, remaining_balance, notes, created_at";
-
-    pub fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
-        Ok(Self {
-            id:                row.get(0)?,
-            invoice_no:        row.get(1)?,
-            date:              row.get(2)?,
-            customer_id:       row.get(3)?,
-            customer_name:     row.get(4)?,
-            items:             row.get(5)?,
-            previous_balance:  row.get(6)?,
-            today_amount:      row.get(7)?,
-            hamali:            row.get(8)?,
-            discount:          row.get(9)?,
-            paid_amount:       row.get(10)?,
-            remaining_balance: row.get(11)?,
-            notes:             row.get(12)?,
-            created_at:        row.get(13)?,
-        })
-    }
+#[allow(dead_code)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct InvoiceItem {
+    pub id: String,
+    pub invoice_id: String,
+    pub variety_id: String,
+    pub quantity: f64,
+    pub weight: Option<f64>,
+    pub rate: f64,
+    pub pricing_type: String,
+    pub amount: f64,
+    pub tax_rate: f64,
+    pub tax_amount: f64,
+    pub row_note: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateInvoice {
-    pub invoice_no:        String,
-    pub date:              String,
-    pub customer_id:       String,
-    pub customer_name:     String,
-    pub items:             String, // JSON string
-    pub previous_balance:  f64,
-    pub today_amount:      f64,
-    pub hamali:            Option<f64>,
-    pub discount:          Option<f64>,
-    pub paid_amount:       f64,
-    pub remaining_balance: f64,
-    pub notes:             Option<String>,
-    pub created_at:        String,
+    pub company_id: String,
+    pub financial_year_id: String,
+    pub invoice_number: String,
+    pub date: i64,
+    pub ledger_id: String,
+    pub vehicle_no: Option<String>,
+    pub declared_weight: Option<f64>,
+    pub sub_total: f64,
+    pub grand_total: f64,
+    pub items: Vec<CreateInvoiceItem>,
 }
 
-impl CreateInvoice {
-    pub fn validate(&self) -> AppResult<()> {
-        validation::require_non_empty(&self.invoice_no,    "invoice_no")?;
-        validation::require_non_empty(&self.date,          "date")?;
-        validation::require_non_empty(&self.customer_id,   "customer_id")?;
-        validation::require_non_empty(&self.customer_name, "customer_name")?;
-        Ok(())
-    }
+#[derive(Debug, Deserialize)]
+pub struct CreateInvoiceItem {
+    pub variety_id: String,
+    pub quantity: f64,
+    pub weight: Option<f64>,
+    pub rate: f64,
+    pub pricing_type: String,
+    pub amount: f64,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct InvoiceFilter {
-    pub customer_id: Option<String>,
-    pub date_from:   Option<String>,
-    pub date_to:     Option<String>,
-    pub search:      Option<String>,
-    pub page:        Option<u32>,
-    pub limit:       Option<u32>,
+    pub company_id: String,
+    pub financial_year_id: String,
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+    pub search: Option<String>,
 }
 
-// ── Purchase Invoice ──────────────────────────────────────────────────────────
+pub type CreatePurchaseInvoice = CreateInvoice;
+pub type PurchaseInvoice = Invoice;
+pub type PurchaseInvoiceFilter = InvoiceFilter;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PurchaseInvoice {
-    pub id:                String,
-    pub bill_no:           String,
-    pub date:              String,
-    pub supplier_id:       String,
-    pub supplier_name:     String,
-    pub items:             String, // JSON
-    pub previous_balance:  f64,
-    pub today_amount:      f64,
-    pub freight:           Option<f64>,
-    pub hamali:            Option<f64>,
-    pub paid_amount:       f64,
-    pub remaining_balance: f64,
-    pub notes:             Option<String>,
-    pub created_at:        String,
-}
-
-impl PurchaseInvoice {
-    pub const COLUMNS: &'static str =
-        "id, bill_no, date, supplier_id, supplier_name, items, \
-         previous_balance, today_amount, freight, hamali, \
-         paid_amount, remaining_balance, notes, created_at";
-
-    pub fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
-        Ok(Self {
-            id:                row.get(0)?,
-            bill_no:           row.get(1)?,
-            date:              row.get(2)?,
-            supplier_id:       row.get(3)?,
-            supplier_name:     row.get(4)?,
-            items:             row.get(5)?,
-            previous_balance:  row.get(6)?,
-            today_amount:      row.get(7)?,
-            freight:           row.get(8)?,
-            hamali:            row.get(9)?,
-            paid_amount:       row.get(10)?,
-            remaining_balance: row.get(11)?,
-            notes:             row.get(12)?,
-            created_at:        row.get(13)?,
-        })
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreatePurchaseInvoice {
-    pub bill_no:           String,
-    pub date:              String,
-    pub supplier_id:       String,
-    pub supplier_name:     String,
-    pub items:             String,
-    pub previous_balance:  f64,
-    pub today_amount:      f64,
-    pub freight:           Option<f64>,
-    pub hamali:            Option<f64>,
-    pub paid_amount:       f64,
-    pub remaining_balance: f64,
-    pub notes:             Option<String>,
-    pub created_at:        String,
-}
-
-impl CreatePurchaseInvoice {
+impl CreateInvoice {
     pub fn validate(&self) -> AppResult<()> {
-        validation::require_non_empty(&self.bill_no,       "bill_no")?;
-        validation::require_non_empty(&self.date,          "date")?;
-        validation::require_non_empty(&self.supplier_id,   "supplier_id")?;
-        validation::require_non_empty(&self.supplier_name, "supplier_name")?;
+        if self.items.is_empty() {
+            return Err(crate::error::AppError::Validation("Invoice must have at least one item".to_string()));
+        }
         Ok(())
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct PurchaseInvoiceFilter {
-    pub supplier_id: Option<String>,
-    pub date_from:   Option<String>,
-    pub search:      Option<String>,
-    pub page:        Option<u32>,
-    pub limit:       Option<u32>,
+impl Invoice {
+    pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: row.get("id")?,
+            company_id: row.get("company_id")?,
+            financial_year_id: row.get("financial_year_id")?,
+            invoice_type: row.get("type")?,
+            invoice_number: row.get("invoice_number")?,
+            date: row.get("date")?,
+            ledger_id: row.get("ledger_id")?,
+            vehicle_no: row.get("vehicle_no")?,
+            declared_weight: row.get("declared_weight")?,
+            sub_total: row.get("sub_total")?,
+            tax_total: row.get("tax_total")?,
+            discount_total: row.get("discount_total")?,
+            freight: row.get("freight")?,
+            hamali: row.get("hamali")?,
+            other_charges: row.get("other_charges")?,
+            round_off: row.get("round_off")?,
+            grand_total: row.get("grand_total")?,
+            paid_amount: row.get("paid_amount")?,
+            notes: row.get("notes")?,
+            status: row.get("status")?,
+            created_at: row.get("created_at")?,
+            updated_at: row.get("updated_at")?,
+        })
+    }
+}
+
+impl InvoiceItem {
+    #[allow(dead_code)]
+    pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: row.get("id")?,
+            invoice_id: row.get("invoice_id")?,
+            variety_id: row.get("variety_id")?,
+            quantity: row.get("quantity")?,
+            weight: row.get("weight")?,
+            rate: row.get("rate")?,
+            pricing_type: row.get("pricing_type")?,
+            amount: row.get("amount")?,
+            tax_rate: row.get("tax_rate")?,
+            tax_amount: row.get("tax_amount")?,
+            row_note: row.get("row_note")?,
+        })
+    }
 }

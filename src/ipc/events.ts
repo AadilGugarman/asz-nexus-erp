@@ -58,13 +58,29 @@ async function listenEvent<T>(
     return () => {};
   }
 
-  const { listen } = await import('@tauri-apps/api/event' as any);
-  const unlisten = await (listen as (
-    event: string,
-    handler: (e: { payload: T }) => void,
-  ) => Promise<UnlistenFn>)(event, (e) => handler(e.payload));
-
-  return unlisten;
+  // Use the real Tauri event plugin via __TAURI_INTERNALS__ to avoid
+  // the Vite dev alias that maps @tauri-apps/api/event to the mock shim.
+  const tauriInternals = (window as any).__TAURI_INTERNALS__;
+  if (!tauriInternals?.invoke) {
+    console.warn(`[events] Tauri IPC not available for event "${event}"`);
+    return () => {};
+  }
+  // Register the callback and get its ID
+  const callbackId: number = tauriInternals.transformCallback(
+    (e: { payload: T }) => handler(e.payload),
+    false,
+  );
+  await tauriInternals.invoke('plugin:event|listen', {
+    event,
+    target: { kind: 'Any' },
+    handler: callbackId,
+  });
+  return () => {
+    tauriInternals.invoke('plugin:event|unlisten', {
+      event,
+      eventId: callbackId,
+    }).catch(() => {});
+  };
 }
 
 // ── Typed event listeners ─────────────────────────────────────────────────────

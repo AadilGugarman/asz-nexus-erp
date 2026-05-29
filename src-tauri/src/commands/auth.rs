@@ -66,21 +66,8 @@ pub struct ChangePasswordRequest {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct LockConfigRequest {
-    pub pin_enabled:      bool,
-    pub app_pin:          Option<String>,
-    pub auto_lock_minutes: i64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct LockConfigResponse {
-    pub pin_enabled:      bool,
-    pub auto_lock_minutes: i64,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct VerifyPinRequest {
-    pub pin: String,
+pub struct PingRequest {
+    pub message: String,
 }
 
 // ── auth_is_setup_done ────────────────────────────────────────────────────────
@@ -155,6 +142,7 @@ pub async fn auth_setup(
 // ── auth_login ────────────────────────────────────────────────────────────────
 
 /// Verify password and issue a new token pair.
+/// Enforces a 5-attempt lockout with 30-second cooldown to prevent brute force.
 #[tauri::command]
 pub async fn auth_login(
     payload: LoginRequest,
@@ -172,14 +160,48 @@ pub async fn auth_login(
         return Ok(IpcResponse::err("VALIDATION_ERROR", "App not set up yet. Please complete setup first."));
     }
 
+    // ── Brute-force protection ────────────────────────────────────────────────
+    let now_secs = chrono::Utc::now().timestamp();
+    let failed_attempts = auth_store.failed_login_attempts.unwrap_or(0);
+    let last_failed_at  = auth_store.last_failed_login_at.unwrap_or(0);
+
+    // After 5 consecutive failures, enforce a 30-second cooldown.
+    if failed_attempts >= 5 {
+        let elapsed = now_secs - last_failed_at;
+        if elapsed < 30 {
+            let remaining = 30 - elapsed;
+            return Ok(IpcResponse::err(
+                "RATE_LIMITED",
+                &format!("Too many failed attempts. Try again in {remaining} seconds."),
+            ));
+        }
+        // Cooldown passed — reset the counter so they get 5 more attempts.
+        auth_store.failed_login_attempts = Some(0);
+    }
+
     let hash = auth_store.password_hash.as_deref().ok_or_else(|| {
         AppError::Internal("No password hash found despite setup_done=true".into())
     })?;
 
     // Constant-time password verification
     if !password::verify(&payload.password, hash)? {
-        return Ok(IpcResponse::err("PERMISSION_DENIED", "Incorrect password"));
+        // Record the failure
+        auth_store.failed_login_attempts = Some(failed_attempts + 1);
+        auth_store.last_failed_login_at  = Some(now_secs);
+        let _ = store::save(&app_data_dir, &auth_store);
+
+        let attempts_left = 5_u32.saturating_sub(failed_attempts + 1);
+        let msg = if attempts_left == 0 {
+            "Incorrect password. Account locked for 30 seconds.".to_string()
+        } else {
+            format!("Incorrect password. {attempts_left} attempt(s) remaining.")
+        };
+        return Ok(IpcResponse::err("PERMISSION_DENIED", &msg));
     }
+
+    // Success — clear the failure counter
+    auth_store.failed_login_attempts = Some(0);
+    auth_store.last_failed_login_at  = Some(0);
 
     let secret = store::get_or_create_jwt_secret(&app_data_dir)?;
     let pair   = tokens::issue("admin", "admin", &secret)?;
@@ -256,6 +278,11 @@ pub async fn auth_refresh(
 
 // ── auth_restore_session ──────────────────────────────────────────────────────
 
+/// Attempt to restore a session using the stored refresh token.
+/// Called on app startup — if the refresh token is missing, expired, or
+/// invalid, this returns PermissionDenied and the user must log in.
+/// This is intentionally strict: a missing token means the user logged out
+/// or the app was reset, and they must authenticate with their password.
 #[tauri::command]
 pub async fn auth_restore_session(
     app: tauri::AppHandle,
@@ -265,21 +292,47 @@ pub async fn auth_restore_session(
         .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
 
     let mut auth_store = store::load(&app_data_dir)?;
-    let stored_refresh_token = auth_store.refresh_token.as_deref().ok_or_else(|| {
-        AppError::PermissionDenied("No stored refresh token. Please log in again.".into())
-    })?;
-    let stored_jti = auth_store.refresh_jti.as_deref().ok_or_else(|| {
-        AppError::PermissionDenied("No active refresh token metadata. Please log in again.".into())
-    })?;
+
+    // If setup is not done, there is nothing to restore.
+    if !auth_store.setup_done {
+        return Ok(IpcResponse::err("VALIDATION_ERROR", "App not set up yet."));
+    }
+
+    let stored_refresh_token = match auth_store.refresh_token.as_deref() {
+        Some(t) => t.to_string(),
+        None => return Ok(IpcResponse::err(
+            "PERMISSION_DENIED",
+            "No stored session. Please log in with your password.",
+        )),
+    };
+    let stored_jti = match auth_store.refresh_jti.as_deref() {
+        Some(j) => j.to_string(),
+        None => return Ok(IpcResponse::err(
+            "PERMISSION_DENIED",
+            "Session metadata missing. Please log in with your password.",
+        )),
+    };
 
     let secret = store::get_or_create_jwt_secret(&app_data_dir)?;
 
-    let (new_pair, _old_jti) = tokens::rotate(
-        stored_refresh_token,
-        stored_jti,
+    let (new_pair, _old_jti) = match tokens::rotate(
+        &stored_refresh_token,
+        &stored_jti,
         "admin",
         &secret,
-    )?;
+    ) {
+        Ok(pair) => pair,
+        Err(_) => {
+            // Token expired or invalid — clear it so next startup is clean
+            auth_store.refresh_token = None;
+            auth_store.refresh_jti = None;
+            let _ = store::save(&app_data_dir, &auth_store);
+            return Ok(IpcResponse::err(
+                "PERMISSION_DENIED",
+                "Session expired. Please log in with your password.",
+            ));
+        }
+    };
 
     let new_jti = extract_jti(&new_pair.refresh_token, &secret)?;
     auth_store.refresh_token = Some(new_pair.refresh_token.clone());
@@ -297,89 +350,6 @@ pub async fn auth_restore_session(
         user_id:            "admin".to_string(),
         role:               "admin".to_string(),
     }))
-}
-
-// ── auth_get_lock_config ─────────────────────────────────────────────────────
-
-#[tauri::command]
-pub async fn auth_get_lock_config(
-    app: tauri::AppHandle,
-) -> AppResult<IpcResponse<LockConfigResponse>> {
-    let app_data_dir = app.path().app_data_dir()
-        .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
-
-    let auth_store = store::load(&app_data_dir)?;
-    Ok(IpcResponse::ok(LockConfigResponse {
-        pin_enabled: auth_store.pin_enabled,
-        auto_lock_minutes: auth_store.auto_lock_minutes,
-    }))
-}
-
-// ── auth_set_lock_config ─────────────────────────────────────────────────────
-
-#[tauri::command]
-pub async fn auth_set_lock_config(
-    payload: LockConfigRequest,
-    app: tauri::AppHandle,
-) -> AppResult<IpcResponse<LockConfigResponse>> {
-    let app_data_dir = app.path().app_data_dir()
-        .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
-
-    let mut auth_store = store::load(&app_data_dir)?;
-
-    if !payload.pin_enabled {
-        auth_store.pin_enabled = false;
-        auth_store.pin_hash = None;
-        auth_store.pin_salt = None;
-        auth_store.auto_lock_minutes = 0;
-        store::save(&app_data_dir, &auth_store)?;
-        return Ok(IpcResponse::ok(LockConfigResponse {
-            pin_enabled: false,
-            auto_lock_minutes: 0,
-        }));
-    }
-
-    if let Some(pin_value) = payload.app_pin.clone() {
-        validation::require_non_empty(&pin_value, "app_pin")?;
-        validation::require_min_len(&pin_value, 4, "app_pin")?;
-        validation::require_max_len(&pin_value, 6, "app_pin")?;
-        auth_store.pin_hash = Some(password::hash(&pin_value)?);
-        auth_store.pin_salt = None;
-    } else if auth_store.pin_hash.is_none() {
-        return Ok(IpcResponse::err("VALIDATION_ERROR", "A PIN must be provided when enabling lock protection."));
-    }
-
-    auth_store.pin_enabled = true;
-    auth_store.auto_lock_minutes = payload.auto_lock_minutes.max(0);
-    store::save(&app_data_dir, &auth_store)?;
-
-    Ok(IpcResponse::ok(LockConfigResponse {
-        pin_enabled: auth_store.pin_enabled,
-        auto_lock_minutes: auth_store.auto_lock_minutes,
-    }))
-}
-
-// ── auth_verify_pin ───────────────────────────────────────────────────────────
-
-#[tauri::command]
-pub async fn auth_verify_pin(
-    payload: VerifyPinRequest,
-    app: tauri::AppHandle,
-) -> AppResult<IpcResponse<bool>> {
-    let app_data_dir = app.path().app_data_dir()
-        .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
-
-    let auth_store = store::load(&app_data_dir)?;
-    if !auth_store.pin_enabled {
-        return Ok(IpcResponse::ok(false));
-    }
-
-    let stored_hash = auth_store.pin_hash.as_deref().ok_or_else(|| {
-        AppError::Internal("PIN lock is enabled but stored pin hash is missing.".into())
-    })?;
-
-    let ok = password::verify(&payload.pin, stored_hash)?;
-    Ok(IpcResponse::ok(ok))
 }
 
 // ── auth_logout ───────────────────────────────────────────────────────────────
@@ -405,8 +375,10 @@ pub async fn auth_logout(
 
 // ── auth_reset_app ────────────────────────────────────────────────────────────
 
-/// DANGEROUS: Deletes the auth.json file and clears the in-memory session.
-/// This effectively resets the app to a "first-run" state.
+/// DANGEROUS: Full factory reset.
+/// Deletes auth.json AND the SQLite database file (+ WAL/SHM).
+/// On next startup the DB is recreated from migrations and the user
+/// goes through first-run setup with a completely clean slate.
 #[tauri::command]
 pub async fn auth_reset_app(
     app: tauri::AppHandle,
@@ -415,11 +387,38 @@ pub async fn auth_reset_app(
     let app_data_dir = app.path().app_data_dir()
         .map_err(|e| AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
 
-    let path = app_data_dir.join("auth.json");
-    if path.exists() {
-        std::fs::remove_file(path).map_err(|e| AppError::Io(e))?;
+    // 1. Delete auth.json (password hash, tokens, setup_done flag)
+    let auth_path = app_data_dir.join("auth.json");
+    if auth_path.exists() {
+        std::fs::remove_file(&auth_path).map_err(|e| AppError::Io(e))?;
     }
 
+    // 2. Delete the SQLite database and its WAL/SHM journal files.
+    //    The pool holds open connections, so we close them first by
+    //    dropping all connections back to the pool, then delete the files.
+    //    On next startup, init_pool() + migrations::run() recreate everything.
+    let db_path     = app_data_dir.join("asz_nexus_erp.db");
+    let db_wal_path = app_data_dir.join("asz_nexus_erp.db-wal");
+    let db_shm_path = app_data_dir.join("asz_nexus_erp.db-shm");
+
+    // Execute a checkpoint + truncate WAL before deleting so the main file
+    // is fully up-to-date and the WAL is empty (safe to delete).
+    if let Ok(conn) = state.db.get() {
+        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+    }
+    // Drop all pooled connections by letting the borrow end here.
+    // The pool itself stays alive in AppState but the files will be gone —
+    // any subsequent DB access will fail, which is fine because the frontend
+    // reloads immediately after this call.
+
+    for path in &[&db_path, &db_wal_path, &db_shm_path] {
+        if path.exists() {
+            // Ignore errors — WAL/SHM may already be gone or locked briefly
+            let _ = std::fs::remove_file(path);
+        }
+    }
+
+    // 3. Clear the in-memory session
     state.session.clear();
 
     Ok(IpcResponse::ok(true))

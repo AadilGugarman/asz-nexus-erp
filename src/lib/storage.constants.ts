@@ -36,8 +36,6 @@ export const STORAGE_KEYS = {
   onboardingDraft: `${NS}onboarding_draft` as const,
 
   // Security & Auth
-  lockState: `${NS}lock_state` as const,
-  securityPrefs: `${NS}security_prefs` as const,
   refreshToken: `${NS}refresh_token` as const,
   refreshTokenExpiry: `${NS}refresh_token_expiry` as const,
 
@@ -49,7 +47,6 @@ export const STORAGE_KEYS = {
   fruits: `${NS}fruits` as const,
   suppliers: `${NS}suppliers` as const,
   customers: `${NS}customers` as const,
-  vehicles: `${NS}vehicles` as const,
   invoices: `${NS}invoices` as const,
   purchaseInvoices: `${NS}purchase_invoices` as const,
   payments: `${NS}payments` as const,
@@ -80,8 +77,6 @@ export const LEGACY_KEYS = {
   onboardingDraft: "apex_onboarding_company_setup_draft_v1",
 
   // Security
-  lockState: "apex_lock_state_v1",
-  securityPrefs: "apex_security_prefs",
   refreshToken: "apex_refresh_token", // hypothetical — verify actual key
   refreshTokenExpiry: "apex_refresh_token_expiry", // hypothetical — verify actual key
 
@@ -89,7 +84,6 @@ export const LEGACY_KEYS = {
   fruits: "apex_fruits",
   suppliers: "apex_suppliers",
   customers: "apex_customers",
-  vehicles: "apex_vehicles",
   invoices: "apex_invoices",
   purchaseInvoices: "apex_purchase_invoices",
   payments: "apex_payments",

@@ -1,33 +1,18 @@
 /**
  * db/repositories/fruit.repository.ts
- * All Drizzle queries for the fruits table.
- *
- * Fruits represent product types (e.g., Mango, Banana).
- * Each fruit can have multiple varieties.
- *
- * Usage:
- *   const repo = new FruitRepository(db);
- *   const all = await repo.findAll();
+ * All Drizzle queries for the fruits and varieties tables.
  */
 
-import { like } from "drizzle-orm";
+import { like, eq } from "drizzle-orm";
 import { BaseRepository } from "./base.repository";
-import { fruits } from "../schema";
+import { fruits, varieties } from "../schema/master";
 import type { DrizzleDb } from "../client";
 import type { PaginationParams, PagedResult } from "./base.repository";
 
-export interface DbFruit {
-  id: string;
-  name: string;
-  varieties: string; // JSON array stringified
-}
-
-export interface DbFruitInsert {
-  id?: string;
-  name: string;
-  varieties?: string;
-  companyId?: string | null; // maps to company_id column
-}
+export type DbFruit = typeof fruits.$inferSelect;
+export type DbFruitInsert = typeof fruits.$inferInsert;
+export type DbVariety = typeof varieties.$inferSelect;
+export type DbVarietyInsert = typeof varieties.$inferInsert;
 
 export interface FruitFilter extends PaginationParams {
   search?: string; // matches name
@@ -60,42 +45,23 @@ export class FruitRepository extends BaseRepository<
       .from(fruits)
       .where(like(fruits.name, name))
       .limit(1);
-    return rows[0] ?? null;
+    return (rows[0] as DbFruit) ?? null;
   }
 
-  // ── Get varieties ───────────────────────────────────────────────────────────
+  // ── Varieties ───────────────────────────────────────────────────────────────
 
-  async getVarieties(fruitId: string): Promise<string[]> {
-    const fruit = await this.findById(fruitId);
-    if (!fruit) return [];
-
-    try {
-      return JSON.parse(fruit.varieties) as string[];
-    } catch {
-      return [];
-    }
+  async getVarieties(fruitId: string): Promise<DbVariety[]> {
+    return this.db
+      .select()
+      .from(varieties)
+      .where(eq(varieties.fruitId, fruitId));
   }
 
-  // ── Add variety ─────────────────────────────────────────────────────────────
-
-  async addVariety(
-    fruitId: string,
-    varietyName: string,
-  ): Promise<DbFruit | null> {
-    const fruit = await this.findById(fruitId);
-    if (!fruit) return null;
-
-    try {
-      const varieties = JSON.parse(fruit.varieties) as string[];
-      if (!varieties.includes(varietyName)) {
-        varieties.push(varietyName);
-        return await this.update(fruitId, {
-          varieties: JSON.stringify(varieties),
-        });
-      }
-      return fruit;
-    } catch {
-      return null;
-    }
+  async addVariety(insert: DbVarietyInsert): Promise<DbVariety> {
+    const [row] = await this.db
+      .insert(varieties)
+      .values(insert)
+      .returning();
+    return row as DbVariety;
   }
 }

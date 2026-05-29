@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { PurchaseInvoice } from '../types';
-import { X, Printer, FileText } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { X, Printer, FileText, MapPin, Phone, Building2, Mail } from 'lucide-react';
+import { useApp } from '@/context/useApp';
 import { fmtDate, sumCurrency, roundCurrency, getFruitPricingType } from '@/utils/format';
 import { printElement } from '@/utils/print';
 
@@ -29,11 +29,13 @@ interface PurchasePreviewModalProps {
 }
 
 export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invoice, onClose }) => {
-  const { settings } = useApp();
+  const { settings, suppliers } = useApp();
   const cs = settings.company;
   const paperRef = useRef<HTMLDivElement>(null);
 
   if (!invoice) return null;
+
+  const supplier = suppliers.find(s => s.id === invoice.supplierId || s.name === invoice.supplierName);
 
   const freight      = roundCurrency(Number(invoice.freight) || 0);
   const hamali       = roundCurrency(Number(invoice.hamali) || 0);
@@ -46,6 +48,7 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
   };
 
   const ini = getInitials(cs.name) || cs.name.slice(0, 2).toUpperCase();
+  const contacts = [cs.phone, cs.phone2, cs.phone3].filter(Boolean);
 
   return (
     <div className="fixed inset-0 z-[99999] overflow-y-auto animate-fade-in custom-scrollbar">
@@ -90,41 +93,91 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
           <div className="p-10 max-w-[780px] mx-auto font-[system-ui,sans-serif] text-[13px] leading-relaxed text-slate-900">
 
             {/* ── HEADER ─────────────────────────── */}
-            <div className="flex justify-between items-start border-b-[3px] border-teal-700 pb-5 mb-6">
-              <div>
-                <div className="flex items-center space-x-3 mb-1">
-                  {cs.logo ? (
-                    <img src={cs.logo} alt={cs.name} className="h-9 max-w-[90px] object-contain shrink-0" />
-                  ) : (
-                    <div
-                      className="shrink-0 rounded-xl text-white font-black select-none overflow-hidden flex items-center justify-center"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
-                        fontSize: `${initialsFontSize(ini.length, 36)}px`,
-                        lineHeight: 1,
-                        letterSpacing: ini.length >= 3 ? '0.04em' : '0.02em',
-                      }}
-                    >
-                      {ini}
+            <div className="pb-6 border-b-2 border-slate-100 mb-6">
+              <div className="flex items-start justify-between gap-6">
+
+                {/* Left: Logo / Initials + Company Info */}
+                <div className="flex items-start gap-5 flex-1 min-w-0">
+                  {/* Logo or Initials badge */}
+                  <div className="shrink-0">
+                    {cs.logo ? (
+                      <img
+                        src={cs.logo}
+                        alt={cs.name}
+                        className="h-16 w-16 object-contain rounded-2xl bg-slate-50 border border-slate-100 p-1.5"
+                      />
+                    ) : (
+                      <div
+                        className="shrink-0 rounded-2xl text-white font-black select-none overflow-hidden flex items-center justify-center shadow-md"
+                        style={{
+                          width: 64,
+                          height: 64,
+                          background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+                          fontSize: `${initialsFontSize(ini.length, 64)}px`,
+                          lineHeight: 1,
+                          letterSpacing: ini.length >= 3 ? '0.04em' : '0.02em',
+                        }}
+                      >
+                        {ini}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Company text */}
+                  <div className="flex-1 min-w-0 pt-0.5">
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">
+                      {cs.name}
+                    </h1>
+                    {cs.tagline && (
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] mt-1">
+                        {cs.tagline}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2.5 text-[10.5px] font-semibold text-slate-500">
+                      {cs.address && (
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          {cs.address}
+                        </span>
+                      )}
+                      {cs.gstin && (
+                        <span className="flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          GSTIN: <span className="font-mono font-black text-slate-700">{cs.gstin}</span>
+                        </span>
+                      )}
+                      {cs.email && (
+                        <span className="flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          {cs.email}
+                        </span>
+                      )}
                     </div>
-                  )}
-                  <h1 className="text-[26px] font-black tracking-tight text-slate-950 leading-none">
-                    {cs.name.toUpperCase()}
-                  </h1>
+                    {/* Contact numbers row */}
+                    {contacts.length > 0 && (
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
+                        {contacts.map((c, i) => (
+                          <span key={i} className="flex items-center gap-1 text-[10.5px] font-bold text-slate-500">
+                            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="text-[11px] font-bold text-slate-600 mt-1 tracking-[0.15em] uppercase">{cs.tagline}</p>
-                <p className="text-[10.5px] text-slate-500 mt-1.5 leading-relaxed">
-                  {cs.address}<br />Phone: {cs.phone} &nbsp;|&nbsp; Email: {cs.email}
-                </p>
-              </div>
-              <div className="text-right shrink-0 ml-6">
-                <div className="inline-block border-2 border-teal-700 px-5 py-3 rounded-lg bg-teal-50">
-                  <div className="text-[9px] font-black tracking-[0.2em] uppercase text-teal-500">Purchase Bill</div>
-                  <div className="text-[22px] font-black font-mono text-teal-900 leading-tight mt-0.5">{invoice.billNo}</div>
+
+                {/* Right: Bill Info Badge */}
+                <div className="shrink-0 text-right">
+                  <div className="inline-block px-5 py-3.5 rounded-2xl border-2 text-right border-teal-700/20 bg-teal-500/5">
+                    <p className="text-[9px] font-black text-teal-600 uppercase tracking-[0.2em] mb-0.5">Purchase Bill</p>
+                    <p className="text-xl font-black text-slate-900 font-mono tracking-tight">{invoice.billNo}</p>
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-end gap-2 text-[10px]">
+                      <span className="text-slate-400 font-bold uppercase tracking-wider">Date</span>
+                      <span className="font-mono font-black text-slate-700">{fmtDate(invoice.date)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[11px] font-mono text-slate-600 mt-2 font-semibold">{fmtDate(invoice.date)}</div>
               </div>
             </div>
 
@@ -135,8 +188,30 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
                   Purchased From — Supplier / Orchard
                 </div>
                 <div className="text-[16px] font-black text-slate-950 mt-1">{invoice.supplierName}</div>
+                {supplier && (
+                  <div className="text-[12px] font-bold text-slate-600 space-y-2 mt-3.5 border-t border-slate-200/30">
+                    {supplier.billingAddress && (
+                      <p className="flex items-start gap-2 leading-tight mt-1.5">
+                        <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                        <span className="text-slate-800">{supplier.billingAddress}</span>
+                      </p>
+                    )}
+                    {supplier.phone && (
+                      <p className="flex items-center gap-2 leading-tight">
+                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{supplier.phone}</span>
+                      </p>
+                    )}
+                    {supplier.gstin && (
+                      <p className="flex items-center gap-2 leading-tight">
+                        <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>GSTIN: <span className="font-mono font-black text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200/60">{supplier.gstin}</span></span>
+                      </p>
+                    )}
+                  </div>
+                )}
                 {invoice.notes && (
-                  <div className="text-[10.5px] text-slate-500 mt-1 italic">Note: {invoice.notes}</div>
+                  <div className="text-[10.5px] text-slate-500 mt-1.5 italic font-medium">Note: {invoice.notes}</div>
                 )}
               </div>
               <div className="p-3.5 border-l border-slate-300 bg-white text-right shrink-0 min-w-[180px]">
@@ -151,41 +226,45 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
             </div>
 
             {/* ── ITEMS TABLE ──────────────────────── */}
-            <table className="w-full border-collapse text-[11.5px] mb-1 erp-table">
-              <thead>
-                <tr style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)' }}>
-                  <th className="py-2.5 px-3 col-text rounded-tl-lg w-8 text-white font-black uppercase tracking-wider">#</th>
-                  <th className="py-2.5 px-3 col-text text-white font-black uppercase tracking-wider">Fruit</th>
-                  <th className="py-2.5 px-3 col-text text-white font-black uppercase tracking-wider">Variety</th>
-                  <th className="py-2.5 px-3 col-num w-24 text-white font-black uppercase tracking-wider">Carets</th>
-                  <th className="py-2.5 px-3 col-num w-24 text-white font-black uppercase tracking-wider">Weight</th>
-                  <th className="py-2.5 px-3 col-num w-24 text-white font-black uppercase tracking-wider">Rate</th>
-                  <th className="py-2.5 px-3 col-num rounded-tr-lg w-32 text-white font-black uppercase tracking-wider">Amount (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.items.map((item, idx) => {
-                  const pricingType = item.pricingType ?? getFruitPricingType(item.fruitCategory || item.fruit || '');
-                  const isByKg = pricingType === 'kg';
-                  return (
-                    <tr key={item.id} className={`border-b border-slate-200 ${idx % 2 ? 'bg-slate-50/60' : ''}`}>
-                      <td className="py-2 px-3 col-text text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="py-2 px-3 col-text font-semibold text-slate-900">{item.fruit}</td>
-                      <td className="py-2 px-3 col-text font-medium text-slate-700">{item.variety}</td>
-                      <td className="py-2 px-3 col-num font-mono font-semibold">{item.caret}</td>
-                      <td className="py-2 px-3 col-num font-mono font-semibold">{item.weight}</td>
-                      <td className="py-2 px-3 col-num font-mono">
-                        {item.rate.toFixed(2)}
-                        <span className="text-[9px] text-slate-400 ml-0.5">{isByKg ? '/KG' : '/Crt'}</span>
-                      </td>
-                      <td className="py-2 px-3 col-num font-mono font-bold text-slate-900">
-                        ₹{(item.amount || 0).toLocaleString('en-IN')}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-hidden rounded-3xl border border-slate-100 shadow-sm mt-8">
+              <table className="w-full border-collapse text-[11px] sm:text-[12px] erp-table">
+                <thead>
+                  <tr style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)' }}>
+                    <th className="py-4 px-2 col-text text-center text-white font-black uppercase tracking-wider w-16">SR No.</th>
+                    <th className="py-4 px-2 col-text text-white font-black uppercase tracking-wider">Description</th>
+                    <th className="py-4 px-2 col-text text-white font-black uppercase tracking-wider">Variety</th>
+                    <th className="py-4 px-2 col-num w-20 text-white font-black uppercase tracking-wider">Carets</th>
+                    <th className="py-4 px-2 col-num w-24 text-white font-black uppercase tracking-wider">Weight</th>
+                    <th className="py-4 px-2 col-num w-24 text-white font-black uppercase tracking-wider">Rate</th>
+                    <th className="py-4 px-6 col-num w-32 text-white font-black uppercase tracking-wider">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {invoice.items.map((item, idx) => {
+                    const pricingType = item.pricingType ?? getFruitPricingType(item.fruitCategory || item.fruit || '');
+                    const isByKg = pricingType === 'kg';
+                    return (
+                      <tr key={item.id} style={idx % 2 === 1 ? { backgroundColor: '#0d948808' } : {}}>
+                        <td className="py-4 px-2 col-text text-center text-slate-400 font-mono">{idx + 1}</td>
+                        <td className="py-4 px-2 col-text font-black text-slate-900">{item.fruit}</td>
+                        <td className="py-4 px-2 col-text text-slate-600 font-bold uppercase tracking-tight">{item.variety}</td>
+                        <td className="py-4 px-2 col-num font-mono font-black text-slate-700">{item.caret}</td>
+                        <td className="py-4 px-2 col-num font-mono font-black text-slate-700">
+                          {item.weight} <span className="text-[9px] text-slate-400">KG</span>
+                        </td>
+                        <td className="py-4 px-2 col-num font-mono text-slate-600 font-bold">
+                          ₹{item.rate.toLocaleString('en-IN')}
+                          <span className="text-[9px] text-slate-400 ml-0.5">{isByKg ? '/KG' : '/Crt'}</span>
+                        </td>
+                        <td className="py-4 px-6 col-num font-mono font-black text-slate-900 text-[13px]">
+                          ₹{(item.amount || 0).toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
             {/* ── TOTALS ───────────────────────────── */}
             <div className="flex justify-end mt-4">

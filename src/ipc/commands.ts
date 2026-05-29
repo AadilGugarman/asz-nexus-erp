@@ -13,7 +13,6 @@
 export const CMD = {
   app: {
     getAppInfo: "get_app_info",
-    ping: "ping",
   },
 
   auth: {
@@ -26,16 +25,10 @@ export const CMD = {
     check: "auth_check",
     resetApp: "auth_reset_app",
     changePassword: "auth_change_password",
-    getLockConfig: "auth_get_lock_config",
-    setLockConfig: "auth_set_lock_config",
-    verifyPin: "auth_verify_pin",
   },
 
   db: {
     getStats: "db_get_stats",
-    getSeedPlan: "db_get_seed_plan",
-    reseedDemoData: "db_reseed_demo_data",
-    resetDemoData: "db_reset_demo_data",
     resetCompanyData: "db_reset_company_data",
   },
 

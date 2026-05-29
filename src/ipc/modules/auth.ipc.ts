@@ -34,9 +34,6 @@ import type {
   SetupRequest,
   RefreshRequest,
   ChangePasswordRequest,
-  LockConfigRequest,
-  LockConfigResponse,
-  VerifyPinRequest,
 } from "../types";
 
 const DEV_TOKEN_RESP: AuthTokenResponse = {
@@ -70,44 +67,100 @@ const getDevStatus = (): SessionStatus => {
 };
 
 export const authIpc = {
+  /**
+   * Diagnostic: test if the IPC bridge is working.
+   * Returns the current timestamp from Rust to verify real communication.
+   */
+  ping: (): Promise<{ timestamp: string; backend: string }> =>
+    ipcInvoke<{ timestamp: string; backend: string }>(
+      "auth_ping",
+      {},
+      { timestamp: new Date().toISOString(), backend: "browser-mock" },
+    ),
+
   isSetupDone: (): Promise<boolean> =>
     ipcInvoke<boolean>(
       CMD.auth.isSetupDone,
       {},
+      // Browser fallback: read from localStorage
       localStorage.getItem("tfc_erp_setup_done") === "true",
     ),
 
   setup: (req: SetupRequest): Promise<AuthTokenResponse> =>
-    ipcInvoke<AuthTokenResponse>(CMD.auth.setup, req, {
-      ...DEV_TOKEN_RESP,
-    }).then((res) => {
+    ipcInvoke<AuthTokenResponse>(
+      CMD.auth.setup,
+      { payload: req },
+      {
+        ...DEV_TOKEN_RESP,
+      },
+    ).then((res) => {
       if (!APP_CONFIG.isTauri) {
+        // Store the password so browser-mode login can validate against it
+        localStorage.setItem("tfc_erp_dev_password", req.password);
         localStorage.setItem("tfc_erp_setup_done", "true");
         localStorage.setItem("tfc_erp_authenticated", "true");
       }
       return res;
     }),
 
-  login: (req: LoginRequest): Promise<AuthTokenResponse> =>
-    ipcInvoke<AuthTokenResponse>(CMD.auth.login, req, {
-      ...DEV_TOKEN_RESP,
-    }).then((res) => {
+  login: (req: LoginRequest): Promise<AuthTokenResponse> => {
+    // In Tauri mode: no fallback — Rust MUST verify the password.
+    // Passing undefined means ipcInvoke throws NOT_IN_TAURI if somehow
+    // called outside Tauri, making the failure loud and explicit.
+    //
+    // In browser dev mode: validate against the stored dev password so the
+    // login screen is not completely bypassed. The stored password is set
+    // during setup. If no password has been set yet, accept any non-empty
+    // input so first-run still works.
+    const browserFallback: AuthTokenResponse | undefined = APP_CONFIG.isTauri
+      ? undefined
+      : (() => {
+          const storedPassword = localStorage.getItem("tfc_erp_dev_password");
+          if (storedPassword && req.password !== storedPassword) {
+            return undefined; // wrong password → ipcInvoke throws
+          }
+          return { ...DEV_TOKEN_RESP };
+        })();
+
+    return ipcInvoke<AuthTokenResponse>(
+      CMD.auth.login,
+      { payload: req },
+      browserFallback,
+    ).then((res) => {
       if (!APP_CONFIG.isTauri) {
         localStorage.setItem("tfc_erp_authenticated", "true");
       }
       return res;
-    }),
+    });
+  },
 
   refresh: (req: RefreshRequest): Promise<AuthTokenResponse> =>
-    ipcInvoke<AuthTokenResponse>(CMD.auth.refresh, req, DEV_TOKEN_RESP),
+    // No fallback in Tauri — a failed refresh must force re-login.
+    ipcInvoke<AuthTokenResponse>(
+      CMD.auth.refresh,
+      { payload: req },
+      APP_CONFIG.isTauri ? undefined : DEV_TOKEN_RESP,
+    ),
 
   restoreSession: (): Promise<AuthTokenResponse> => {
+    // In Tauri mode: no fallback — if the refresh token is missing or
+    // expired, the user MUST log in with their password. Passing undefined
+    // ensures ipcInvoke throws on any failure, which restoreSession() in
+    // auth.store.ts catches and converts to isAuthenticated: false.
+    //
+    // In browser dev mode: only restore if localStorage says authenticated.
     const authenticated =
       localStorage.getItem("tfc_erp_authenticated") === "true";
+    const browserFallback = APP_CONFIG.isTauri
+      ? undefined
+      : authenticated
+        ? DEV_TOKEN_RESP
+        : undefined;
+
     return ipcInvoke<AuthTokenResponse>(
       CMD.auth.restoreSession,
       {},
-      authenticated ? DEV_TOKEN_RESP : (undefined as any),
+      browserFallback,
     );
   },
 
@@ -124,6 +177,7 @@ export const authIpc = {
       if (!APP_CONFIG.isTauri) {
         localStorage.removeItem("tfc_erp_setup_done");
         localStorage.removeItem("tfc_erp_authenticated");
+        localStorage.removeItem("tfc_erp_dev_password");
       }
       return res;
     }),
@@ -132,28 +186,10 @@ export const authIpc = {
     ipcInvoke<SessionStatus>(CMD.auth.check, {}, getDevStatus()),
 
   changePassword: (req: ChangePasswordRequest): Promise<boolean> =>
-    ipcInvoke<boolean>(CMD.auth.changePassword, req, true),
-
-  getLockConfig: (): Promise<LockConfigResponse> => {
-    const fallback: LockConfigResponse = {
-      pin_enabled: localStorage.getItem("tfc_erp_pin_enabled") === "true",
-      auto_lock_minutes: Number(localStorage.getItem("tfc_erp_auto_lock_minutes") || 0),
-    };
-    return ipcInvoke<LockConfigResponse>(CMD.auth.getLockConfig, {}, fallback);
-  },
-
-  setLockConfig: (req: LockConfigRequest): Promise<LockConfigResponse> =>
-    ipcInvoke<LockConfigResponse>(CMD.auth.setLockConfig, req, {
-      pin_enabled: req.pin_enabled,
-      auto_lock_minutes: req.auto_lock_minutes,
-    }).then((res) => {
-      if (!APP_CONFIG.isTauri) {
-        localStorage.setItem("tfc_erp_pin_enabled", String(req.pin_enabled));
-        localStorage.setItem("tfc_erp_auto_lock_minutes", String(req.auto_lock_minutes));
-      }
-      return res;
-    }),
-
-  verifyPin: (req: VerifyPinRequest): Promise<boolean> =>
-    ipcInvoke<boolean>(CMD.auth.verifyPin, req, true),
+    // No fallback in Tauri — password change must be verified by Rust.
+    ipcInvoke<boolean>(
+      CMD.auth.changePassword,
+      { payload: req },
+      APP_CONFIG.isTauri ? undefined : true,
+    ),
 };

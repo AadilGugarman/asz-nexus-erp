@@ -21,5 +21,5 @@ export const APP_CONFIG = {
   apiTimeout: 15_000,
 
   /** Tauri environment detection */
-  isTauri: typeof window !== "undefined" && "__TAURI__" in window,
+  isTauri: typeof window !== "undefined" && "__TAURI_INTERNALS__" in window,
 } as const;

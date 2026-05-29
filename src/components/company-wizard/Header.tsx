@@ -6,7 +6,6 @@ interface HeaderProps {
   lastSavedTime: string | null;
   isDirty: boolean;
   onResetForm: () => void;
-  onSeedDemo?: () => void;
   title?: string;
 }
 
@@ -15,7 +14,6 @@ export const Header: React.FC<HeaderProps> = ({
   lastSavedTime,
   isDirty,
   onResetForm,
-  onSeedDemo,
   title = "Create New Company",
 }) => {
   return (
@@ -39,16 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right */}
         <div className="flex items-center gap-2">
-          {import.meta.env.DEV && onSeedDemo && (
-            <button
-              onClick={onSeedDemo}
-              className="text-xs font-semibold bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-              title="Fill with professional demo data"
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>Seed Demo Data</span>
-            </button>
-          )}
+          {/* Seed demo removed — keep reset and status controls */}
 
           <button
             onClick={onResetForm}

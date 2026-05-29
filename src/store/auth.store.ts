@@ -21,7 +21,6 @@
 import { create } from "zustand";
 import { ipc } from "@/ipc";
 import { startup } from "@/services/startup";
-import { useLockStore } from "./lock.store";
 import type {
   AuthTokenResponse,
   SessionStatus,
@@ -93,7 +92,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       set({ isSetupDone: status.setup_done });
 
       if (import.meta.env.DEV) {
-        console.log("[AuthStore] Initialized with setup_done:", status.setup_done);
+        console.log(
+          "[AuthStore] Initialized with setup_done:",
+          status.setup_done,
+        );
       }
 
       if (!status.setup_done) {
@@ -184,12 +186,28 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   // ── logout ─────────────────────────────────────────────────────────────────
   logout: async () => {
-    try {
-      await ipc.auth.logout();
-    } catch {
-      /* best-effort */
+    // Attempt the backend logout up to 2 times. If both fail we still clear
+    // the frontend state — but we log a warning because the refresh token
+    // may still be valid on disk, meaning the next startup could auto-restore
+    // the session. In practice this only happens if the app data dir is
+    // unwritable, which is an OS-level problem.
+    let logoutOk = false;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await ipc.auth.logout();
+        logoutOk = true;
+        break;
+      } catch {
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 200));
+      }
     }
-    useLockStore.getState().clearSessionLock();
+    if (!logoutOk && import.meta.env.DEV) {
+      console.warn(
+        "[AuthStore] logout IPC failed after 2 attempts — " +
+          "refresh token may still be valid on disk. " +
+          "The user will need to log in again on next startup.",
+      );
+    }
     set({
       accessToken: null,
       refreshToken: null,
@@ -205,14 +223,111 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     try {
       await ipc.auth.resetApp();
     } catch {
-      /* best-effort */
+      /* best-effort — auth.json may already be gone */
     }
-    localStorage.clear();
-    window.location.reload();
+    // Clear all frontend storage: localStorage, sessionStorage, Cache API, IndexedDB.
+    try {
+      localStorage.clear();
+    } catch {}
+    try {
+      sessionStorage.clear();
+    } catch {}
+    try {
+      if (typeof caches !== "undefined") {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch {}
+    try {
+      if (
+        typeof indexedDB !== "undefined" &&
+        typeof (indexedDB as any).databases === "function"
+      ) {
+        const dbs = await (indexedDB as any).databases();
+        await Promise.all(
+          dbs.map((d: any) =>
+            d.name
+              ? new Promise((res) => {
+                  const req = indexedDB.deleteDatabase(d.name);
+                  req.onsuccess = () => res(null);
+                  req.onerror = () => res(null);
+                  req.onblocked = () => res(null);
+                })
+              : Promise.resolve(null),
+          ),
+        );
+      }
+    } catch {}
+
+    // Reset all Zustand stores explicitly before navigating.
+    // In Tauri's webview, window.location.reload/replace does NOT destroy
+    // the JS context — module-level singletons keep their state. We must
+    // zero them out so the startup sequence re-runs cleanly on next mount.
+    const { useStartupStore, _resetInitFlag } = await import("./startup.store");
+    const { useSettingsStore } = await import("./settings.store");
+    const { useCompanyStore } = await import("./company.store");
+
+    useStartupStore.setState({
+      phase: "idle",
+      uiReady: false,
+      initialized: false,
+      isDbReady: false,
+      isAppReady: false,
+      isHydrated: false,
+      isBootstrapped: false,
+      isRoutingReady: false,
+      error: null,
+      message: "Preparing application...",
+    });
+
+    // Reset the module-level init lock so the startup sequence re-runs
+    // after the page reload. In Tauri's webview, window.location.replace
+    // does NOT destroy the JS context — module singletons keep their state.
+    _resetInitFlag();
+
+    // Reset this store (auth) — isSetupDone must be false so routing goes to /setup
+    set({
+      accessToken: null,
+      refreshToken: null,
+      accessExpiresAt: null,
+      sessionExpiresAt: null,
+      user: null,
+      isAuthenticated: false,
+      isSetupDone: false,
+      isLoading: true,
+      error: null,
+    });
+
+    useSettingsStore.setState({
+      companies: [],
+      activeCompanyId: null,
+      isLoaded: false,
+    });
+    useCompanyStore.setState({
+      hasCompany: false,
+      activeCompanyId: null,
+      initialized: false,
+    });
+
+    // Force a full reload. Use replace then reload to avoid HMR keeping module state.
+    try {
+      window.location.replace(
+        window.location.origin + window.location.pathname,
+      );
+      // Give the replace a moment to take effect, then reload forcibly.
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch {}
+      }, 100);
+    } catch {
+      try {
+        window.location.reload();
+      } catch {}
+    }
   },
 
   invalidateSession: () => {
-    useLockStore.getState().clearSessionLock();
     set({
       accessToken: null,
       refreshToken: null,

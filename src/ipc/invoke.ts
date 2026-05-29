@@ -75,10 +75,21 @@ export async function ipcInvoke<T>(
   }
 
   try {
-    const { invoke } = await import('@tauri-apps/api/core' as any);
-    const response: IpcResponse<T> = await (
-      invoke as (cmd: string, args?: object) => Promise<IpcResponse<T>>
-    )(command, args);
+    // Use window.__TAURI_INTERNALS__.invoke directly instead of importing
+    // @tauri-apps/api/core. In `npm run tauri dev`, Vite aliases that package
+    // to a mock shim (tauri-mock.ts) which returns undefined for every call.
+    // The __TAURI_INTERNALS__ object is injected by the Tauri runtime directly
+    // onto window at startup — it bypasses Vite's module system entirely and
+    // always points to the real IPC bridge.
+    const tauriInternals = (window as any).__TAURI_INTERNALS__;
+    if (!tauriInternals?.invoke) {
+      throw new IpcCallError({
+        code: 'NOT_IN_TAURI',
+        message: `Tauri IPC bridge not available. __TAURI_INTERNALS__.invoke is missing.`,
+      });
+    }
+    const invoke = tauriInternals.invoke as (cmd: string, args?: object) => Promise<IpcResponse<T>>;
+    const response: IpcResponse<T> = await invoke(command, args);
 
     // ── Unwrap envelope ────────────────────────────────────────────────────
     if (!response.success || response.error) {
@@ -97,7 +108,17 @@ export async function ipcInvoke<T>(
     if (err instanceof IpcCallError) throw err;
 
     // Wrap raw Tauri errors (e.g. command not registered)
-    const message = err instanceof Error ? err.message : String(err);
+    let message: string;
+    if (err instanceof Error) {
+      message = err.message;
+    } else if (typeof err === 'object' && err !== null) {
+      // Try to extract meaningful error info from object
+      message = JSON.stringify(err);
+    } else {
+      message = String(err);
+    }
+    
+    console.error('[ipc] Caught error during invoke:', err);
     throw new IpcCallError({ code: 'INTERNAL_ERROR', message });
   }
 }

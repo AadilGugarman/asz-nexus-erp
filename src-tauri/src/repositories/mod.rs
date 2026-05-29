@@ -1,19 +1,14 @@
 // repositories/mod.rs
-// Repository layer — all SQL lives here, never in commands or services.
-//
-// Pattern:
-//   command  →  validates  →  calls repository  →  returns model
-//
-// Each repository takes a &Connection (not a pool) so the caller
-// controls transaction boundaries. Commands borrow a connection from
-// the pool and pass it down.
-//
-// Add a new repository:
-//   1. Create src/repositories/your_entity.rs
-//   2. Add `pub mod your_entity;` here
+// Data access layer.
+#![allow(dead_code)]
 
-pub mod employee;
-pub mod supplier;
-pub mod customer;
+pub mod company;
+// pub mod financial_year;
+pub mod ledger;
 pub mod invoice;
 pub mod payment;
+// pub mod user;
+pub mod fruit;
+pub mod variety;
+pub mod caret;
+

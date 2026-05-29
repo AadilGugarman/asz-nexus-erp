@@ -69,15 +69,19 @@ createRoot(root).render(app);
 
 // After React commits the first frame, show the window and schedule preloads
 requestAnimationFrame(() => {
-  // Remove the initial HTML loader — fade it out over 500ms
-  const loader = document.getElementById("initial-loader");
-  if (loader) {
-    loader.style.transition = "opacity 0.5s ease-out";
-    loader.style.opacity = "0";
-    setTimeout(() => loader.remove(), 500);
-  }
+  // Give React one more frame to fully paint the StartupScreen before
+  // fading out the HTML loader — prevents any blank gap between the two.
+  requestAnimationFrame(() => {
+    // Remove the initial HTML loader — fade it out over 300ms
+    const loader = document.getElementById("initial-loader");
+    if (loader) {
+      loader.style.transition = "opacity 0.3s ease-out";
+      loader.style.opacity = "0";
+      setTimeout(() => loader.remove(), 300);
+    }
 
-  // Show the window immediately on the first paint
-  startup.afterFirstPaint();
-  perf.mark("after-first-paint");
+    // Show the window immediately on the first paint
+    startup.afterFirstPaint();
+    perf.mark("after-first-paint");
+  });
 });
