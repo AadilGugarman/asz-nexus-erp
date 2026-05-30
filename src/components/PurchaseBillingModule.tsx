@@ -857,9 +857,9 @@ export const PurchaseBillingModule: React.FC = () => {
               {/* table-fixed locks column widths so tfoot content never causes reflow */}
               <table className="erp-table w-full text-left text-xs sm:text-sm table-fixed">
                 <colgroup>
-                  <col style={{ width: "18%" }} />
-                  <col style={{ width: "18%" }} />
-                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "17%" }} />
+                  <col style={{ width: "17%" }} />
+                  <col style={{ width: "14%" }} />
                   <col style={{ width: "14%" }} />
                   <col style={{ width: "14%" }} />
                   <col style={{ width: "16%" }} />
@@ -953,8 +953,8 @@ export const PurchaseBillingModule: React.FC = () => {
                           />
                         </td>
                         {/* Carets — primary qty for non-mango, secondary for mango */}
-                        <td className="p-1.5 col-num">
-                          <div className="relative">
+                        <td className="p-1.5 col-num !overflow-visible">
+                          <div className="relative !overflow-visible">
                             <input
                               type="number"
                               data-pinv-cell={`${idx}-2`}
@@ -967,15 +967,15 @@ export const PurchaseBillingModule: React.FC = () => {
                               className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && !isByKg ? "ring-2 ring-amber-400/50 border-amber-400/70" : ""}`}
                             />
                             {!isByKg && (
-                              <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">
+                              <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1 z-1">
                                 Caret
                               </span>
                             )}
                           </div>
                         </td>
                         {/* Weight — primary qty for mango, secondary for others */}
-                        <td className="p-1.5 col-num">
-                          <div className="relative">
+                        <td className="p-1.5 col-num !overflow-visible">
+                          <div className="relative !overflow-visible">
                             <input
                               type="number"
                               step="0.1"
@@ -989,15 +989,15 @@ export const PurchaseBillingModule: React.FC = () => {
                               className={`w-full ${inp} p-2 text-right text-xs font-mono font-semibold ${it.fruitCategory && isByKg ? "ring-2 ring-amber-400/50 border-amber-400/70" : ""}`}
                             />
                             {isByKg && (
-                              <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">
+                              <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1 z-1">
                                 KG
                               </span>
                             )}
                           </div>
                         </td>
                         {/* Rate — label changes based on pricing type */}
-                        <td className="p-1.5 col-num">
-                          <div className="relative">
+                        <td className="p-1.5 col-num !overflow-visible">
+                          <div className="relative !overflow-visible">
                             <input
                               type="number"
                               step="0.5"
@@ -1010,7 +1010,7 @@ export const PurchaseBillingModule: React.FC = () => {
                               onKeyDown={(e) => handleKeyDown(e, idx, 4)}
                               className={`w-full ${inp} p-2 text-right text-xs font-mono font-bold dark:text-emerald-300 text-emerald-700`}
                             />
-                            <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1">
+                            <span className="absolute -top-2 right-1 text-[8px] font-black text-emerald-600 uppercase tracking-wider bg-white dark:bg-slate-950 px-1 z-1">
                               {isByKg ? "₹/KG" : "₹/Crt"}
                             </span>
                           </div>
