@@ -46,6 +46,18 @@ const Inp: React.FC<{
   </div>
 );
 
+const parseContactField = (fieldVal: string | undefined) => {
+  if (!fieldVal) return { name: "", phone: "" };
+  if (fieldVal.includes(":")) {
+    const parts = fieldVal.split(":");
+    return {
+      name: parts[0].trim(),
+      phone: parts.slice(1).join(":").trim(),
+    };
+  }
+  return { name: "", phone: fieldVal.trim() };
+};
+
 // ── Toggle — also defined outside to prevent remount ──
 const Toggle: React.FC<{
   label: string;
@@ -167,7 +179,6 @@ export const SettingsModule: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeSection, setActiveSection] = useState<Section>("COMPANIES");
-  const [showPin, setShowPin] = useState(false);
   const [confirmResetDialog, setConfirmResetDialog] = useState(false);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const sigInputRef = useRef<HTMLInputElement>(null);
@@ -333,7 +344,7 @@ export const SettingsModule: React.FC = () => {
     }
   }, [location.search, companies]);
 
-  // â”€â”€ Masters State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Masters State ─────────────────────────
   const [selectedFruitId, setSelectedFruitId] = useState(fruits[0]?.id || "");
   const [newVariety, setNewVariety] = useState("");
   const [newFruitName, setNewFruitName] = useState("");
@@ -343,7 +354,7 @@ export const SettingsModule: React.FC = () => {
   const [newCustName, setNewCustName] = useState("");
   const [newCustCity, setNewCustCity] = useState("");
 
-  // â”€â”€ local editable copies for controlled inputs â”€â”€
+  // ── local editable copies for controlled inputs ──
   const [inv, setInv] = useState(settings.invoice);
 
   // sync local state when settings change externally
@@ -351,6 +362,16 @@ export const SettingsModule: React.FC = () => {
   React.useEffect(() => {
     setInv(settings.invoice);
   }, [settings.invoice]);
+
+  // Auto-save invoice settings on local state change (debounced to avoid SQLite write-spam)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (JSON.stringify(inv) !== JSON.stringify(settings.invoice)) {
+        updateSettings({ invoice: inv });
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [inv, settings.invoice, updateSettings]);
 
   const sections: {
     id: Section;
@@ -435,7 +456,7 @@ export const SettingsModule: React.FC = () => {
     e.target.value = "";
   };
 
-  // â”€â”€ Storage usage â”€â”€
+  // ── Storage usage ──
   const storageUsed = React.useMemo(() => {
     let total = 0;
     for (let i = 0; i < localStorage.length; i++) {
@@ -446,29 +467,19 @@ export const SettingsModule: React.FC = () => {
     return (total / 1024).toFixed(1);
   }, [invoices, purchaseInvoices, payments]);
 
-  const dataCounts = {
-    invoices: invoices.length,
-    purchaseInvoices: purchaseInvoices.length,
-    payments: payments.length,
-    suppliers: suppliers.length,
-    customers: customers.length,
-    fruits: fruits.length,
-  };
-
-  // â”€â”€ Sample invoice for preview â€” uses current settings + rich fake data â”€â”€
+  // ── Sample invoice for preview — uses current settings + rich fake data ──
   // The preview company merges real settings with demo values so every
   // section (logo, QR, bank, signature, contacts) is always visible.
   const previewCompany = {
     ...settings.company,
     name: settings.company.name || "ASZ Nexus Traders",
-    tagline:
-      settings.company.tagline || "Wholesale Fruit Merchants Â· Est. 2010",
+    tagline: settings.company.tagline || "",
     address:
       settings.company.address ||
       "Shop No. 12, APMC Market Yard, Valsad, Gujarat - 396001",
-    phone: settings.company.phone || "9876543210",
-    phone2: settings.company.phone2 || "9876543211",
-    phone3: settings.company.phone3 || "9876543212",
+    phone: settings.company.phone || "Talha Bhai : 9876543210",
+    phone2: settings.company.phone2 || "Mahir Bhai : 9876543211",
+    phone3: settings.company.phone3 || "M.Shafi bhai : 9876543212",
     email: settings.company.email || "accounts@asznexus.in",
     gstin: settings.company.gstin || "24AAAAA0000A1Z5",
     bankName: settings.company.bankName || "State Bank of India",
@@ -512,7 +523,7 @@ export const SettingsModule: React.FC = () => {
     paidAmount: 0,
     remainingBalance: 77950,
     remainingCaretBalance: 18,
-    notes: "Sample invoice â€” all sections shown for preview",
+    notes: "Sample invoice — all sections shown for preview",
     createdAt: new Date().toISOString(),
     items: [
       {
@@ -559,7 +570,7 @@ export const SettingsModule: React.FC = () => {
 
   return (
     <div className="space-y-6 font-sans">
-      {/* â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── HEADER ───────────────────────────────────── */}
       <div className="dark:bg-slate-900 bg-white p-4 rounded-xl border dark:border-slate-800 border-slate-200 shadow-md">
         <h1 className="text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center space-x-2.5">
           <Settings className="w-6 h-6 text-cyan-500" />
@@ -571,7 +582,7 @@ export const SettingsModule: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* â”€â”€ LEFT SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── LEFT SIDEBAR ─────────────────────────── */}
         <div className="lg:col-span-1">
           <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden sticky top-20">
             {sections.map((s) => {
@@ -621,9 +632,9 @@ export const SettingsModule: React.FC = () => {
           </div>
         </div>
 
-        {/* â”€â”€ RIGHT CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── RIGHT CONTENT ────────────────────────── */}
         <div className="lg:col-span-3 space-y-0">
-          {/* â•â•â• COMPANIES â•â•â• */}
+          {/* ═══ COMPANIES ═══ */}
           {activeSection === "COMPANIES" && (
             <div className="space-y-5 animate-slide-up">
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
@@ -658,7 +669,7 @@ export const SettingsModule: React.FC = () => {
                       >
                         <div className="p-4 flex-1 flex items-start space-x-3.5">
                           <div
-                            className={`w-11 h-11 rounded-xl flex items-center justify-center font-black shrink-0 shadow-sm overflow-hidden ${isActive ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-slate-950" : "dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600"}`}
+                            className={`w-11 h-11 rounded-xl flex items-center justify-center font-black shrink-0 shadow-sm overflow-hidden ${isActive ? "bg-linear-to-br from-emerald-500 to-teal-500 text-slate-950" : "dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600"}`}
                             style={{
                               fontSize:
                                 initials.length <= 1
@@ -728,7 +739,7 @@ export const SettingsModule: React.FC = () => {
                               const nextNo = String(
                                 c.invoice?.salesNextNo ?? 1001,
                               ).padStart(4, "0");
-                              return `${c.financial?.currency ?? "INR"} Â· ${prefix}/${fyShort}/${nextNo}`;
+                              return `${c.financial?.currency ?? "INR"} - ${prefix}/${fyShort}/${nextNo}`;
                             })()}
                           </div>
                           <div className="flex items-center space-x-1">
@@ -811,7 +822,7 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* â•â•â• INVOICE â•â•â• */}
+          {/* ═══ INVOICE ═══ */}
           {activeSection === "INVOICE" && (
             <div className="space-y-5 animate-slide-up">
               {/* Save button bar */}
@@ -967,7 +978,7 @@ export const SettingsModule: React.FC = () => {
                         ) : (
                           <div>
                             <Inp
-                              label="Watermark Text"
+                              label="Watermark / Initials Text"
                               value={inv.watermarkText}
                               onChange={(v) =>
                                 setInv((p) => ({ ...p, watermarkText: v }))
@@ -1000,7 +1011,7 @@ export const SettingsModule: React.FC = () => {
 
                         <div>
                           <label className="block text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
-                            Rotation ({inv.watermarkRotation || -25}Â°)
+                            Rotation ({inv.watermarkRotation || -25}°)
                           </label>
                           <input
                             type="range"
@@ -1099,7 +1110,7 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2b. Payment & Banking Details â€” collapsed unless Show Bank Account Details is ON */}
+              {/* 2b. Payment & Banking Details — collapsed unless Show Bank Account Details is ON */}
               {inv.showBankDetails && (
                 <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden animate-slide-down">
                   <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
@@ -1108,7 +1119,7 @@ export const SettingsModule: React.FC = () => {
                       Payment & Banking Details
                     </span>
                     <span className="text-[10px] dark:text-slate-500 text-slate-400 font-medium ml-1">
-                      â€” printed on invoices
+                      - printed on invoices
                     </span>
                   </div>
                   <div className="p-6 space-y-5">
@@ -1169,7 +1180,7 @@ export const SettingsModule: React.FC = () => {
                       <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-500/20">
                         <Check className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          Banking details saved â€” will appear on printed
+                          Banking details saved — will appear on printed
                           invoices.
                         </span>
                       </div>
@@ -1187,7 +1198,7 @@ export const SettingsModule: React.FC = () => {
                       Additional Contact Numbers
                     </span>
                     <span className="text-[10px] dark:text-slate-500 text-slate-400 font-medium ml-1">
-                      â€” printed on invoices &amp; statements
+                      — printed on invoices &amp; statements
                     </span>
                   </div>
                   {/* inline toggle to show/hide the fields */}
@@ -1214,35 +1225,130 @@ export const SettingsModule: React.FC = () => {
                 {(settings.company.phone2 !== undefined ||
                   settings.company.phone3) && (
                   <div className="p-6 space-y-4 animate-slide-down">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Inp
-                        label="Secondary Contact"
-                        value={settings.company.phone2 || ""}
-                        onChange={(v) =>
-                          updateSettings({
-                            company: { ...settings.company, phone2: v },
-                          })
-                        }
-                        placeholder="e.g. 9876543210"
-                        mono
-                      />
-                      <Inp
-                        label="Alternate Contact"
-                        value={settings.company.phone3 || ""}
-                        onChange={(v) =>
-                          updateSettings({
-                            company: { ...settings.company, phone3: v },
-                          })
-                        }
-                        placeholder="e.g. 9876543211"
-                        mono
-                      />
-                    </div>
+                    {(() => {
+                      const c1 = parseContactField(settings.company.phone);
+                      const c2 = parseContactField(settings.company.phone2);
+                      const c3 = parseContactField(settings.company.phone3);
+                      return (
+                        <div className="space-y-4">
+                          {/* Contact 1 */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b dark:border-slate-800 border-slate-100 pb-4">
+                            <Inp
+                              label="Contact 1 Name"
+                              value={c1.name}
+                              onChange={(nameVal) => {
+                                const combined = nameVal.trim()
+                                  ? `${nameVal.trim()} : ${c1.phone.trim()}`
+                                  : c1.phone.trim();
+                                updateSettings({
+                                  company: {
+                                    ...settings.company,
+                                    phone: combined,
+                                  },
+                                });
+                              }}
+                              placeholder="e.g. Talha Bhai"
+                            />
+                            <Inp
+                              label="Contact 1 Phone"
+                              value={c1.phone}
+                              onChange={(phoneVal) => {
+                                const combined = c1.name.trim()
+                                  ? `${c1.name.trim()} : ${phoneVal.trim()}`
+                                  : phoneVal.trim();
+                                updateSettings({
+                                  company: {
+                                    ...settings.company,
+                                    phone: combined,
+                                  },
+                                });
+                              }}
+                              placeholder="e.g. 9408255209"
+                              mono
+                            />
+                          </div>
+
+                          {/* Contact 2 */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b dark:border-slate-800 border-slate-100 pb-4">
+                            <Inp
+                              label="Contact 2 Name"
+                              value={c2.name}
+                              onChange={(nameVal) => {
+                                const combined = nameVal.trim()
+                                  ? `${nameVal.trim()} : ${c2.phone.trim()}`
+                                  : c2.phone.trim();
+                                updateSettings({
+                                  company: {
+                                    ...settings.company,
+                                    phone2: combined,
+                                  },
+                                });
+                              }}
+                              placeholder="e.g. Mahir Bhai"
+                            />
+                            <Inp
+                              label="Contact 2 Phone"
+                              value={c2.phone}
+                              onChange={(phoneVal) => {
+                                const combined = c2.name.trim()
+                                  ? `${c2.name.trim()} : ${phoneVal.trim()}`
+                                  : phoneVal.trim();
+                                updateSettings({
+                                  company: {
+                                    ...settings.company,
+                                    phone2: combined,
+                                  },
+                                });
+                              }}
+                              placeholder="e.g. 7600696765"
+                              mono
+                            />
+                          </div>
+
+                          {/* Contact 3 */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Inp
+                              label="Contact 3 Name"
+                              value={c3.name}
+                              onChange={(nameVal) => {
+                                const combined = nameVal.trim()
+                                  ? `${nameVal.trim()} : ${c3.phone.trim()}`
+                                  : c3.phone.trim();
+                                updateSettings({
+                                  company: {
+                                    ...settings.company,
+                                    phone3: combined,
+                                  },
+                                });
+                              }}
+                              placeholder="e.g. M.Shafi bhai"
+                            />
+                            <Inp
+                              label="Contact 3 Phone"
+                              value={c3.phone}
+                              onChange={(phoneVal) => {
+                                const combined = c3.name.trim()
+                                  ? `${c3.name.trim()} : ${phoneVal.trim()}`
+                                  : phoneVal.trim();
+                                updateSettings({
+                                  company: {
+                                    ...settings.company,
+                                    phone3: combined,
+                                  },
+                                });
+                              }}
+                              placeholder="e.g. 9824163102"
+                              mono
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {(settings.company.phone2 || settings.company.phone3) && (
                       <div className="flex items-center gap-2 text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold bg-cyan-50 dark:bg-cyan-500/10 px-3 py-2 rounded-lg border border-cyan-200 dark:border-cyan-500/20">
                         <Phone className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          Contact numbers saved â€” will appear on all printed
+                          Contact numbers saved — will appear on all printed
                           invoices and statements.
                         </span>
                       </div>
@@ -1362,9 +1468,9 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* 5. Invoice Branding â€” Signature + Logo side by side */}
+              {/* 5. Invoice Branding — Signature + Logo side by side */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* â”€â”€ Signature Upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                {/* ── Signature Upload ────────────────── */}
                 <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden flex flex-col">
                   <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
                     <PenTool className="w-4 h-4 text-cyan-500" />
@@ -1438,7 +1544,7 @@ export const SettingsModule: React.FC = () => {
                   </div>
                 </div>
 
-                {/* â”€â”€ Invoice Logo Upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                {/* ── Invoice Logo Upload ──────────────── */}
                 <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden flex flex-col">
                   <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1524,7 +1630,7 @@ export const SettingsModule: React.FC = () => {
                       >
                         {logoUploadProgress ? (
                           <span className="text-xs dark:text-violet-400 text-violet-600 font-semibold">
-                            Uploadingâ€¦
+                            Uploading...
                           </span>
                         ) : (
                           <>
@@ -1533,7 +1639,7 @@ export const SettingsModule: React.FC = () => {
                               Click or drag &amp; drop to upload
                             </span>
                             <span className="text-[10px] dark:text-slate-600 text-slate-400">
-                              PNG, JPG, SVG Â· max 1 MB
+                              PNG, JPG, SVG - max 1 MB
                             </span>
                           </>
                         )}
@@ -1572,7 +1678,7 @@ export const SettingsModule: React.FC = () => {
                       <div className="flex items-center gap-1.5 text-[11px] dark:text-amber-400 text-amber-600 font-semibold">
                         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          Custom logo disabled â€” company master logo will be
+                          Custom logo disabled — company master logo will be
                           used
                         </span>
                       </div>
@@ -1581,8 +1687,7 @@ export const SettingsModule: React.FC = () => {
                       <div className="flex items-center gap-1.5 text-[11px] dark:text-amber-400 text-amber-600 font-semibold">
                         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                         <span>
-                          No logo uploaded â€” falling back to company master
-                          logo
+                          No logo uploaded — falling back to company master logo
                         </span>
                       </div>
                     )}
@@ -1657,8 +1762,15 @@ export const SettingsModule: React.FC = () => {
                     </button>
                     <button
                       onClick={() => {
+                        const contacts = [
+                          settings.company.phone,
+                          settings.company.phone2,
+                          settings.company.phone3,
+                        ]
+                          .filter(Boolean)
+                          .join(" / ");
                         const msg = encodeURIComponent(
-                          `Invoice from ${settings.company.name}\nContact: ${settings.company.phone}\n${settings.company.email}`,
+                          `Invoice from ${settings.company.name}\nContacts: ${contacts}\n${settings.company.email}`,
                         );
                         window.open(`https://wa.me/?text=${msg}`, "_blank");
                       }}
@@ -1679,7 +1791,7 @@ export const SettingsModule: React.FC = () => {
 
           {/* Invoice Preview Modal */}
           {showInvoicePreview && (
-            <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 pt-8 animate-fade-in">
+            <div className="fixed inset-0 z-99999 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 pt-8 animate-fade-in">
               <div className="bg-white border border-slate-200 rounded-2xl max-w-[820px] w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-slide-up">
                 <div className="px-6 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between no-print">
                   <div className="flex items-center space-x-3">
@@ -1727,7 +1839,7 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* â•â•â• MASTERS â•â•â• */}
+          {/* ═══ MASTERS ═══ */}
           {activeSection === "MASTERS" && (
             <div className="space-y-5 animate-slide-up">
               {/* Fruit & Variety Management */}
@@ -1785,7 +1897,7 @@ export const SettingsModule: React.FC = () => {
                       >
                         <div className="px-4 py-3 flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <span className="text-sm">ðŸƒ</span>
+                            <span className="text-sm">🍎</span>
                             <span className="text-xs font-bold dark:text-white text-slate-900">
                               {f.name}
                             </span>
@@ -1801,9 +1913,7 @@ export const SettingsModule: React.FC = () => {
                             }
                             className="text-[10px] font-bold text-teal-600 dark:text-teal-400 cursor-pointer hover:underline"
                           >
-                            {selectedFruitId === f.id
-                              ? "Collapse"
-                              : "Manage â†’"}
+                            {selectedFruitId === f.id ? "Collapse" : "Manage →"}
                           </button>
                         </div>
                         {selectedFruitId === f.id && (
@@ -2000,27 +2110,10 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* â•â•â• BACKUP & DATA â•â•â• */}
+          {/* ═══ BACKUP & DATA ═══ */}
           {activeSection === "BACKUP" && (
             <div className="space-y-5 animate-slide-up">
-              {/* Storage overview */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                {Object.entries(dataCounts).map(([k, v]) => (
-                  <div
-                    key={k}
-                    className="dark:bg-slate-900 bg-white p-3.5 rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm text-center"
-                  >
-                    <div className="text-[10px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">
-                      {k}
-                    </div>
-                    <div className="text-lg font-black font-mono dark:text-white text-slate-900 mt-0.5">
-                      {v}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* â”€â”€ 1. AUTOMATIC BACKUPS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* ── 1. AUTOMATIC BACKUPS ────────────────── */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -2142,7 +2235,7 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* â”€â”€ 2. BACKUP HISTORY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* ── 2. BACKUP HISTORY ──────────────────── */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                   <div className="flex items-center space-x-2">
@@ -2302,7 +2395,7 @@ export const SettingsModule: React.FC = () => {
                 )}
               </div>
 
-              {/* â”€â”€ 3. DATABASE MANAGEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* ── 3. DATABASE MANAGEMENT ──────────────── */}
               <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
                   <HardDrive className="w-4 h-4 text-cyan-500" />
@@ -2316,11 +2409,10 @@ export const SettingsModule: React.FC = () => {
                       <div>
                         <div className="text-sm font-bold dark:text-white text-slate-900 flex items-center space-x-2">
                           <Download className="w-4 h-4 text-emerald-500" />
-                          <span>Export Database</span>
+                          <span>Download Backup</span>
                         </div>
                         <div className="text-[11px] dark:text-slate-400 text-slate-500 mt-1">
-                          Download complete ERP data as JSON. Includes
-                          transactions, masters, settings.
+                          Download a full snapshot directly to this device
                         </div>
                       </div>
                       <button
@@ -2328,18 +2420,17 @@ export const SettingsModule: React.FC = () => {
                         className="mt-3 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow cursor-pointer transition-colors flex items-center justify-center space-x-1.5"
                       >
                         <Download className="w-4 h-4" />
-                        <span>Export .json</span>
+                        <span>Download Backup</span>
                       </button>
                     </div>
                     <div className="p-4 dark:bg-slate-950 bg-slate-50 rounded-xl border dark:border-slate-800 border-slate-200 flex flex-col justify-between">
                       <div>
                         <div className="text-sm font-bold dark:text-white text-slate-900 flex items-center space-x-2">
                           <Upload className="w-4 h-4 text-blue-500" />
-                          <span>Import Database</span>
+                          <span>Restore backup</span>
                         </div>
                         <div className="text-[11px] dark:text-slate-400 text-slate-500 mt-1">
-                          Restore from a previously exported JSON file. Merges
-                          with existing data.
+                          Upload a previously downloaded backup file
                         </div>
                       </div>
                       <div>
@@ -2355,7 +2446,7 @@ export const SettingsModule: React.FC = () => {
                           className="mt-3 w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs shadow cursor-pointer transition-colors flex items-center justify-center space-x-1.5"
                         >
                           <Upload className="w-4 h-4" />
-                          <span>Import .json</span>
+                          <span>Restore backup (upload file)</span>
                         </button>
                       </div>
                     </div>
@@ -2376,8 +2467,8 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* â”€â”€ 4. DANGER ZONE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <div className="dark:bg-slate-900 bg-white rounded-xl border-2 dark:border-rose-500/30 border-rose-200 shadow-sm overflow-hidden">
+              {/* ── 4. DANGER ZONE ────────────────── */}
+              <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 dark:bg-rose-950/30 bg-rose-50 border-b dark:border-rose-500/20 border-rose-200 flex items-center space-x-2">
                   <AlertTriangle className="w-4 h-4 text-rose-500" />
                   <span className="text-sm font-bold text-rose-700 dark:text-rose-400">
@@ -2437,7 +2528,7 @@ export const SettingsModule: React.FC = () => {
 
           {/* Reset Confirmation Dialog */}
           {confirmResetDialog && (
-            <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
               <div className="dark:bg-slate-900 bg-white border-2 dark:border-rose-500/40 border-rose-300 rounded-2xl max-w-sm w-full shadow-2xl p-6 space-y-4 animate-scale-in">
                 <div className="flex items-center space-x-3">
                   <div className="p-3 bg-rose-500/10 text-rose-500 rounded-xl">
@@ -2454,7 +2545,7 @@ export const SettingsModule: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-3 dark:bg-rose-950/30 bg-rose-50 rounded-xl border dark:border-rose-500/20 border-rose-200 text-[11px] text-rose-700 dark:text-rose-400 font-semibold">
-                  âš ï¸ This cannot be undone. Consider creating a backup first.
+                  ⚠️ This cannot be undone. Consider creating a backup first.
                 </div>
                 <div className="flex items-center justify-end space-x-3 pt-2">
                   <button
@@ -2477,7 +2568,7 @@ export const SettingsModule: React.FC = () => {
 
           {/* Factory Reset Confirmation Dialog */}
           {confirmFactoryReset && (
-            <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
               <div className="dark:bg-slate-900 bg-white border-2 dark:border-rose-500/40 border-rose-300 rounded-2xl max-w-sm w-full shadow-2xl p-6 space-y-4 animate-scale-in">
                 <div className="flex items-center space-x-3">
                   <div className="p-3 bg-rose-500/10 text-rose-500 rounded-xl">
@@ -2494,8 +2585,7 @@ export const SettingsModule: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-3 dark:bg-rose-950/30 bg-rose-50 rounded-xl border dark:border-rose-500/20 border-rose-200 text-[11px] text-rose-700 dark:text-rose-400 font-semibold">
-                  âš ï¸ Extremely destructive action. Use only for clean
-                  handover.
+                  ⚠️ Extremely destructive action. Use only for clean handover.
                 </div>
                 <div className="flex items-center justify-end space-x-3 pt-2">
                   <button
@@ -2518,7 +2608,7 @@ export const SettingsModule: React.FC = () => {
 
           {/* Restore Confirmation Dialog */}
           {restoreConfirm && (
-            <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
               <div className="dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 rounded-2xl max-w-sm w-full shadow-2xl p-6 space-y-4 animate-scale-in">
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
@@ -2558,7 +2648,7 @@ export const SettingsModule: React.FC = () => {
             </div>
           )}
 
-          {/* â•â•â• APPEARANCE â•â•â• */}
+          {/* ═══ APPEARANCE ═══ */}
           {activeSection === "APPEARANCE" && (
             <div className="space-y-5 animate-slide-up">
               {/* 1. Theme */}
@@ -2837,7 +2927,7 @@ export const SettingsModule: React.FC = () => {
       {/* CREATE COMPANY WIZARD MODAL */}
       {showCreateWizard && (
         <div
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-99999 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowCreateWizard(false);
           }}
@@ -2856,7 +2946,7 @@ export const SettingsModule: React.FC = () => {
       {/* EDIT COMPANY WIZARD MODAL */}
       {showEditWizard && wizardEditCompanyId && (
         <div
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-99999 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowEditWizard(false);

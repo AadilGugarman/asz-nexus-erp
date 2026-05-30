@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { APP_CONFIG } from '@/config';
+import { APP_CONFIG } from "@/config";
 
 type TauriInvokeArgs = Record<string, unknown>;
 
@@ -34,15 +34,36 @@ export async function tauriInvoke<T>(
   fallback?: T,
 ): Promise<T> {
   if (!APP_CONFIG.isTauri) {
+    if (import.meta.env.DEV) {
+      console.debug(
+        `[tauri] Running outside Tauri — invoke("${cmd}") skipped. Returning fallback.`,
+      );
+    }
+    return fallback as T;
+  }
+
+  const tauriInternals = (window as any).__TAURI_INTERNALS__;
+  if (tauriInternals?.invoke) {
+    return (
+      tauriInternals.invoke as (
+        cmd: string,
+        args?: TauriInvokeArgs,
+      ) => Promise<T>
+    )(cmd, args);
+  }
+
+  if (import.meta.env.DEV) {
     console.warn(
-      `[tauri] Running outside Tauri — invoke("${cmd}") skipped. Returning fallback.`,
+      `[tauri] Tauri runtime not available yet for invoke("${cmd}"). Returning fallback.`,
     );
     return fallback as T;
   }
 
-  // Dynamic import — only resolves inside a Tauri binary
-  const { invoke } = await import('@tauri-apps/api/core' as any);
-  return (invoke as (cmd: string, args?: TauriInvokeArgs) => Promise<T>)(cmd, args);
+  const { invoke } = await import("@tauri-apps/api/core" as any);
+  return (invoke as (cmd: string, args?: TauriInvokeArgs) => Promise<T>)(
+    cmd,
+    args,
+  );
 }
 
 /**
@@ -54,7 +75,7 @@ export async function tauriSaveDialog(options?: {
   filters?: Array<{ name: string; extensions: string[] }>;
 }): Promise<string | null> {
   if (!APP_CONFIG.isTauri) return null;
-  const { save } = await import('@tauri-apps/plugin-dialog' as any);
+  const { save } = await import("@tauri-apps/plugin-dialog" as any);
   return (save as (opts?: typeof options) => Promise<string | null>)(options);
 }
 
@@ -66,6 +87,8 @@ export async function tauriOpenDialog(options?: {
   filters?: Array<{ name: string; extensions: string[] }>;
 }): Promise<string | string[] | null> {
   if (!APP_CONFIG.isTauri) return null;
-  const { open } = await import('@tauri-apps/plugin-dialog' as any);
-  return (open as (opts?: typeof options) => Promise<string | string[] | null>)(options);
+  const { open } = await import("@tauri-apps/plugin-dialog" as any);
+  return (open as (opts?: typeof options) => Promise<string | string[] | null>)(
+    options,
+  );
 }

@@ -236,7 +236,7 @@ export const TopFilterBar: React.FC = () => {
                 </div>
                 <div className="px-3 py-2 dark:border-[#1e3048] border-t border-[#dde3ec] text-[10px] dark:text-[#6a8aaa] text-[#5e7490] font-medium">
                   {companies.length} company{companies.length > 1 ? "ies" : ""}{" "}
-                  Â· Manage in Settings
+                  Â. Manage in Settings
                 </div>
               </div>,
               document.body,
@@ -314,7 +314,7 @@ export const TopFilterBar: React.FC = () => {
                   })}
                 </div>
                 <div className="px-3 py-2 dark:border-[#1e3048] border-t border-[#dde3ec] text-[10px] dark:text-[#6a8aaa] text-[#5e7490] font-medium">
-                  FY starts {fyStartMonthLabel} Â· Company-specific
+                  FY starts {fyStartMonthLabel} Â. Company-specific
                 </div>
               </div>,
               document.body,

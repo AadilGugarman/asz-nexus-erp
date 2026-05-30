@@ -78,7 +78,7 @@ export interface PurchaseInvoiceItem {
   rate: number;
   amount: number;
   rowNote?: string; // per-row supplier note
-  /** Pricing mode: 'kg' = Weight Ã— Rate/KG (Mango), 'caret' = Carets Ã— Rate/Caret (others) */
+  /** Pricing mode: 'kg' = Weight Ã- Rate/KG (Mango), 'caret' = Carets Ã- Rate/Caret (others) */
   pricingType?: "kg" | "caret";
 }
 
@@ -132,7 +132,7 @@ export interface InvoiceItem {
   weight: number;
   rate: number;
   amount: number;
-  /** Pricing mode: 'kg' = Weight Ã— Rate/KG (Mango), 'caret' = Carets Ã— Rate/Caret (others) */
+  /** Pricing mode: 'kg' = Weight Ã- Rate/KG (Mango), 'caret' = Carets Ã- Rate/Caret (others) */
   pricingType?: "kg" | "caret";
 }
 

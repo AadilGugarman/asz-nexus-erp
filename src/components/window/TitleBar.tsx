@@ -1,17 +1,17 @@
 /**
  * components/window/TitleBar.tsx
- * Custom application titlebar — 48 px tall, always visible.
+ * Custom application titlebar â€” 48 px tall, always visible.
  * Shows gradient logo + active company name on the left, controls on the right.
  *
  * Name logic:
  *   - Shows active company name when a company is configured
  *   - Falls back to "ASZ Nexus ERP" on first run / no company
- *   This matches how every serious ERP (Tally, Zoho, QuickBooks) works —
+ *   This matches how every serious ERP (Tally, Zoho, QuickBooks) works â€”
  *   the active company is the most critical context to show at all times.
  */
 
 import React, { useCallback } from 'react';
-import { Pin, PinOff, Maximize2, Minimize2, Sun, Moon, Keyboard, Calculator as CalculatorIcon } from 'lucide-react';
+import { Pin, PinOff, Maximize2, Minimize2, Sun, Moon, Keyboard, Calculator as CalculatorIcon, Clock } from 'lucide-react';
 import { WindowControls } from './WindowControls';
 import { useWindow } from '@/hooks';
 import { useAppearanceStore } from '@/store/appearance.store';
@@ -27,7 +27,7 @@ interface TitleBarProps {
 
 // ── ERP Logo Icon ─────────────────────────────────────────────────────────────
 // A compact ledger-with-upward-trend mark — represents billing + analytics.
-// Sized for the 16×16 slot that Truck previously occupied.
+// Sized for the 16x16 slot that Truck previously occupied.
 const ErpLogoIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     viewBox="0 0 16 16"
@@ -54,6 +54,17 @@ const ErpLogoIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const getCompanyInitials = (name: string) => {
+  const skip = ["and", "&", "of", "the"];
+  return name
+    .split(/\s+/)
+    .filter((w) => w && !skip.includes(w.toLowerCase()))
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+};
+
 export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
   const resolvedTheme = useAppearanceStore((s) => s.resolvedTheme);
   const toggleTheme   = useAppearanceStore((s) => s.toggleTheme);
@@ -69,15 +80,31 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
     isFocused,
   } = useWindow();
 
+  // ── Live Clock and Date State ──────────────────────────────────────────────
+  const [timeState, setTimeState] = React.useState({
+    time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+    date: new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+  });
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeState({
+        time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+        date: new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const isDark = resolvedTheme === 'dark';
-  // Show active company name — fall back to app name when no company is set up
+  // Show active company name â€” fall back to app name when no company is set up
   const displayName = companyName || 'ASZ Nexus ERP';
 
   const handleDoubleClick = useCallback(() => {
     toggleMaximize();
   }, [toggleMaximize]);
 
-  // ── Styles ────────────────────────────────────────────────────────────────
+  // â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const barBg = isDark
     ? isFocused
@@ -102,22 +129,84 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
     ? 'text-[#94b4d4] border-[rgba(30,48,72,0.9)] bg-[rgba(19,30,48,0.6)] hover:text-[#e8f0fe] hover:bg-[rgba(59,130,246,0.10)] hover:border-[rgba(59,130,246,0.25)]'
     : 'text-slate-500 border-slate-200 bg-slate-50 hover:text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-sm';
 
+  const initials = getCompanyInitials(companyName || 'ASZ Nexus ERP');
+
   // ── Logo + name ───────────────────────────────────────────────────────────
   const LeftContent = () => (
     <div className="flex items-center gap-3 min-w-0">
+      <style>{`
+        @keyframes logoGlowPulse {
+          0%, 100% {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 8px 20px rgba(0,174,239,0.15);
+          }
+          50% {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 12px 28px rgba(0,174,239,0.35);
+          }
+        }
+        @keyframes logoGradientShift {
+          0%, 100% { filter: hue-rotate(0deg) saturate(1); }
+          50% { filter: hue-rotate(15deg) saturate(1.1); }
+        }
+        @keyframes sheenSwipe {
+          0% { left: -150%; }
+          100% { left: 150%; }
+        }
+        .animate-logo-premium {
+          position: relative;
+          overflow: hidden;
+          animation: logoGlowPulse 4s infinite ease-in-out, logoGradientShift 8s infinite ease-in-out;
+        }
+        .animate-logo-premium::after {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -150%;
+          width: 50%;
+          height: 200%;
+          background: linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.45) 50%,
+            rgba(255, 255, 255, 0) 100%
+          );
+          transform: rotate(25deg);
+        }
+        .animate-logo-premium:hover::after {
+          animation: sheenSwipe 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .animate-logo-premium:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
       <div
-        className="shrink-0 p-2 rounded-xl shadow-[0_8px_20px_rgba(0,174,239,0.18)]"
+        className="shrink-0 animate-logo-premium hover:shadow-[0_8px_32px_rgba(0,174,239,0.5)] hover:scale-115 hover:rotate-[8deg] active:scale-95 transition-all duration-300 ease-out cursor-pointer flex items-center justify-center w-8 h-8 rounded-xl"
         style={{ background: 'linear-gradient(135deg,#00C896,#00AEEF)' }}
       >
-        <ErpLogoIcon className="w-4 h-4" />
+        <ErpLogoIcon className="w-4 h-4 animate-[spinSlow_15s_infinite_linear]" />
       </div>
-      <div className="flex flex-col min-w-0 leading-none gap-0.5">
-        <span className={`text-sm font-bold tracking-tight truncate ${nameColor}`}>
-          {displayName}
-        </span>
-        {/* Show "ASZ Nexus ERP" as a subtle sub-label when a company name is active */}
-        {companyName && (
-          <span className={`text-[10px] font-medium truncate ${isDark ? 'text-[#6a8aaa]' : 'text-slate-400'}`}>
+      <div className="flex flex-col min-w-0 leading-tight gap-0.5">
+        {companyName ? (
+          <>
+            <span
+              className="text-[11px] font-black uppercase tracking-wider leading-none select-none"
+              style={{
+                backgroundImage: 'linear-gradient(135deg,#00C896,#00AEEF)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}
+            >
+              {initials}
+            </span>
+            <span className={`text-[13px] font-black tracking-tight truncate ${nameColor}`}>
+              {companyName}
+            </span>
+          </>
+        ) : (
+          <span className={`text-sm font-black tracking-tight truncate ${nameColor}`}>
             ASZ Nexus ERP
           </span>
         )}
@@ -125,11 +214,32 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
     </div>
   );
 
-  // ── Browser fallback ──────────────────────────────────────────────────────
+  const DateTimeWidget = () => (
+    <div
+      className={`absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-2.5 px-3 py-1 rounded-full text-[11px] font-medium border transition-all duration-200 ${
+        isDark
+          ? 'bg-[rgba(19,30,48,0.4)] border-[rgba(30,48,72,0.6)] text-[#94b4d4]'
+          : 'bg-slate-50 border-slate-200/80 text-slate-500'
+      }`}
+      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+    >
+      <div className="flex items-center gap-1.5 font-mono">
+        <Clock className="w-3.5 h-3.5 stroke-[2] text-indigo-400" />
+        <span className={isDark ? 'text-[#e8f0fe]' : 'text-slate-700'}>{timeState.time}</span>
+      </div>
+      <div className={`w-px h-3.5 ${isDark ? 'bg-[rgba(30,48,72,0.6)]' : 'bg-slate-200'}`} />
+      <div className="flex items-center gap-1.5">
+        <span className="font-semibold">{timeState.date}</span>
+      </div>
+    </div>
+  );
+
+  // â”€â”€ Browser fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!APP_CONFIG.isTauri) {
     return (
       <div className={`fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-12 px-4 border-b transition-colors duration-200 ${barBg}`}>
         <LeftContent />
+        <DateTimeWidget />
         <div className="flex items-center gap-2">
           <button onClick={toggleCalculator} className={`${primaryBtnBase} ${primaryBtnIdle}`} title="Calculator">
             <CalculatorIcon size={16} strokeWidth={2} />
@@ -151,7 +261,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
     );
   }
 
-  // ── Full Tauri titlebar ───────────────────────────────────────────────────
+  // â”€â”€ Full Tauri titlebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div
       className={`fixed top-0 left-0 right-0 z-40 flex items-center h-12 border-b select-none transition-colors duration-200 ${barBg}`}
@@ -165,6 +275,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onOpenShortcuts }) => {
       >
         <LeftContent />
       </div>
+
+      <DateTimeWidget />
 
       <div
         className="flex items-center gap-2 px-3 h-full shrink-0"

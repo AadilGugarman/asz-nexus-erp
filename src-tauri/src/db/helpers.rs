@@ -1,14 +1,14 @@
 // db/helpers.rs
 // Reusable query utilities shared across all repositories.
 //
-// These are free functions — import what you need in each repository.
+// These are free functions - import what you need in each repository.
 // None of them know about specific tables; they work with raw SQL fragments.
 #![allow(dead_code)]
 
 use rusqlite::Connection;
 use crate::error::{AppError, AppResult};
 
-/// Pagination parameters — passed in from frontend requests.
+/// Pagination parameters - passed in from frontend requests.
 #[derive(Debug, Clone)]
 pub struct Pagination {
     pub page: u32,   // 1-based

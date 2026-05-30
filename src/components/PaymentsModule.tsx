@@ -1,37 +1,105 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
-  Wallet, Plus, Search, Trash2, Eye, Calendar, ArrowUpRight, ArrowDownRight,
-  DollarSign, CreditCard, Banknote, Smartphone, FileText,
-  Printer, X, Building2, Users, UserCheck, ArrowUpDown, Edit3,
-  MapPin, Mail, Phone
-} from 'lucide-react';
+  Wallet,
+  Plus,
+  Search,
+  Trash2,
+  Eye,
+  Calendar,
+  ArrowUpRight,
+  ArrowDownRight,
+  DollarSign,
+  CreditCard,
+  Banknote,
+  Smartphone,
+  FileText,
+  Printer,
+  X,
+  Building2,
+  Users,
+  UserCheck,
+  ArrowUpDown,
+  Edit3,
+  MapPin,
+  Mail,
+  Phone,
+} from "lucide-react";
 
-import { useApp } from '@/context/useApp';
+import { useAppSafe } from "@/context/useApp";
 
-import { useToast } from './ui/Toast';
-import { useConfirmDialog } from './ui/ConfirmDialog';
-import { CommandSelect, CommandOption } from './ui/CommandSelect';
-import { DatePicker } from './ui/DatePicker';
-import { ModuleEmptyState, TableSkeleton } from './ui/DataStates';
-import { useDataTable } from '../hooks/useDataTable';
-import { DataTable, Pagination } from './ui/table';
+import { useToast } from "./ui/Toast";
+import { useConfirmDialog } from "./ui/ConfirmDialog";
+import { CommandSelect, CommandOption } from "./ui/CommandSelect";
+import { DatePicker } from "./ui/DatePicker";
+import { ModuleEmptyState, TableSkeleton } from "./ui/DataStates";
+import { useDataTable } from "../hooks/useDataTable";
+import { DataTable, Pagination } from "./ui/table";
 
-import { PaymentReceipt } from '../types';
-import { fmtDate, roundCurrency } from '@/utils/format';
-import { printElement } from '@/utils/print';
+import { PaymentReceipt } from "../types";
+import { fmtDate, roundCurrency } from "@/utils/format";
+import { printElement } from "@/utils/print";
 
-const PAYMENT_MODE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  CASH: { label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" />, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
-  BANK_TRANSFER: { label: 'Bank NEFT/RTGS', icon: <Building2 className="w-3.5 h-3.5" />, color: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/30' },
-  CHEQUE: { label: 'Cheque', icon: <CreditCard className="w-3.5 h-3.5" />, color: 'text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/30' },
-  UPI: { label: 'UPI / GPay', icon: <Smartphone className="w-3.5 h-3.5" />, color: 'text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/30' },
+const PAYMENT_MODE_LABELS: Record<
+  string,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  CASH: {
+    label: "Cash",
+    icon: <Banknote className="w-3.5 h-3.5" />,
+    color:
+      "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
+  },
+  BANK_TRANSFER: {
+    label: "Bank NEFT/RTGS",
+    icon: <Building2 className="w-3.5 h-3.5" />,
+    color: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/30",
+  },
+  CHEQUE: {
+    label: "Cheque",
+    icon: <CreditCard className="w-3.5 h-3.5" />,
+    color:
+      "text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/30",
+  },
+  UPI: {
+    label: "UPI / GPay",
+    icon: <Smartphone className="w-3.5 h-3.5" />,
+    color:
+      "text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/30",
+  },
 };
 
 const getPaymentModeMeta = (mode: string) =>
-  PAYMENT_MODE_LABELS[mode] ?? { label: mode || 'Unknown', icon: <Wallet className="w-3.5 h-3.5" />, color: 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/30' };
+  PAYMENT_MODE_LABELS[mode] ?? {
+    label: mode || "Unknown",
+    icon: <Wallet className="w-3.5 h-3.5" />,
+    color:
+      "text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/30",
+  };
 
 export const PaymentsModule: React.FC = () => {
-  const { payments, suppliers, customers, addPayment, savePayment, deletePayment, settings, getSupplierLedger, getCustomerLedger, activeFY, companies, activeCompanyId } = useApp();
+  const app = useAppSafe();
+  if (!app) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-[260px]">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-t-transparent border-slate-300 dark:border-slate-700" />
+      </div>
+    );
+  }
+
+  const {
+    payments,
+    suppliers,
+    customers,
+    addPayment,
+    savePayment,
+    deletePayment,
+    settings,
+    getSupplierLedger,
+    getCustomerLedger,
+    activeFY,
+    companies,
+    activeCompanyId,
+  } = app;
   const cs = settings.company;
   const toast = useToast();
   const dialog = useConfirmDialog();
@@ -45,40 +113,58 @@ export const PaymentsModule: React.FC = () => {
   // Derive FY date range from active company + activeFY
   const { fyStartDate, fyEndDate } = useMemo(() => {
     const activeCompany = companies.find((c) => c.id === activeCompanyId);
-    const fyStartMD = activeCompany?.financial?.financialYearStart
-      ?? settings?.financial?.financialYearStart
-      ?? '04-01';
-    const fyStartMonth = parseInt(fyStartMD.split('-')[0], 10) || 4;
-    const [startYearStr] = (activeFY ?? '').split('-');
+    const fyStartMD =
+      activeCompany?.financial?.financialYearStart ??
+      settings?.financial?.financialYearStart ??
+      "04-01";
+    const fyStartMonth = parseInt(fyStartMD.split("-")[0], 10) || 4;
+    const [startYearStr] = (activeFY ?? "").split("-");
     const startYear = parseInt(startYearStr, 10) || new Date().getFullYear();
     const endMonth = fyStartMonth === 1 ? 12 : fyStartMonth - 1;
-    const endYear  = fyStartMonth === 1 ? startYear : startYear + 1;
-    const lastDay  = new Date(endYear, endMonth, 0).getDate();
-    const p = (n: number) => String(n).padStart(2, '0');
+    const endYear = fyStartMonth === 1 ? startYear : startYear + 1;
+    const lastDay = new Date(endYear, endMonth, 0).getDate();
+    const p = (n: number) => String(n).padStart(2, "0");
     return {
       fyStartDate: `${startYear}-${p(fyStartMonth)}-01`,
-      fyEndDate:   `${endYear}-${p(endMonth)}-${lastDay}`,
+      fyEndDate: `${endYear}-${p(endMonth)}-${lastDay}`,
     };
-  }, [activeFY, companies, activeCompanyId, settings?.financial?.financialYearStart]);
+  }, [
+    activeFY,
+    companies,
+    activeCompanyId,
+    settings?.financial?.financialYearStart,
+  ]);
 
-  const [activeTab, setActiveTab] = useState<'NEW' | 'LIST'>('NEW');
-  const [previewPayment, setPreviewPayment] = useState<PaymentReceipt | null>(null);
+  const [activeTab, setActiveTab] = useState<"NEW" | "LIST">("NEW");
+  const [previewPayment, setPreviewPayment] = useState<PaymentReceipt | null>(
+    null,
+  );
   const [isListLoading, setIsListLoading] = useState(false);
 
   // ── New Payment Form State ──────────
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [direction, setDirection] = useState<'PAID_TO_SUPPLIER' | 'RECEIVED_FROM_CUSTOMER'>('RECEIVED_FROM_CUSTOMER');
-  const [selectedPartyName, setSelectedPartyName] = useState('');
+  const [direction, setDirection] = useState<
+    "PAID_TO_SUPPLIER" | "RECEIVED_FROM_CUSTOMER"
+  >("RECEIVED_FROM_CUSTOMER");
+  const [selectedPartyName, setSelectedPartyName] = useState("");
   const [amount, setAmount] = useState<number>(0);
-  const [paymentMode, setPaymentMode] = useState<'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI' | ''>('');
-  const [referenceNo, setReferenceNo] = useState('');
-  const [notes, setNotes] = useState('');
-  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentMode, setPaymentMode] = useState<
+    "CASH" | "BANK_TRANSFER" | "CHEQUE" | "UPI" | ""
+  >("");
+  const [referenceNo, setReferenceNo] = useState("");
+  const [notes, setNotes] = useState("");
+  const [payDate, setPayDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
 
   // ── List Filters ────────────────────
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'ALL' | 'SUPPLIER' | 'CUSTOMER'>('ALL');
-  const [filterMode, setFilterMode] = useState<'ALL' | 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'UPI'>('ALL');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<"ALL" | "SUPPLIER" | "CUSTOMER">(
+    "ALL",
+  );
+  const [filterMode, setFilterMode] = useState<
+    "ALL" | "CASH" | "BANK_TRANSFER" | "CHEQUE" | "UPI"
+  >("ALL");
   const searchRef = useRef<HTMLInputElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
   const referenceRef = useRef<HTMLInputElement>(null);
@@ -86,60 +172,78 @@ export const PaymentsModule: React.FC = () => {
 
   // ── Party options based on direction ─
   const partyOptions: CommandOption[] = useMemo(() => {
-    if (direction === 'PAID_TO_SUPPLIER') {
-      return suppliers.map(s => ({
+    if (direction === "PAID_TO_SUPPLIER") {
+      return suppliers.map((s) => ({
         id: s.id,
         label: s.name,
         subtitle: s.phone ? `${s.phone} • ${s.city}` : s.city,
-        emoji: '🏢'
+        emoji: "🏢",
       }));
     }
-    return customers.map(c => ({
+    return customers.map((c) => ({
       id: c.id,
       label: c.name,
       subtitle: c.phone ? `${c.phone} • ${c.city}` : c.city,
-      emoji: '👤'
+      emoji: "👤",
     }));
   }, [direction, suppliers, customers]);
 
   // ── Outstanding balance for selected party ──────────────────────────────
   const outstandingBalance = useMemo(() => {
     if (!selectedPartyName.trim()) return null;
-    if (direction === 'PAID_TO_SUPPLIER') {
-      const sup = suppliers.find(s => s.name === selectedPartyName);
+    if (direction === "PAID_TO_SUPPLIER") {
+      const sup = suppliers.find((s) => s.name === selectedPartyName);
       if (!sup) return null;
       const ledger = getSupplierLedger(sup.id);
       // ledger is reversed (latest first) — first entry has the current running balance
       return ledger.length > 0 ? ledger[0].runningBalance : sup.previousBalance;
     } else {
-      const cust = customers.find(c => c.name === selectedPartyName);
+      const cust = customers.find((c) => c.name === selectedPartyName);
       if (!cust) return null;
       const ledger = getCustomerLedger(cust.id);
-      return ledger.length > 0 ? ledger[0].runningBalance : cust.previousBalance;
+      return ledger.length > 0
+        ? ledger[0].runningBalance
+        : cust.previousBalance;
     }
-  }, [selectedPartyName, direction, suppliers, customers, getSupplierLedger, getCustomerLedger]);
+  }, [
+    selectedPartyName,
+    direction,
+    suppliers,
+    customers,
+    getSupplierLedger,
+    getCustomerLedger,
+  ]);
 
-  const isOverpayment = outstandingBalance !== null && amount > 0 && amount > outstandingBalance && outstandingBalance > 0;
+  const isOverpayment =
+    outstandingBalance !== null &&
+    amount > 0 &&
+    amount > outstandingBalance &&
+    outstandingBalance > 0;
 
   // ── Filtered Payments ───────────────
   const filteredPayments = useMemo(() => {
-    return payments.filter(p => {
+    return payments.filter((p) => {
       const inFY = p.date >= fyStartDate && p.date <= fyEndDate;
       const matchSearch =
         p.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.referenceNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.notes || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.referenceNo || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (p.notes || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.amount.toString().includes(searchTerm);
-      const matchType = filterType === 'ALL' || p.partyType === filterType;
-      const matchMode = filterMode === 'ALL' || p.paymentMode === filterMode;
+      const matchType = filterType === "ALL" || p.partyType === filterType;
+      const matchMode = filterMode === "ALL" || p.paymentMode === filterMode;
       return inFY && matchSearch && matchType && matchMode;
     });
   }, [payments, searchTerm, filterType, filterMode, fyStartDate, fyEndDate]);
 
-  const paymentsTable = useDataTable<PaymentReceipt, 'date' | 'amount' | 'partyName'>({
+  const paymentsTable = useDataTable<
+    PaymentReceipt,
+    "date" | "amount" | "partyName"
+  >({
     data: filteredPayments,
-    initialSortBy: 'date',
-    initialSortDir: 'desc',
+    initialSortBy: "date",
+    initialSortDir: "desc",
     initialPageSize: 20,
     pageSizeOptions: [10, 20, 50, 100],
     sortComparators: {
@@ -151,57 +255,82 @@ export const PaymentsModule: React.FC = () => {
   });
 
   useEffect(() => {
-    if (activeTab !== 'LIST') return;
+    if (activeTab !== "LIST") return;
     setIsListLoading(true);
     const t = window.setTimeout(() => setIsListLoading(false), 180);
     return () => window.clearTimeout(t);
-  }, [activeTab, searchTerm, filterType, filterMode, paymentsTable.sortBy, paymentsTable.sortDir]);
+  }, [
+    activeTab,
+    searchTerm,
+    filterType,
+    filterMode,
+    paymentsTable.sortBy,
+    paymentsTable.sortDir,
+  ]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && activeTab === 'LIST') {
+      if (e.key === "/" && activeTab === "LIST") {
         e.preventDefault();
         searchRef.current?.focus();
       }
-      if (e.ctrlKey && e.key.toLowerCase() === 'n') {
+      if (e.ctrlKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        setActiveTab('NEW');
+        setActiveTab("NEW");
         amountRef.current?.focus();
       }
-      if (e.ctrlKey && e.key === 'Enter' && activeTab === 'NEW') {
+      if (e.ctrlKey && e.key === "Enter" && activeTab === "NEW") {
         e.preventDefault();
         handleSavePayment();
       }
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeTab, direction, selectedPartyName, amount, paymentMode, referenceNo, notes, payDate]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    activeTab,
+    direction,
+    selectedPartyName,
+    amount,
+    paymentMode,
+    referenceNo,
+    notes,
+    payDate,
+  ]);
 
   // ── Form Submit ─────────────────────
   const handleSavePayment = () => {
     if (!selectedPartyName.trim()) {
-      toast.error('No Party Selected', 'Please select a supplier or customer.');
+      toast.error("No Party Selected", "Please select a supplier or customer.");
       return;
     }
     if (!amount || amount <= 0) {
-      toast.error('Invalid Amount', 'Please enter a valid payment amount greater than zero.');
+      toast.error(
+        "Invalid Amount",
+        "Please enter a valid payment amount greater than zero.",
+      );
       return;
     }
     if (!paymentMode) {
-      toast.error('Payment Mode Required', 'Please select a payment mode (Cash, Bank, etc.).');
+      toast.error(
+        "Payment Mode Required",
+        "Please select a payment mode (Cash, Bank, etc.).",
+      );
       return;
     }
 
-    const partyType: 'SUPPLIER' | 'CUSTOMER' = direction === 'PAID_TO_SUPPLIER' ? 'SUPPLIER' : 'CUSTOMER';
-    let partyId = '';
-    if (partyType === 'SUPPLIER') {
-      partyId = suppliers.find(s => s.name === selectedPartyName)?.id || '';
+    const partyType: "SUPPLIER" | "CUSTOMER" =
+      direction === "PAID_TO_SUPPLIER" ? "SUPPLIER" : "CUSTOMER";
+    let partyId = "";
+    if (partyType === "SUPPLIER") {
+      partyId = suppliers.find((s) => s.name === selectedPartyName)?.id || "";
     } else {
-      partyId = customers.find(c => c.name === selectedPartyName)?.id || '';
+      partyId = customers.find((c) => c.name === selectedPartyName)?.id || "";
     }
 
     const payment: PaymentReceipt = {
-      id: editingId || `pay-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id:
+        editingId ||
+        `pay-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       date: payDate,
       partyType,
       partyId,
@@ -213,67 +342,93 @@ export const PaymentsModule: React.FC = () => {
     };
 
     savePayment(payment);
-    const dirLabel = partyType === 'SUPPLIER' ? 'paid to' : 'received from';
+    const dirLabel = partyType === "SUPPLIER" ? "paid to" : "received from";
     toast.success(
-      editingId ? 'Payment Updated!' : 'Payment Recorded!',
-      `₹${Number(amount).toLocaleString('en-IN')} ${dirLabel} ${selectedPartyName}. Ledger updated.`
+      editingId ? "Payment Updated!" : "Payment Recorded!",
+      `₹${Number(amount).toLocaleString("en-IN")} ${dirLabel} ${selectedPartyName}. Ledger updated.`,
     );
 
     // Reset form
     setEditingId(null);
-    setSelectedPartyName('');
+    setSelectedPartyName("");
     setAmount(0);
-    setPaymentMode('');
-    setReferenceNo('');
-    setNotes('');
-    setActiveTab('LIST');
+    setPaymentMode("");
+    setReferenceNo("");
+    setNotes("");
+    setActiveTab("LIST");
   };
 
   const handleEditPayment = (p: PaymentReceipt) => {
     setEditingId(p.id);
-    setDirection(p.partyType === 'SUPPLIER' ? 'PAID_TO_SUPPLIER' : 'RECEIVED_FROM_CUSTOMER');
+    setDirection(
+      p.partyType === "SUPPLIER"
+        ? "PAID_TO_SUPPLIER"
+        : "RECEIVED_FROM_CUSTOMER",
+    );
     setSelectedPartyName(p.partyName);
     setAmount(p.amount);
     setPaymentMode(p.paymentMode as any);
-    setReferenceNo(p.referenceNo || '');
-    setNotes(p.notes || '');
+    setReferenceNo(p.referenceNo || "");
+    setNotes(p.notes || "");
     setPayDate(p.date);
-    setActiveTab('NEW');
-    
+    setActiveTab("NEW");
+
     // Scroll to top of form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDeletePayment = async (p: PaymentReceipt) => {
     const ok = await dialog.confirm({
-      variant: 'destructive',
-      title: `Delete Payment of ₹${p.amount.toLocaleString('en-IN')}?`,
-      description: `This will permanently remove the payment ${p.partyType === 'SUPPLIER' ? 'to' : 'from'} ${p.partyName} and recalculate the ledger balance.`,
-      confirmText: 'Delete Payment',
+      variant: "destructive",
+      title: `Delete Payment of ₹${p.amount.toLocaleString("en-IN")}?`,
+      description: `This will permanently remove the payment ${p.partyType === "SUPPLIER" ? "to" : "from"} ${p.partyName} and recalculate the ledger balance.`,
+      confirmText: "Delete Payment",
     });
     if (ok) {
       deletePayment(p.id);
-      toast.info('Payment Deleted', `Payment to ${p.partyName} removed. Ledger recalculated.`);
+      toast.info(
+        "Payment Deleted",
+        `Payment to ${p.partyName} removed. Ledger recalculated.`,
+      );
     }
   };
 
   const typeFilterOptions: CommandOption[] = [
-    { id: 'ALL', label: 'All Parties', icon: <Users className="w-3.5 h-3.5" /> },
-    { id: 'SUPPLIER', label: 'Suppliers Only', icon: <Building2 className="w-3.5 h-3.5" /> },
-    { id: 'CUSTOMER', label: 'Customers Only', icon: <UserCheck className="w-3.5 h-3.5" /> },
+    {
+      id: "ALL",
+      label: "All Parties",
+      icon: <Users className="w-3.5 h-3.5" />,
+    },
+    {
+      id: "SUPPLIER",
+      label: "Suppliers Only",
+      icon: <Building2 className="w-3.5 h-3.5" />,
+    },
+    {
+      id: "CUSTOMER",
+      label: "Customers Only",
+      icon: <UserCheck className="w-3.5 h-3.5" />,
+    },
   ];
 
   const modeFilterOptions: CommandOption[] = [
-    { id: 'ALL', label: 'All Modes', icon: <Wallet className="w-3.5 h-3.5" /> },
-    { id: 'CASH', label: 'Cash', icon: <Banknote className="w-3.5 h-3.5" /> },
-    { id: 'BANK_TRANSFER', label: 'Bank Transfer', icon: <Building2 className="w-3.5 h-3.5" /> },
-    { id: 'UPI', label: 'UPI', icon: <Smartphone className="w-3.5 h-3.5" /> },
-    { id: 'CHEQUE', label: 'Cheque', icon: <CreditCard className="w-3.5 h-3.5" /> },
+    { id: "ALL", label: "All Modes", icon: <Wallet className="w-3.5 h-3.5" /> },
+    { id: "CASH", label: "Cash", icon: <Banknote className="w-3.5 h-3.5" /> },
+    {
+      id: "BANK_TRANSFER",
+      label: "Bank Transfer",
+      icon: <Building2 className="w-3.5 h-3.5" />,
+    },
+    { id: "UPI", label: "UPI", icon: <Smartphone className="w-3.5 h-3.5" /> },
+    {
+      id: "CHEQUE",
+      label: "Cheque",
+      icon: <CreditCard className="w-3.5 h-3.5" />,
+    },
   ];
 
   return (
     <div className="flex-1 flex flex-col space-y-6 font-sans min-h-0">
-
       {/* ── TOP HEADER ─────────────────────────────── */}
       <div className="erp-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div>
@@ -281,27 +436,30 @@ export const PaymentsModule: React.FC = () => {
             <Wallet className="w-6 h-6 text-[#00aeef]" />
             <span>PAYMENTS & RECEIPTS CENTER</span>
           </h1>
-          <p className="erp-subtitle mt-1">Record, track, search and print all supplier payments and customer receipts</p>
+          <p className="erp-subtitle mt-1">
+            Record, track, search and print all supplier payments and customer
+            receipts
+          </p>
         </div>
 
         <div className="erp-surface flex items-center space-x-2 p-1.5 rounded-xl">
           <button
-            onClick={() => setActiveTab('NEW')}
+            onClick={() => setActiveTab("NEW")}
             className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
-              activeTab === 'NEW'
-                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
+              activeTab === "NEW"
+                ? "bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]"
+                : "text-(--text-muted) hover:text-(--text-primary) hover:bg-(--card-bg)"
             }`}
           >
             <Plus className="w-4 h-4" />
             <span>New Payment / Receipt</span>
           </button>
           <button
-            onClick={() => setActiveTab('LIST')}
+            onClick={() => setActiveTab("LIST")}
             className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
-              activeTab === 'LIST'
-                ? 'bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
+              activeTab === "LIST"
+                ? "bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_8px_20px_rgba(0,174,239,0.22)]"
+                : "text-(--text-muted) hover:text-(--text-primary) hover:bg-(--card-bg)"
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -313,57 +471,76 @@ export const PaymentsModule: React.FC = () => {
       {/* ══════════════════════════════════════════════
           TAB 1: NEW PAYMENT FORM
          ══════════════════════════════════════════════ */}
-      {activeTab === 'NEW' && (
-        <div className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 shadow-xl overflow-hidden animate-slide-up" onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.target === amountRef.current) {
-            e.preventDefault();
-            referenceRef.current?.focus();
-          }
-          if (e.key === 'Enter' && e.target === referenceRef.current) {
-            e.preventDefault();
-            notesRef.current?.focus();
-          }
-        }}>
+      {activeTab === "NEW" && (
+        <div
+          className="dark:bg-slate-900 bg-white rounded-2xl border dark:border-slate-800 border-slate-200 shadow-xl overflow-hidden animate-slide-up"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.target === amountRef.current) {
+              e.preventDefault();
+              referenceRef.current?.focus();
+            }
+            if (e.key === "Enter" && e.target === referenceRef.current) {
+              e.preventDefault();
+              notesRef.current?.focus();
+            }
+          }}
+        >
           <div className="px-6 py-4 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200">
             <h2 className="text-sm font-bold dark:text-white text-slate-900 flex items-center space-x-2">
               <DollarSign className="w-4 h-4 text-amber-500" />
-              <span>{editingId ? 'Edit Payment / Receipt' : 'Record New Payment or Receipt'}</span>
+              <span>
+                {editingId
+                  ? "Edit Payment / Receipt"
+                  : "Record New Payment or Receipt"}
+              </span>
             </h2>
           </div>
 
           <div className="p-6 space-y-6">
             {/* Direction Toggle */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-2">Payment Direction</label>
+              <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-2">
+                Payment Direction
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => { setDirection('PAID_TO_SUPPLIER'); setSelectedPartyName(''); }}
+                  onClick={() => {
+                    setDirection("PAID_TO_SUPPLIER");
+                    setSelectedPartyName("");
+                  }}
                   className={`flex items-center justify-center space-x-2.5 p-4 rounded-xl border-2 transition-all cursor-pointer font-bold text-sm ${
-                    direction === 'PAID_TO_SUPPLIER'
-                      ? 'border-rose-500 bg-gradient-to-br from-rose-500/20 to-rose-600/10 text-rose-700 dark:text-rose-400 shadow-md shadow-rose-500/10'
-                      : 'dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-600 dark:hover:border-slate-700 hover:border-slate-300'
+                    direction === "PAID_TO_SUPPLIER"
+                      ? "border-rose-500 bg-linear-to-br from-rose-500/20 to-rose-600/10 text-rose-700 dark:text-rose-400 shadow-md shadow-rose-500/10"
+                      : "dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-600 dark:hover:border-slate-700 hover:border-slate-300"
                   }`}
                 >
                   <ArrowUpRight className="w-5 h-5" />
                   <div className="text-left">
                     <div>Pay to Supplier</div>
-                    <div className="text-[10px] font-normal dark:text-slate-500 text-slate-400">Outgoing payment — reduces payable</div>
+                    <div className="text-[10px] font-normal dark:text-slate-500 text-slate-400">
+                      Outgoing payment - reduces payable
+                    </div>
                   </div>
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setDirection('RECEIVED_FROM_CUSTOMER'); setSelectedPartyName(''); }}
+                  onClick={() => {
+                    setDirection("RECEIVED_FROM_CUSTOMER");
+                    setSelectedPartyName("");
+                  }}
                   className={`flex items-center justify-center space-x-2.5 p-4 rounded-xl border-2 transition-all cursor-pointer font-bold text-sm ${
-                    direction === 'RECEIVED_FROM_CUSTOMER'
-                      ? 'border-emerald-500 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 text-emerald-700 dark:text-emerald-400 shadow-md shadow-emerald-500/10'
-                      : 'dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-600 dark:hover:border-slate-700 hover:border-slate-300'
+                    direction === "RECEIVED_FROM_CUSTOMER"
+                      ? "border-emerald-500 bg-linear-to-br from-emerald-500/20 to-emerald-600/10 text-emerald-700 dark:text-emerald-400 shadow-md shadow-emerald-500/10"
+                      : "dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-600 dark:hover:border-slate-700 hover:border-slate-300"
                   }`}
                 >
                   <ArrowDownRight className="w-5 h-5" />
                   <div className="text-left">
                     <div>Receive from Customer</div>
-                    <div className="text-[10px] font-normal dark:text-slate-500 text-slate-400">Incoming payment — reduces receivable</div>
+                    <div className="text-[10px] font-normal dark:text-slate-500 text-slate-400">
+                      Incoming payment — reduces receivable
+                    </div>
                   </div>
                 </button>
               </div>
@@ -375,30 +552,46 @@ export const PaymentsModule: React.FC = () => {
               <div>
                 <CommandSelect
                   id={`payment-party-${direction}`}
-                  variant={direction === 'PAID_TO_SUPPLIER' ? 'emerald' : 'violet'}
-                  label={direction === 'PAID_TO_SUPPLIER' ? 'Supplier / Party *' : 'Customer / Buyer *'}
+                  variant={
+                    direction === "PAID_TO_SUPPLIER" ? "emerald" : "violet"
+                  }
+                  label={
+                    direction === "PAID_TO_SUPPLIER"
+                      ? "Supplier / Party *"
+                      : "Customer / Buyer *"
+                  }
                   value={selectedPartyName}
                   onChange={(val) => {
-                    const opt = partyOptions.find(o => o.id === val || o.label === val);
+                    const opt = partyOptions.find(
+                      (o) => o.id === val || o.label === val,
+                    );
                     setSelectedPartyName(opt?.label || val);
                     // Move to next field on selection
                     setTimeout(() => amountRef.current?.focus(), 0);
                   }}
                   options={partyOptions}
-                  placeholder={direction === 'PAID_TO_SUPPLIER' ? 'Select supplier...' : 'Select customer...'}
+                  placeholder={
+                    direction === "PAID_TO_SUPPLIER"
+                      ? "Select supplier..."
+                      : "Select customer..."
+                  }
                   creatable={false}
                 />
               </div>
 
               {/* Amount */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Amount (₹) *</label>
+                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
+                  Amount (₹) *
+                </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-sm font-bold dark:text-slate-500 text-slate-400">₹</span>
+                  <span className="absolute left-3 top-2.5 text-sm font-bold dark:text-slate-500 text-slate-400">
+                    ₹
+                  </span>
                   <input
                     ref={amountRef}
                     type="number"
-                    value={amount === 0 ? '' : amount}
+                    value={amount === 0 ? "" : amount}
                     placeholder="0"
                     onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
                     className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-700/80 border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:text-amber-400 text-amber-700 font-mono font-black rounded-xl pl-8 pr-4 py-2.5 text-lg outline-none transition-all"
@@ -419,34 +612,40 @@ export const PaymentsModule: React.FC = () => {
 
             {/* Payment Mode */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-2">Payment Mode *</label>
+              <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-2">
+                Payment Mode *
+              </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {(['CASH', 'BANK_TRANSFER', 'UPI', 'CHEQUE'] as const).map(mode => {
-                  const meta = PAYMENT_MODE_LABELS[mode];
-                  const isActive = paymentMode === mode;
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setPaymentMode(mode)}
-                      className={`flex items-center space-x-2.5 p-3.5 rounded-xl border-2 transition-all cursor-pointer text-xs font-bold ${
-                        isActive
-                          ? `${meta.color} border-current shadow-md`
-                          : 'dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-500 dark:hover:border-slate-700 hover:border-slate-300'
-                      }`}
-                    >
-                      {meta.icon}
-                      <span>{meta.label}</span>
-                    </button>
-                  );
-                })}
+                {(["CASH", "BANK_TRANSFER", "UPI", "CHEQUE"] as const).map(
+                  (mode) => {
+                    const meta = PAYMENT_MODE_LABELS[mode];
+                    const isActive = paymentMode === mode;
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setPaymentMode(mode)}
+                        className={`flex items-center space-x-2.5 p-3.5 rounded-xl border-2 transition-all cursor-pointer text-xs font-bold ${
+                          isActive
+                            ? `${meta.color} border-current shadow-md`
+                            : "dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-500 dark:hover:border-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        {meta.icon}
+                        <span>{meta.label}</span>
+                      </button>
+                    );
+                  },
+                )}
               </div>
             </div>
 
             {/* Reference & Notes */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Reference / Cheque / UTR No.</label>
+                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
+                  Reference / Cheque / UTR No.
+                </label>
                 <input
                   ref={referenceRef}
                   type="text"
@@ -457,13 +656,15 @@ export const PaymentsModule: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">Remarks / Notes</label>
+                <label className="block text-xs font-bold uppercase tracking-wider dark:text-slate-400 text-slate-600 mb-1.5">
+                  Remarks / Notes
+                </label>
                 <input
                   ref={notesRef}
                   type="text"
                   value={notes}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       handleSavePayment();
                     }
@@ -477,28 +678,84 @@ export const PaymentsModule: React.FC = () => {
 
             {/* Outstanding Balance Info + Overpayment Warning */}
             {outstandingBalance !== null && (
-              <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-xs font-semibold transition-all ${
-                isOverpayment
-                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-700 dark:text-amber-400'
-                  : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
-              }`}>
+              <div
+                className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-xs font-semibold transition-all ${
+                  isOverpayment
+                    ? "bg-amber-500/10 border-amber-500/40 text-amber-700 dark:text-amber-400"
+                    : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"
+                }`}
+              >
                 <div className="shrink-0 mt-0.5">
                   {isOverpayment ? (
-                    <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                    <svg
+                      className="w-4 h-4 text-amber-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                      />
+                    </svg>
                   ) : (
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                    <svg
+                      className="w-4 h-4 text-slate-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                      />
+                    </svg>
                   )}
                 </div>
                 <div>
                   {isOverpayment ? (
                     <>
-                      <span className="font-black text-amber-700 dark:text-amber-400">Overpayment Warning — </span>
-                      Payment of <span className="font-mono font-black">₹{amount.toLocaleString('en-IN')}</span> exceeds the outstanding balance of <span className="font-mono font-black">₹{outstandingBalance.toLocaleString('en-IN')}</span>. The excess <span className="font-mono font-black">₹{roundCurrency(amount - outstandingBalance).toLocaleString('en-IN')}</span> will create a credit balance. Confirm if intentional.
+                      <span className="font-black text-amber-700 dark:text-amber-400">
+                        Overpayment Warning —{" "}
+                      </span>
+                      Payment of{" "}
+                      <span className="font-mono font-black">
+                        ₹{amount.toLocaleString("en-IN")}
+                      </span>{" "}
+                      exceeds the outstanding balance of{" "}
+                      <span className="font-mono font-black">
+                        ₹{outstandingBalance.toLocaleString("en-IN")}
+                      </span>
+                      . The excess{" "}
+                      <span className="font-mono font-black">
+                        ₹
+                        {roundCurrency(
+                          amount - outstandingBalance,
+                        ).toLocaleString("en-IN")}
+                      </span>{" "}
+                      will create a credit balance. Confirm if intentional.
                     </>
                   ) : (
                     <>
-                      Outstanding balance: <span className="font-mono font-black dark:text-white text-slate-900">₹{outstandingBalance.toLocaleString('en-IN')}</span>
-                      {amount > 0 && <span className="ml-2 dark:text-slate-300 text-slate-700">→ After payment: <span className="font-mono font-black">₹{roundCurrency(outstandingBalance - amount).toLocaleString('en-IN')}</span></span>}
+                      Outstanding balance:{" "}
+                      <span className="font-mono font-black dark:text-white text-slate-900">
+                        ₹{outstandingBalance.toLocaleString("en-IN")}
+                      </span>
+                      {amount > 0 && (
+                        <span className="ml-2 dark:text-slate-300 text-slate-700">
+                          → After payment:{" "}
+                          <span className="font-mono font-black">
+                            ₹
+                            {roundCurrency(
+                              outstandingBalance - amount,
+                            ).toLocaleString("en-IN")}
+                          </span>
+                        </span>
+                      )}
                     </>
                   )}
                 </div>
@@ -509,16 +766,25 @@ export const PaymentsModule: React.FC = () => {
             <div className="flex items-center justify-between pt-4 border-t dark:border-slate-800 border-slate-200">
               <div>
                 <div className="text-xs dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider">
-                  {direction === 'PAID_TO_SUPPLIER' ? 'Paying to Supplier' : 'Receiving from Customer'}
+                  {direction === "PAID_TO_SUPPLIER"
+                    ? "Paying to Supplier"
+                    : "Receiving from Customer"}
                 </div>
                 <div className="text-2xl font-black font-mono dark:text-amber-400 text-amber-600 mt-0.5">
-                  ₹ {(amount || 0).toLocaleString('en-IN')}
+                  ₹ {(amount || 0).toLocaleString("en-IN")}
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <button
                   type="button"
-                  onClick={() => { setEditingId(null); setSelectedPartyName(''); setAmount(0); setPaymentMode(''); setReferenceNo(''); setNotes(''); }}
+                  onClick={() => {
+                    setEditingId(null);
+                    setSelectedPartyName("");
+                    setAmount(0);
+                    setPaymentMode("");
+                    setReferenceNo("");
+                    setNotes("");
+                  }}
                   className="px-5 py-3 dark:bg-slate-800 bg-slate-100 dark:hover:bg-slate-700 hover:bg-slate-200 dark:text-slate-300 text-slate-700 rounded-xl font-bold text-xs cursor-pointer transition-colors"
                 >
                   Clear
@@ -527,16 +793,20 @@ export const PaymentsModule: React.FC = () => {
                   type="button"
                   onClick={handleSavePayment}
                   className={`px-8 py-3 font-black rounded-xl text-sm shadow-xl cursor-pointer transition-all flex items-center space-x-2 ${
-                    direction === 'PAID_TO_SUPPLIER'
-                      ? 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white shadow-rose-500/20'
-                      : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
+                    direction === "PAID_TO_SUPPLIER"
+                      ? "bg-linear-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white shadow-rose-500/20"
+                      : "bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20"
                   }`}
                 >
                   <Wallet className="w-5 h-5 stroke-[2.5]" />
                   <span>
-                    {editingId 
-                      ? (direction === 'PAID_TO_SUPPLIER' ? 'UPDATE SUPPLIER PAYMENT' : 'UPDATE CUSTOMER RECEIPT')
-                      : (direction === 'PAID_TO_SUPPLIER' ? 'CONFIRM SUPPLIER PAYMENT' : 'CONFIRM CUSTOMER RECEIPT')}
+                    {editingId
+                      ? direction === "PAID_TO_SUPPLIER"
+                        ? "UPDATE SUPPLIER PAYMENT"
+                        : "UPDATE CUSTOMER RECEIPT"
+                      : direction === "PAID_TO_SUPPLIER"
+                        ? "CONFIRM SUPPLIER PAYMENT"
+                        : "CONFIRM CUSTOMER RECEIPT"}
                   </span>
                 </button>
               </div>
@@ -548,12 +818,16 @@ export const PaymentsModule: React.FC = () => {
       {/* ══════════════════════════════════════════════
           TAB 2: PAYMENT REGISTER LIST
          ══════════════════════════════════════════════ */}
-      {activeTab === 'LIST' && (
+      {activeTab === "LIST" && (
         <div className="flex-1 flex flex-col min-h-0 erp-table-wrap rounded-2xl animate-slide-up">
-          <div className="px-6 py-4 bg-[var(--surface-bg)] border-b border-[var(--card-border)] flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
+          <div className="px-6 py-4 bg-(--surface-bg) border-b border-(--card-border) flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
             <div className="flex items-center space-x-2">
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Payment Register</h2>
-              <span className="text-xs bg-[var(--surface-bg)] text-[var(--primary)] font-mono font-semibold px-2.5 py-0.5 rounded-full border border-[var(--card-border)]">{filteredPayments.length} entries</span>
+              <h2 className="text-sm font-semibold text-(--text-primary)">
+                Payment Register
+              </h2>
+              <span className="text-xs bg-(--surface-bg) text-(--primary) font-mono font-semibold px-2.5 py-0.5 rounded-full border border-(--card-border)">
+                {filteredPayments.length} entries
+              </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -618,26 +892,44 @@ export const PaymentsModule: React.FC = () => {
             <table className="erp-table text-left text-xs sm:text-sm">
               <thead>
                 <tr>
-                  <th className="py-3 px-4 col-text w-28">
-                    <button type="button" onClick={() => paymentsTable.toggleSort('date')} className="inline-flex items-center gap-1">
+                  <th className="py-3 px-4 col-text w-[120px]">
+                    <button
+                      type="button"
+                      onClick={() => paymentsTable.toggleSort("date")}
+                      className="inline-flex items-center gap-1"
+                    >
                       Date <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-text w-32">Direction</th>
-                  <th className="py-3 px-3 col-text">
-                    <button type="button" onClick={() => paymentsTable.toggleSort('partyName')} className="inline-flex items-center gap-1">
+                  <th className="py-3 px-3 col-text w-[120px]">Direction</th>
+                  <th className="py-3 px-3 col-text min-w-[180px]">
+                    <button
+                      type="button"
+                      onClick={() => paymentsTable.toggleSort("partyName")}
+                      className="inline-flex items-center gap-1"
+                    >
                       Party Name <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-num font-black dark:text-amber-400 text-amber-700 w-44">
-                    <button type="button" onClick={() => paymentsTable.toggleSort('amount')} className="inline-flex items-center gap-1 ml-auto">
+                  <th className="py-3 px-3 col-num font-black dark:text-amber-400 text-amber-700 w-[140px]">
+                    <button
+                      type="button"
+                      onClick={() => paymentsTable.toggleSort("amount")}
+                      className="inline-flex items-center gap-1 ml-auto"
+                    >
                       Amount <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-text w-40">Mode</th>
-                  <th className="py-3 px-3 col-text w-40">Reference No.</th>
-                  <th className="py-3 px-3 col-text w-48">Notes / Remarks</th>
-                  <th className="py-3 px-4 col-actions sticky right-0 bg-[var(--table-header-bg)] z-[3] w-28">Actions</th>
+                  <th className="py-3 px-3 col-text w-[120px]">Mode</th>
+                  <th className="py-3 px-3 col-text w-[140px]">
+                    Reference No.
+                  </th>
+                  <th className="py-3 px-3 col-text w-[180px]">
+                    Notes / Remarks
+                  </th>
+                  <th className="py-3 px-4 col-actions sticky right-0 bg-(--table-header-bg) z-3 w-[120px]">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -657,12 +949,15 @@ export const PaymentsModule: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  paymentsTable.pageRows.map(p => {
-                    const isSupplier = p.partyType === 'SUPPLIER';
+                  paymentsTable.pageRows.map((p) => {
+                    const isSupplier = p.partyType === "SUPPLIER";
                     const modeMeta = getPaymentModeMeta(p.paymentMode);
 
                     return (
-                      <tr key={p.id} className="transition-colors group font-sans">
+                      <tr
+                        key={p.id}
+                        className="transition-colors group font-sans"
+                      >
                         <td className="py-3.5 px-4 col-text">
                           <div className="flex items-center space-x-1.5 font-mono text-xs text-[#475569] font-semibold">
                             <Calendar className="w-3.5 h-3.5 text-[#94a3b8]" />
@@ -684,54 +979,73 @@ export const PaymentsModule: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-3 col-text">
                           <div className="flex items-center space-x-2">
-                            <div className={`p-1 rounded ${isSupplier ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                              {isSupplier ? <Users className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                            <div
+                              className={`p-1 rounded ${isSupplier ? "bg-slate-100 dark:bg-slate-800 text-slate-500" : "bg-slate-100 dark:bg-slate-800 text-slate-500"}`}
+                            >
+                              {isSupplier ? (
+                                <Users className="w-3.5 h-3.5" />
+                              ) : (
+                                <UserCheck className="w-3.5 h-3.5" />
+                              )}
                             </div>
                             <div>
-                              <div className="font-semibold text-[var(--text-primary)] text-sm truncate max-w-[200px]">{p.partyName}</div>
-                              <div className="text-[10px] text-[var(--text-muted)] font-medium">{isSupplier ? 'Supplier' : 'Customer'}</div>
+                              <div className="font-semibold text-(--text-primary) text-sm truncate max-w-[200px]">
+                                {p.partyName}
+                              </div>
+                              <div className="text-[10px] text-(--text-muted) font-medium">
+                                {isSupplier ? "Supplier" : "Customer"}
+                              </div>
                             </div>
                           </div>
                         </td>
                         <td className="py-3.5 px-3 col-num">
-                          <span className={`text-base font-black font-mono ${isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                            {isSupplier ? '−' : '+'}₹ {p.amount.toLocaleString('en-IN')}
+                          <span
+                            className={`text-base font-black font-mono ${isSupplier ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}
+                          >
+                            {isSupplier ? "−" : "+"}₹{" "}
+                            {p.amount.toLocaleString("en-IN")}
                           </span>
                         </td>
                         <td className="py-3.5 px-3 col-text">
-                          <span className={`inline-flex items-center space-x-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-lg border ${modeMeta.color}`}>
+                          <span
+                            className={`inline-flex items-center space-x-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-lg border ${modeMeta.color}`}
+                          >
                             {modeMeta.icon}
                             <span>{modeMeta.label}</span>
                           </span>
                         </td>
                         <td className="py-3.5 px-3 col-text">
-                          <span className="font-mono font-semibold text-[#475569] text-xs">{p.referenceNo || '—'}</span>
+                          <span className="font-mono font-semibold text-[#475569] text-xs">
+                            {p.referenceNo || "—"}
+                          </span>
                         </td>
                         <td className="py-3.5 px-3 col-text">
-                          <span className="text-[#64748b] text-xs truncate block max-w-[180px]">{p.notes || '—'}</span>
+                          <span className="text-[#64748b] text-xs truncate block max-w-[180px]">
+                            {p.notes || "—"}
+                          </span>
                         </td>
-                        <td className="py-3.5 px-4 col-actions sticky right-0 bg-[var(--card-bg)] z-[2] border-l border-[var(--table-border)]">
-                          <div className="flex items-center justify-center space-x-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <td className="py-3.5 px-4 col-actions sticky right-0 bg-(--card-bg) z-2 border-l border-(--table-border)">
+                          <div className="flex items-center justify-center gap-1 transition-opacity">
                             <button
                               onClick={() => handleEditPayment(p)}
-                              className="p-2 text-[var(--text-muted)] hover:text-indigo-500 hover:bg-[var(--surface-bg)] rounded-lg cursor-pointer transition-colors"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:text-indigo-500 dark:hover:bg-slate-800 hover:bg-slate-100 cursor-pointer transition-colors"
                               title="Edit Payment"
                             >
-                              <Edit3 className="w-4 h-4" />
+                              <Edit3 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setPreviewPayment(p)}
-                              className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-bg)] rounded-lg cursor-pointer transition-colors"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:text-(--primary) dark:hover:bg-slate-800 hover:bg-slate-100 cursor-pointer transition-colors"
                               title="View Receipt"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDeletePayment(p)}
-                              className="p-2 text-[var(--text-muted)] hover:text-rose-500 hover:bg-[var(--surface-bg)] rounded-lg cursor-pointer transition-colors"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 cursor-pointer transition-colors"
                               title="Delete Payment"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -745,16 +1059,25 @@ export const PaymentsModule: React.FC = () => {
 
           {/* Footer Summary */}
           {paymentsTable.totalRecords > 0 && (
-            <div className="px-6 py-3 bg-[var(--surface-bg)] border-t border-[var(--card-border)] flex items-center justify-between text-xs font-semibold">
-              <span className="text-[var(--text-muted)]">
-                Showing {paymentsTable.totalRecords} of {payments.length} payments
+            <div className="px-6 py-3 bg-(--surface-bg) border-t border-(--card-border) flex items-center justify-between text-xs font-semibold">
+              <span className="text-(--text-muted)">
+                Showing {paymentsTable.totalRecords} of {payments.length}{" "}
+                payments
               </span>
               <div className="flex items-center space-x-4 font-mono">
                 <span className="text-rose-600 dark:text-rose-400">
-                  Paid: ₹{paymentsTable.rows.filter(p => p.partyType === 'SUPPLIER').reduce((s, p) => s + p.amount, 0).toLocaleString('en-IN')}
+                  Paid: ₹
+                  {paymentsTable.rows
+                    .filter((p) => p.partyType === "SUPPLIER")
+                    .reduce((s, p) => s + p.amount, 0)
+                    .toLocaleString("en-IN")}
                 </span>
                 <span className="text-emerald-600 dark:text-emerald-400">
-                  Recd: ₹{paymentsTable.rows.filter(p => p.partyType === 'CUSTOMER').reduce((s, p) => s + p.amount, 0).toLocaleString('en-IN')}
+                  Recd: ₹
+                  {paymentsTable.rows
+                    .filter((p) => p.partyType === "CUSTOMER")
+                    .reduce((s, p) => s + p.amount, 0)
+                    .toLocaleString("en-IN")}
                 </span>
               </div>
             </div>
@@ -762,11 +1085,11 @@ export const PaymentsModule: React.FC = () => {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           PAYMENT RECEIPT PREVIEW MODAL
-         ══════════════════════════════════════════════ */}
+         ============================================== */}
       {previewPayment && (
-        <div className="fixed inset-0 z-[99999] overflow-y-auto animate-fade-in custom-scrollbar">
+        <div className="fixed inset-0 z-99999 overflow-y-auto animate-fade-in custom-scrollbar">
           <div className="min-h-screen dark:bg-slate-950/90 bg-slate-200/90 backdrop-blur-md flex flex-col items-center py-6 sm:py-12 px-3 sm:px-4">
             {/* Toolbar */}
             <div className="w-full max-w-[650px] mb-4 flex items-center justify-between no-print animate-slide-down">
@@ -775,31 +1098,47 @@ export const PaymentsModule: React.FC = () => {
                   <Wallet className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black dark:text-white text-slate-900 tracking-tight uppercase">Payment Receipt</h3>
-                  <p className="text-[10px] dark:text-slate-400 text-slate-500 font-mono tracking-wider">#{previewPayment.id.slice(-8).toUpperCase()}</p>
+                  <h3 className="text-base font-black dark:text-white text-slate-900 tracking-tight uppercase">
+                    Payment Receipt
+                  </h3>
+                  <p className="text-[10px] dark:text-slate-400 text-slate-500 font-mono tracking-wider">
+                    #{previewPayment.id.slice(-8).toUpperCase()}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <button onClick={handlePrint} className="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer active:scale-95">
-                  <Printer className="w-4 h-4" /><span>Print Receipt</span>
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer active:scale-95"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Receipt</span>
                 </button>
-                <button onClick={() => setPreviewPayment(null)} className="p-2.5 dark:text-slate-400 text-slate-500 dark:hover:text-white hover:text-slate-900 dark:bg-slate-800 bg-white rounded-xl cursor-pointer transition-all border dark:border-slate-700 border-slate-200 shadow-sm active:scale-95">
+                <button
+                  onClick={() => setPreviewPayment(null)}
+                  className="p-2.5 dark:text-slate-400 text-slate-500 dark:hover:text-white hover:text-slate-900 dark:bg-slate-800 bg-white rounded-xl cursor-pointer transition-all border dark:border-slate-700 border-slate-200 shadow-sm active:scale-95"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
             {/* The Actual White Paper Sheet */}
-            <div ref={paperRef} className="w-full max-w-[650px] bg-white rounded-xl shadow-2xl dark:shadow-black/60 shadow-slate-400/20 overflow-hidden border border-slate-200/50 dark:border-slate-700/30 printable-patti animate-slide-up">
+            <div
+              ref={paperRef}
+              className="w-full max-w-[650px] bg-white rounded-xl shadow-2xl dark:shadow-black/60 shadow-slate-400/20 overflow-hidden border border-slate-200/50 dark:border-slate-700/30 printable-patti animate-slide-up"
+            >
               {(() => {
-                const ini = getInitials(cs.name) || cs.name.slice(0, 2).toUpperCase();
-                const contacts = [cs.phone, cs.phone2, cs.phone3].filter(Boolean);
+                const ini =
+                  getInitials(cs.name) || cs.name.slice(0, 2).toUpperCase();
+                const contacts = [cs.phone, cs.phone2, cs.phone3].filter(
+                  Boolean,
+                );
                 return (
                   <div className="p-10 max-w-[600px] mx-auto font-[system-ui,sans-serif] text-[13px] leading-relaxed text-slate-900">
                     {/* Header */}
                     <div className="pb-6 border-b-2 border-slate-100 mb-6">
                       <div className="flex items-start justify-between gap-6">
-
                         {/* Left: Logo / Initials + Company Info */}
                         <div className="flex items-start gap-5 flex-1 min-w-0">
                           {/* Logo or Initials badge */}
@@ -816,10 +1155,12 @@ export const PaymentsModule: React.FC = () => {
                                 style={{
                                   width: 64,
                                   height: 64,
-                                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                  background:
+                                    "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
                                   fontSize: `${initialsFontSize(ini.length, 64)}px`,
                                   lineHeight: 1,
-                                  letterSpacing: ini.length >= 3 ? '0.04em' : '0.02em',
+                                  letterSpacing:
+                                    ini.length >= 3 ? "0.04em" : "0.02em",
                                 }}
                               >
                                 {ini}
@@ -847,7 +1188,10 @@ export const PaymentsModule: React.FC = () => {
                               {cs.gstin && (
                                 <span className="flex items-center gap-1.5">
                                   <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  GSTIN: <span className="font-mono font-black text-slate-700">{cs.gstin}</span>
+                                  GSTIN:{" "}
+                                  <span className="font-mono font-black text-slate-700">
+                                    {cs.gstin}
+                                  </span>
                                 </span>
                               )}
                               {cs.email && (
@@ -861,7 +1205,10 @@ export const PaymentsModule: React.FC = () => {
                             {contacts.length > 0 && (
                               <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
                                 {contacts.map((c, i) => (
-                                  <span key={i} className="flex items-center gap-1 text-[10.5px] font-bold text-slate-500">
+                                  <span
+                                    key={i}
+                                    className="flex items-center gap-1 text-[10.5px] font-bold text-slate-500"
+                                  >
                                     <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                     {c}
                                   </span>
@@ -875,9 +1222,13 @@ export const PaymentsModule: React.FC = () => {
                         <div className="shrink-0 text-right">
                           <div className="inline-block px-5 py-3.5 rounded-2xl border-2 text-right border-amber-700/20 bg-amber-500/5">
                             <p className="text-[9px] font-black text-amber-500 uppercase tracking-[0.2em] mb-0.5">
-                              {previewPayment.partyType === 'SUPPLIER' ? 'PAYMENT VOUCHER' : 'PAYMENT RECEIPT'}
+                              {previewPayment.partyType === "SUPPLIER"
+                                ? "PAYMENT VOUCHER"
+                                : "PAYMENT RECEIPT"}
                             </p>
-                            <div className="text-xl font-black font-mono text-amber-900 leading-tight mt-0.5">{fmtDate(previewPayment.date)}</div>
+                            <div className="text-xl font-black font-mono text-amber-900 leading-tight mt-0.5">
+                              {fmtDate(previewPayment.date)}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -887,31 +1238,49 @@ export const PaymentsModule: React.FC = () => {
                     <div className="grid grid-cols-2 gap-0 border border-slate-300 rounded-lg overflow-hidden mb-8 text-[11px]">
                       <div className="p-4 bg-slate-50 border-r border-slate-300">
                         <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                          {previewPayment.partyType === 'SUPPLIER' ? 'Paid To (Supplier)' : 'Received From (Customer)'}
+                          {previewPayment.partyType === "SUPPLIER"
+                            ? "Paid To (Supplier)"
+                            : "Received From (Customer)"}
                         </div>
-                        <div className="font-black text-slate-950 text-[16px]">{previewPayment.partyName}</div>
+                        <div className="font-black text-slate-950 text-[16px]">
+                          {previewPayment.partyName}
+                        </div>
                       </div>
                       <div className="p-4 bg-white">
-                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Payment Mode</div>
-                        <div className="font-black text-slate-950 text-[14px]">{getPaymentModeMeta(previewPayment.paymentMode).label}</div>
+                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                          Payment Mode
+                        </div>
+                        <div className="font-black text-slate-950 text-[14px]">
+                          {getPaymentModeMeta(previewPayment.paymentMode).label}
+                        </div>
                       </div>
                       <div className="p-4 bg-white border-r border-slate-300 border-t">
-                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Reference / UTR No.</div>
-                        <div className="font-mono font-bold text-slate-700 text-[12px]">{previewPayment.referenceNo || '—'}</div>
+                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                          Reference / UTR No.
+                        </div>
+                        <div className="font-mono font-bold text-slate-700 text-[12px]">
+                          {previewPayment.referenceNo || "—"}
+                        </div>
                       </div>
                       <div className="p-4 bg-slate-50 border-t">
-                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Remarks</div>
-                        <div className="text-slate-600 font-medium italic">{previewPayment.notes || '—'}</div>
+                        <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                          Remarks
+                        </div>
+                        <div className="text-slate-600 font-medium italic">
+                          {previewPayment.notes || "—"}
+                        </div>
                       </div>
                     </div>
 
                     {/* BIG Amount */}
                     <div className="border-2 border-slate-900 rounded-xl p-5 text-center mb-6 bg-slate-50">
                       <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">
-                        {previewPayment.partyType === 'SUPPLIER' ? 'AMOUNT PAID' : 'AMOUNT RECEIVED'}
+                        {previewPayment.partyType === "SUPPLIER"
+                          ? "AMOUNT PAID"
+                          : "AMOUNT RECEIVED"}
                       </div>
                       <div className="text-[32px] font-black font-mono text-slate-950 leading-none">
-                        ₹ {previewPayment.amount.toLocaleString('en-IN')}
+                        ₹ {previewPayment.amount.toLocaleString("en-IN")}
                       </div>
                       <div className="text-[10px] text-slate-500 mt-2 font-semibold">
                         ({numberToWords(previewPayment.amount)} Rupees Only)
@@ -920,16 +1289,27 @@ export const PaymentsModule: React.FC = () => {
 
                     {/* Signatures */}
                     <div className="mt-10 grid grid-cols-2 gap-8 text-[10px] text-slate-600">
-                      {[previewPayment.partyType === 'SUPPLIER' ? 'Supplier Acknowledgment' : 'Customer Acknowledgment', `For ${cs.name}`].map((label, i) => (
-                        <div key={i} className={i === 1 ? 'text-right' : ''}>
-                          <div className={`border-b border-slate-400 mb-2 ${i === 1 ? 'ml-auto w-44' : 'w-44'}`} style={{height:'1px'}}></div>
-                          <div className="font-bold text-slate-800 uppercase tracking-wider">{label}</div>
+                      {[
+                        previewPayment.partyType === "SUPPLIER"
+                          ? "Supplier Acknowledgment"
+                          : "Customer Acknowledgment",
+                        `For ${cs.name}`,
+                      ].map((label, i) => (
+                        <div key={i} className={i === 1 ? "text-right" : ""}>
+                          <div
+                            className={`border-b border-slate-400 mb-2 ${i === 1 ? "ml-auto w-44" : "w-44"}`}
+                            style={{ height: "1px" }}
+                          ></div>
+                          <div className="font-bold text-slate-800 uppercase tracking-wider">
+                            {label}
+                          </div>
                         </div>
                       ))}
                     </div>
 
                     <div className="mt-6 pt-2 border-t border-slate-200 text-center text-[9px] text-slate-400 font-mono">
-                      Computer generated payment record &nbsp;•&nbsp; ASZ Nexus ERP System
+                      Computer generated payment record &nbsp;•&nbsp; ASZ Nexus
+                      ERP System
                     </div>
                   </div>
                 );
@@ -945,36 +1325,100 @@ export const PaymentsModule: React.FC = () => {
 
 // ── Helpers: Initials Generation & Font Sizing ──────
 const getInitials = (name: string): string => {
-  const skip = new Set(['and', '&', 'of', 'the', 'a', 'an', 'co', 'ltd', 'pvt', 'llp']);
+  const skip = new Set([
+    "and",
+    "&",
+    "of",
+    "the",
+    "a",
+    "an",
+    "co",
+    "ltd",
+    "pvt",
+    "llp",
+  ]);
   return name
     .split(/\s+/)
-    .filter(w => w && !skip.has(w.toLowerCase()))
-    .map(w => w[0].toUpperCase())
+    .filter((w) => w && !skip.has(w.toLowerCase()))
+    .map((w) => w[0].toUpperCase())
     .slice(0, 3)
-    .join('');
+    .join("");
 };
 
 const initialsFontSize = (len: number, size: number): number => {
   if (len <= 1) return Math.round(size * 0.48);
   if (len === 2) return Math.round(size * 0.38);
-  if (len === 3) return Math.round(size * 0.30);
+  if (len === 3) return Math.round(size * 0.3);
   return Math.round(size * 0.24);
 };
 
 // ── Helper: Number to Words (Indian format) ──────
 function numberToWords(n: number): string {
-  if (n === 0) return 'Zero';
-  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  if (n === 0) return "Zero";
+  const ones = [
+    "",
+    "One",
+    "Two",
+    "Three",
+    "Four",
+    "Five",
+    "Six",
+    "Seven",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+    "Twelve",
+    "Thirteen",
+    "Fourteen",
+    "Fifteen",
+    "Sixteen",
+    "Seventeen",
+    "Eighteen",
+    "Nineteen",
+  ];
+  const tens = [
+    "",
+    "",
+    "Twenty",
+    "Thirty",
+    "Forty",
+    "Fifty",
+    "Sixty",
+    "Seventy",
+    "Eighty",
+    "Ninety",
+  ];
 
   const convert = (num: number): string => {
     if (num < 20) return ones[num];
-    if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '');
-    if (num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 ? ' ' + convert(num % 100) : '');
-    if (num < 100000) return convert(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 ? ' ' + convert(num % 1000) : '');
-    if (num < 10000000) return convert(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 ? ' ' + convert(num % 100000) : '');
-    return convert(Math.floor(num / 10000000)) + ' Crore' + (num % 10000000 ? ' ' + convert(num % 10000000) : '');
+    if (num < 100)
+      return (
+        tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "")
+      );
+    if (num < 1000)
+      return (
+        ones[Math.floor(num / 100)] +
+        " Hundred" +
+        (num % 100 ? " " + convert(num % 100) : "")
+      );
+    if (num < 100000)
+      return (
+        convert(Math.floor(num / 1000)) +
+        " Thousand" +
+        (num % 1000 ? " " + convert(num % 1000) : "")
+      );
+    if (num < 10000000)
+      return (
+        convert(Math.floor(num / 100000)) +
+        " Lakh" +
+        (num % 100000 ? " " + convert(num % 100000) : "")
+      );
+    return (
+      convert(Math.floor(num / 10000000)) +
+      " Crore" +
+      (num % 10000000 ? " " + convert(num % 10000000) : "")
+    );
   };
   return convert(Math.round(n));
 }

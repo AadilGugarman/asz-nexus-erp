@@ -4,7 +4,7 @@
  * Design:
  *  - Background: teal/cyan blobs + dot grid (radial 1px, 28px) + square grid overlay
  *  - Previous style: white rotated card, spinner badge, step dots
- *  - Smooth animated progress bar — driven by internal timer, not just store steps
+ *  - Smooth animated progress bar - driven by internal timer, not just store steps
  *    so it always feels natural and never jumps or cuts off early
  *  - Screen stays until progress reaches 100% AND real startup is done
  *  - Error state with retry
@@ -12,25 +12,30 @@
 
 import React, { useMemo, useEffect, useState, useRef } from "react";
 import { useStartupStore } from "@/store";
+import { ErpIcon, BackgroundLayers } from "./StartupTheme";
 
-// ── Step map ──────────────────────────────────────────────────────────────────
-// Each step has a target progress % — the bar animates toward it smoothly.
+// -- Step map --
+// Each step has a target progress % - the bar animates toward it smoothly.
 const STEP_MAP: { match: string; target: number; label: string }[] = [
-  { match: "Preparing", target: 4, label: "Setting Up Your Workspace…" },
+  { match: "Preparing", target: 4, label: "Setting Up Your Workspace..." },
   {
     match: "Initializing database",
     target: 18,
-    label: "Connecting to Database…",
+    label: "Connecting to Database...",
   },
   { match: "Database connected", target: 32, label: "Database Ready" },
   { match: "Database unavailable", target: 32, label: "Using Local Storage" },
   {
     match: "Restoring preferences",
     target: 48,
-    label: "Restoring Your Preferences…",
+    label: "Restoring Your Preferences...",
   },
-  { match: "Verifying company", target: 64, label: "Loading Company Data…" },
-  { match: "Checking security", target: 85, label: "Verifying Your Session…" },
+  { match: "Verifying company", target: 64, label: "Loading Company Data..." },
+  {
+    match: "Checking security",
+    target: 85,
+    label: "Verifying Your Session...",
+  },
   { match: "Ready", target: 100, label: "Workspace Ready" },
 ];
 const TOTAL_DOTS = 6;
@@ -39,111 +44,20 @@ function resolveStep(msg: string): { target: number; label: string } {
   return (
     STEP_MAP.find((s) => msg.includes(s.match)) ?? {
       target: 4,
-      label: "Setting Up Your Workspace…",
+      label: "Setting Up Your Workspace...",
     }
   );
 }
 
-// ── ERP Icon ──────────────────────────────────────────────────────────────────
-const ErpIcon: React.FC<{ error?: boolean }> = ({ error }) => (
-  <svg
-    viewBox="0 0 40 40"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="w-[22px] h-[22px]"
-    aria-hidden="true"
-  >
-    {error ? (
-      <>
-        <rect x="18" y="10" width="4" height="14" rx="2" fill="white" />
-        <rect x="18" y="28" width="4" height="4" rx="2" fill="white" />
-      </>
-    ) : (
-      <>
-        <rect
-          x="5"
-          y="26"
-          width="6"
-          height="9"
-          rx="1.5"
-          fill="white"
-          opacity="0.9"
-          style={{
-            transformOrigin: "8px 35px",
-            animation: "erpBar1 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.3s  both",
-          }}
-        />
-        <rect
-          x="17"
-          y="20"
-          width="6"
-          height="15"
-          rx="1.5"
-          fill="white"
-          opacity="0.9"
-          style={{
-            transformOrigin: "20px 35px",
-            animation: "erpBar2 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.55s both",
-          }}
-        />
-        <rect
-          x="29"
-          y="13"
-          width="6"
-          height="22"
-          rx="1.5"
-          fill="white"
-          opacity="0.9"
-          style={{
-            transformOrigin: "32px 35px",
-            animation: "erpBar3 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.8s  both",
-          }}
-        />
-        <polyline
-          points="8,26 20,18 32,11"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          opacity="0.95"
-          style={{
-            strokeDasharray: 32,
-            strokeDashoffset: 32,
-            animation: "erpLine 0.9s ease-out 1.3s forwards",
-          }}
-        />
-        <circle
-          cx="32"
-          cy="11"
-          r="2.5"
-          fill="white"
-          style={{
-            opacity: 0,
-            animation: "erpDot 0.4s ease-out 2.1s forwards",
-          }}
-        />
-      </>
-    )}
-    <style>{`
-      @keyframes erpBar1 { from { transform:scaleY(0); opacity:0 } to { transform:scaleY(1); opacity:0.9 } }
-      @keyframes erpBar2 { from { transform:scaleY(0); opacity:0 } to { transform:scaleY(1); opacity:0.9 } }
-      @keyframes erpBar3 { from { transform:scaleY(0); opacity:0 } to { transform:scaleY(1); opacity:0.9 } }
-      @keyframes erpLine { to { stroke-dashoffset:0 } }
-      @keyframes erpDot  { to { opacity:1 } }
-    `}</style>
-  </svg>
-);
-
-// ── Smooth progress hook ──────────────────────────────────────────────────────
-// Single stable rAF loop — never restarts, never resets timing.
+// -- Smooth progress hook --
+// Single stable rAF loop - never restarts, never resets timing.
 // Uses refs for all mutable state so the loop function never needs to change.
 //
 // Behaviour:
-//   • Constant speed of 30% per second — bar always visibly travels left→right
-//   • Never goes backward
-//   • Caps at 95% until isReady, then releases to 100%
-//   • Returns display value (0-100) and completed flag
+//   . Constant speed of 30% per second - bar always visibly travels left->right
+//   . Never goes backward
+//   . Caps at 95% until isReady, then releases to 100%
+//   . Returns display value (0-100) and completed flag
 function useSmoothProgress(
   targetPct: number,
   isReady: boolean,
@@ -187,7 +101,7 @@ function useSmoothProgress(
       const goal = Math.min(s.targetPct, cap);
 
       if (s.display < goal) {
-        // Constant 40%/s — always visibly moving, never stalls
+        // Constant 40%/s - always visibly moving, never stalls
         const delta = (40 * dt) / 1000;
         s.display = Math.min(s.display + delta, goal);
         setDisplay(s.display);
@@ -202,13 +116,13 @@ function useSmoothProgress(
         cancelAnimationFrame(stateRef.current.rafId);
       }
     };
-  }, []); // ← empty deps: loop starts once, reads latest values via ref
+  }, []); // - empty deps: loop starts once, reads latest values via ref
 
   const completed = display >= 99.5;
   return { display, completed };
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// -- Component --
 
 interface StartupScreenProps {
   message?: string;
@@ -233,7 +147,7 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({
   // Dot step index — derived from display progress
   const dotStep = Math.floor((display / 100) * TOTAL_DOTS);
 
-  // Mount fade-in — start visible immediately to avoid blank flash.
+  // Mount fade-in - start visible immediately to avoid blank flash.
   // The HTML initial-loader fades out as React mounts, so we must be
   // visible from frame 0 to prevent any gap between the two.
   const [visible, setVisible] = useState(true);
@@ -243,7 +157,7 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({
   }, []);
 
   // When bar visually reaches 100%, wait 300ms then signal the store.
-  // The store flips uiReady → true, which unblocks all route guards.
+  // The store flips uiReady -> true, which unblocks all route guards.
   useEffect(() => {
     if (completed && isReady) {
       const id = setTimeout(() => {
@@ -260,63 +174,10 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({
         bg-slate-50 dark:bg-[#060d18]
         ${visible ? "opacity-100" : "opacity-0"}`}
     >
-      {/* ── Background layers ── */}
-      <div
-        className="absolute inset-0 pointer-events-none overflow-hidden"
-        aria-hidden="true"
-      >
-        {/* Layer 1 — teal/cyan blobs */}
-        <div
-          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(0,174,239,0.20) 0%, transparent 65%)",
-            filter: "blur(40px)",
-          }}
-        />
-        <div
-          className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(0,200,150,0.20) 0%, transparent 65%)",
-            filter: "blur(40px)",
-          }}
-        />
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(0,174,239,0.08) 0%, transparent 70%)",
-            filter: "blur(30px)",
-          }}
-        />
+      {/* -- Background layers -- */}
+      <BackgroundLayers />
 
-        {/* Layer 2 — dot grid (radial 1px dots, 28px spacing, 35% opacity) */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(0,174,239,0.22) 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-            opacity: 0.35,
-          }}
-        />
-
-        {/* Layer 3 — square/line grid (1px lines, 28px spacing, 8% opacity) */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-            linear-gradient(rgba(0,174,239,0.12) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,174,239,0.12) 1px, transparent 1px)
-          `,
-            backgroundSize: "28px 28px",
-            opacity: 0.45,
-          }}
-        />
-      </div>
-
-      {/* ── Content ── */}
+      {/* -- Content -- */}
       <div
         className={`relative z-10 w-full max-w-[320px] mx-auto flex flex-col items-center
           transition-all duration-500 ease-out

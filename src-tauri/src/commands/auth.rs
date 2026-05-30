@@ -65,10 +65,6 @@ pub struct ChangePasswordRequest {
     pub new_password:     String,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct PingRequest {
-    pub message: String,
-}
 
 // ── auth_is_setup_done ────────────────────────────────────────────────────────
 

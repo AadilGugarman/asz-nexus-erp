@@ -65,7 +65,7 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
                 Purchase Bill Preview
               </h3>
               <p className="text-[10px] dark:text-slate-400 text-slate-500 font-mono tracking-wider">
-                {invoice.billNo} · {fmtDate(invoice.date)}
+                {invoice.billNo} �. {fmtDate(invoice.date)}
               </p>
             </div>
           </div>
@@ -292,7 +292,7 @@ export const PurchasePreviewModal: React.FC<PurchasePreviewModalProps> = ({ invo
 
             {/* ── FOOTER ───────────────────────────── */}
             <div className="mt-16 pt-3 border-t border-slate-100 text-center text-[9px] text-slate-400 font-mono italic uppercase tracking-widest">
-              ASZ Nexus ERP · Purchase Ledger Document
+              ASZ Nexus ERP �. Purchase Ledger Document
             </div>
           </div>
         </div>

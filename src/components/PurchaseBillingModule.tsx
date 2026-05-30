@@ -300,55 +300,77 @@ export const PurchaseBillingModule: React.FC = () => {
   //        keyboard nav
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
-    row: number,
+    row: number | string,
     col: number,
   ) => {
-    const COLS = 5; // fruitCategory, variety, caret, weight, rate
     if (e.key === "Enter") {
       e.preventDefault();
-      const next = document.querySelector(
-        `[data-pinv-cell="${row}-${col + 1}"]`,
-      ) as HTMLElement;
-      if (next) {
-        next.focus();
-        return;
+      if (typeof row === "string" && row.startsWith("header")) {
+        // Navigation within header
+        const headerOrder = [
+          "header-billno",
+          "header-date",
+          "header-supplier",
+          "header-vehicle",
+          "header-weight",
+        ];
+        const currentIndex = headerOrder.indexOf(row);
+        if (currentIndex !== -1 && currentIndex < headerOrder.length - 1) {
+          focusCellByName(headerOrder[currentIndex + 1]);
+        } else {
+          // Go to first row of table
+          focusCell(0, 0);
+        }
+      } else if (typeof row === "number") {
+        // If we are in the first column (Fruit) and it's empty, move to save
+        if (col === 0 && !items[row].fruitCategory) {
+          const saveBtn = document.querySelector(
+            '[data-pinv-cell="save-button"]',
+          ) as HTMLElement;
+          saveBtn?.focus();
+          return;
+        }
+        focusCell(row, col + 1);
       }
-      const nextRow = document.querySelector(
-        `[data-pinv-cell="${row + 1}-0"]`,
-      ) as HTMLElement;
-      if (nextRow) {
-        nextRow.focus();
-        return;
-      }
-      addItemRow();
-      setTimeout(
-        () =>
-          (
-            document.querySelector(
-              `[data-pinv-cell="${row + 1}-0"]`,
-            ) as HTMLElement
-          )?.focus(),
-        50,
-      );
-    } else if (e.key === "ArrowUp") {
-      (
-        document.querySelector(
-          `[data-pinv-cell="${row - 1}-${col}"]`,
-        ) as HTMLElement
-      )?.focus();
-    } else if (e.key === "ArrowDown") {
-      const t = document.querySelector(
-        `[data-pinv-cell="${row + 1}-${col}"]`,
-      ) as HTMLElement;
-      if (t) t.focus();
-      else addItemRow();
+    } else if (e.key === "ArrowUp" && typeof row === "number") {
+      focusCell(row - 1, col);
+    } else if (e.key === "ArrowDown" && typeof row === "number") {
+      focusCell(row + 1, col);
     } else if (e.altKey && e.key.toLowerCase() === "a") {
       e.preventDefault();
       addItemRow();
     } else if (e.altKey && e.key.toLowerCase() === "d") {
       e.preventDefault();
-      duplicateItemRow(row);
+      duplicateItemRow(row as number);
     }
+  };
+
+  const focusCellByName = (name: string) => {
+    const el = document.querySelector(
+      `[data-pinv-cell="${name}"]`,
+    ) as HTMLElement;
+    if (el) {
+      el.focus();
+      return true;
+    }
+    return false;
+  };
+
+  const focusCell = (row: number, col: number) => {
+    const next = document.querySelector(
+      `[data-pinv-cell="${row}-${col}"]`,
+    ) as HTMLElement;
+    if (next) {
+      next.focus();
+      return true;
+    }
+    // If it's the last column of the row and we try to go next, add row
+    if (col > 4) {
+      addItemRow();
+      setTimeout(() => focusCell(row + 1, 0), 50);
+      return true;
+    }
+    return false;
   };
 
   //        reset / save
@@ -616,6 +638,8 @@ export const PurchaseBillingModule: React.FC = () => {
                 <input
                   type="text"
                   value={billNo}
+                  data-pinv-cell="header-billno"
+                  onKeyDown={(e) => handleKeyDown(e, "header-billno", 0)}
                   onChange={(e) => setBillNo(e.target.value.toUpperCase())}
                   className={`${inp} px-2 py-1 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 w-full`}
                   placeholder="PUR-2026-001"
@@ -628,6 +652,10 @@ export const PurchaseBillingModule: React.FC = () => {
                   value={date}
                   onChange={(val) => setDate(val)}
                   variant="emerald"
+                  inputProps={{
+                    "data-pinv-cell": "header-date",
+                    onKeyDown: (e) => handleKeyDown(e as any, "header-date", 0),
+                  }}
                 />
               </div>
               {/* Supplier */}
@@ -653,11 +681,20 @@ export const PurchaseBillingModule: React.FC = () => {
                 <CommandSelect
                   id="purchase-supplier"
                   value={selectedSupplier?.id || ""}
+                  inputAttributes={{
+                    "data-pinv-cell": "header-supplier",
+                    onKeyDown: (e) =>
+                      handleKeyDown(e as any, "header-supplier", 0),
+                  }}
                   onChange={(val) => {
                     const m = suppliers.find(
                       (s) => s.id === val || s.name === val,
                     );
-                    if (m) setSelectedSupplierId(m.id);
+                    if (m) {
+                      setSelectedSupplierId(m.id);
+                      // Auto focus next field on selection
+                      setTimeout(() => focusCellByName("header-vehicle"), 10);
+                    }
                   }}
                   options={supplierOptions}
                   placeholder="Select supplier"
@@ -691,6 +728,7 @@ export const PurchaseBillingModule: React.FC = () => {
                   });
                   setSelectedSupplierId(id);
                   toast.success("Supplier Added", `${p.name} created.`);
+                  setTimeout(() => focusCellByName("header-vehicle"), 50);
                 }}
               />
               {/* Vehicle No */}
@@ -703,6 +741,8 @@ export const PurchaseBillingModule: React.FC = () => {
                 <input
                   type="text"
                   value={vehicleNo}
+                  data-pinv-cell="header-vehicle"
+                  onKeyDown={(e) => handleKeyDown(e, "header-vehicle", 0)}
                   onChange={(e) => setVehicleNo(e.target.value.toUpperCase())}
                   placeholder="GJ01AB1234"
                   className={`${inp} px-2 py-1 text-xs font-mono font-bold uppercase w-full`}
@@ -718,6 +758,8 @@ export const PurchaseBillingModule: React.FC = () => {
                 <input
                   type="number"
                   value={declaredWeight === 0 ? "" : declaredWeight}
+                  data-pinv-cell="header-weight"
+                  onKeyDown={(e) => handleKeyDown(e, "header-weight", 0)}
                   placeholder="0"
                   onChange={(e) =>
                     setDeclaredWeight(parseFloat(e.target.value) || 0)
@@ -857,13 +899,13 @@ export const PurchaseBillingModule: React.FC = () => {
                         className="dark:hover:bg-slate-800/30 hover:bg-slate-50/80 font-sans group transition-colors"
                       >
                         {/* Fruit Category */}
-                        <td
-                          className="p-1.5 px-3 col-text"
-                          data-pinv-cell={`${idx}-0`}
-                        >
+                        <td className="p-1.5 px-3 col-text">
                           <CommandSelect
                             variant="emerald"
                             value={it.fruitCategory}
+                            inputAttributes={{
+                              "data-pinv-cell": `${idx}-0`,
+                            }}
                             onChange={(val) => {
                               const f = fruits.find(
                                 (f) => f.id === val || f.name === val,
@@ -873,6 +915,7 @@ export const PurchaseBillingModule: React.FC = () => {
                                 "fruitCategory",
                                 f?.name || val,
                               );
+                              setTimeout(() => focusCell(idx, 1), 10);
                             }}
                             options={fruitOptions}
                             placeholder="Select fruit"
@@ -880,20 +923,22 @@ export const PurchaseBillingModule: React.FC = () => {
                             onAdd={(nf) => {
                               addFruit(nf);
                               handleItemChange(idx, "fruitCategory", nf);
+                              setTimeout(() => focusCell(idx, 1), 10);
                             }}
                           />
                         </td>
                         {/* Variety */}
-                        <td
-                          className="p-1.5 col-text"
-                          data-pinv-cell={`${idx}-1`}
-                        >
+                        <td className="p-1.5 col-text">
                           <CommandSelect
                             variant="emerald"
                             value={it.variety}
-                            onChange={(val) =>
-                              handleItemChange(idx, "variety", val)
-                            }
+                            inputAttributes={{
+                              "data-pinv-cell": `${idx}-1`,
+                            }}
+                            onChange={(val) => {
+                              handleItemChange(idx, "variety", val);
+                              setTimeout(() => focusCell(idx, 2), 10);
+                            }}
                             options={varieties.map((v) => ({
                               id: v,
                               label: v,
@@ -903,6 +948,7 @@ export const PurchaseBillingModule: React.FC = () => {
                             creatable={true}
                             onAdd={(nv) => {
                               if (fruitObj) addFruitVariety(fruitObj.id, nv);
+                              setTimeout(() => focusCell(idx, 2), 10);
                             }}
                           />
                         </td>
@@ -1152,6 +1198,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleSaveInvoice}
+                  data-pinv-cell="save-button"
                   className="px-6 py-2.5 bg-[linear-gradient(135deg,#00C896,#00AEEF)] text-white shadow-[0_6px_16px_rgba(0,174,239,0.3)] rounded-xl text-sm font-bold cursor-pointer transition-all flex items-center gap-2"
                 >
                   <Save className="w-5 h-5" />
@@ -1213,7 +1260,7 @@ export const PurchaseBillingModule: React.FC = () => {
                 <tr
                   className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10`}
                 >
-                  <th className="py-3.5 px-4 col-text">
+                  <th className="py-3.5 px-4 col-text w-[120px]">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("billNo")}
@@ -1222,11 +1269,43 @@ export const PurchaseBillingModule: React.FC = () => {
                       Bill / Date <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 col-text">Supplier</th>
-                  <th className="py-3.5 px-3 col-text">Vehicle</th>
-                  <th className="py-3.5 px-3 col-num">Carets</th>
-                  <th className="py-3.5 px-3 col-num">Weight</th>
-                  <th className="py-3.5 px-3 col-num font-black text-emerald-500">
+                  <th className="py-3.5 px-3 col-text min-w-[180px]">
+                    <button
+                      type="button"
+                      onClick={() => table.toggleSort("supplierName")}
+                      className="inline-flex items-center gap-1"
+                    >
+                      Supplier <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
+                  <th className="py-3.5 px-3 col-text w-[100px]">
+                    <button
+                      type="button"
+                      onClick={() => table.toggleSort("vehicleNo")}
+                      className="inline-flex items-center gap-1"
+                    >
+                      Vehicle <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
+                  <th className="py-3.5 px-3 col-num w-[100px]">
+                    <button
+                      type="button"
+                      onClick={() => table.toggleSort("totalCarets")}
+                      className="inline-flex items-center gap-1 ml-auto"
+                    >
+                      Carets <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
+                  <th className="py-3.5 px-3 col-num w-[100px]">
+                    <button
+                      type="button"
+                      onClick={() => table.toggleSort("totalWeight")}
+                      className="inline-flex items-center gap-1 ml-auto"
+                    >
+                      Weight <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+                  </th>
+                  <th className="py-3.5 px-3 col-num w-[120px] font-black text-emerald-500">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("todayAmount")}
@@ -1235,7 +1314,7 @@ export const PurchaseBillingModule: React.FC = () => {
                       Bill Total <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 col-num font-black dark:text-slate-200 text-slate-900">
+                  <th className="py-3.5 px-3 col-num w-[120px] font-black dark:text-slate-200 text-slate-900">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("remainingBalance")}
@@ -1244,7 +1323,7 @@ export const PurchaseBillingModule: React.FC = () => {
                       Balance <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-4 col-actions sticky right-0 top-0 bg-(--table-header-bg) z-11 w-28">
+                  <th className="py-3.5 px-4 col-actions w-[140px] sticky right-0 top-0 bg-(--table-header-bg) z-11">
                     Actions
                   </th>
                 </tr>
@@ -1318,17 +1397,17 @@ export const PurchaseBillingModule: React.FC = () => {
                           ₹ {inv.remainingBalance.toLocaleString("en-IN")}
                         </td>
                         <td className="py-3.5 px-4 col-actions sticky right-0 bg-(--card-bg) z-2 border-l border-(--table-border)">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-1 transition-all">
                             <button
                               onClick={() => setPreviewInvoice(inv)}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-emerald-500/20 cursor-pointer"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:bg-emerald-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-emerald-500/20 cursor-pointer"
                               title="View Preview"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleEditInvoice(inv)}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-amber-500/20 cursor-pointer"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:bg-amber-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-amber-500/20 cursor-pointer"
                               title="Edit Bill"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -1349,7 +1428,7 @@ export const PurchaseBillingModule: React.FC = () => {
                                   );
                                 }
                               }}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-red-500/20 cursor-pointer"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:bg-rose-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-rose-500/20 cursor-pointer"
                               title="Delete Bill"
                             >
                               <Trash2 className="w-4 h-4" />

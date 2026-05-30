@@ -36,7 +36,8 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoic
   };
 
   const handleShare = () => {
-    const msg = encodeURIComponent(`Invoice ${invoice.invoiceNo}\nAmount: ₹${invoice.todayAmount.toLocaleString('en-IN')}\nFrom: ${cs.name}\nContact: ${cs.phone}`);
+    const contacts = [cs.phone, cs.phone2, cs.phone3].filter(Boolean).join(' / ');
+    const msg = encodeURIComponent(`Invoice ${invoice.invoiceNo}\nAmount: ₹${invoice.todayAmount.toLocaleString('en-IN')}\nFrom: ${cs.name}\nContacts: ${contacts}`);
     window.open(`https://wa.me/?text=${msg}`, '_blank');
   };
 
@@ -51,7 +52,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoic
             </div>
             <div>
               <h3 className="text-base font-black dark:text-white text-slate-900 tracking-tight uppercase">Invoice Preview</h3>
-              <p className="text-[10px] dark:text-slate-400 text-slate-500 font-mono tracking-wider">{invoice.invoiceNo} · {fmtDate(invoice.date)}</p>
+              <p className="text-[10px] dark:text-slate-400 text-slate-500 font-mono tracking-wider">{invoice.invoiceNo} �. {fmtDate(invoice.date)}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">

@@ -369,17 +369,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     if (h < 17) return t("greeting.afternoon");
     return t("greeting.evening");
   })();
-  const currentTime = new Date().toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-  const currentDate = new Date().toLocaleDateString("en-IN", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 
   // ── Quick actions ─────────────────────────────────────────────────────────
   const quickActions = [
@@ -523,13 +512,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   />
                   <span>{t("hero.brandBadge")}</span>
                 </div>
-                <div
-                  className="flex items-center space-x-1.5 text-[11px] font-mono"
-                  style={{ color: D.textMuted }}
-                >
-                  <Clock className="w-3 h-3" />
-                  <span>{currentTime}</span>
-                </div>
               </div>
 
               {/* Greeting + company name */}
@@ -552,7 +534,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 className="text-sm font-medium leading-relaxed"
                 style={{ color: D.textSecondary }}
               >
-                {currentDate} — {t("hero.summary")}
+                {t("hero.summary")}
               </p>
 
               {/* CTA buttons */}

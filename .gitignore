@@ -2,6 +2,9 @@ node_modules
 dist
 .env
 dev.db
+asz_nexus_erp.db
+auth.json
+backups/
 *.db-shm
 *.db-wal
 src-tauri/target

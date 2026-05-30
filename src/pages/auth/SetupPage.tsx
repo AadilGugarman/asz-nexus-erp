@@ -14,18 +14,18 @@ import React, { useState } from "react";
 import { useAuthStore } from "@/store";
 
 export const SetupPage: React.FC = () => {
-  const setup          = useAuthStore((s) => s.setup);
-  const resetApp       = useAuthStore((s) => s.resetApp);
-  const isLoading      = useAuthStore((s) => s.isLoading);
-  const error          = useAuthStore((s) => s.error);
-  const clearError     = useAuthStore((s) => s.clearError);
+  const setup = useAuthStore((s) => s.setup);
+  const resetApp = useAuthStore((s) => s.resetApp);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const error = useAuthStore((s) => s.error);
+  const clearError = useAuthStore((s) => s.clearError);
 
-  const [password, setPassword]               = useState("");
-  const [confirm, setConfirm]                 = useState("");
-  const [localErr, setLocalErr]               = useState("");
-  const [showSuccess, setShowSuccess]         = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [localErr, setLocalErr] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [isResetting, setIsResetting]         = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // NOTE: Navigation away from this page is handled entirely by the
   // SetupRoute guard in routes.tsx — it redirects when isSetupDone becomes
@@ -70,14 +70,44 @@ export const SetupPage: React.FC = () => {
   // ── Success state ─────────────────────────────────────────────────────────
   if (showSuccess) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+      <div className="flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-500">
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-lg rotate-12"
+          style={{
+            background: "linear-gradient(135deg,#00c896 0%,#00aeef 100%)",
+            boxShadow: "0 10px 25px rgba(0,174,239,0.3)",
+          }}
+        >
+          <svg
+            className="w-10 h-10 text-white animate-in zoom-in duration-700 delay-300 fill-none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={3}
+              d="M5 13l4 4L19 7"
+            />
           </svg>
         </div>
-        <h2 className="text-xl font-bold text-slate-100">Password Created!</h2>
-        <p className="text-slate-400 mt-2">Initializing your workspace...</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+          Security Setup!
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+          Your master password is ready.
+        </p>
+        <div className="mt-8 flex gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-[#00aeef] animate-bounce" />
+          <div
+            className="w-2 h-2 rounded-full bg-[#00aeef] animate-bounce"
+            style={{ animationDelay: "0.2s" }}
+          />
+          <div
+            className="w-2 h-2 rounded-full bg-[#00aeef] animate-bounce"
+            style={{ animationDelay: "0.4s" }}
+          />
+        </div>
       </div>
     );
   }
@@ -85,118 +115,168 @@ export const SetupPage: React.FC = () => {
   // ── Force Reset confirmation ───────────────────────────────────────────────
   if (showResetConfirm) {
     return (
-      <div className="space-y-5">
-        <div>
-          <h2 className="text-lg font-semibold text-red-400 mb-1">Force Reset</h2>
-          <p className="text-slate-400 text-sm leading-relaxed">
+      <div className="space-y-6">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-4">
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+            Force Reset
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
             This will permanently delete all data — password, company settings,
-            invoices, and transactions. The app restarts as if never used.
+            invoices, and transactions.
           </p>
-          <p className="text-red-400 text-xs font-semibold mt-3 uppercase tracking-wide">
+          <p className="text-red-500 dark:text-red-400 text-xs font-bold mt-4 uppercase tracking-widest">
             This cannot be undone.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setShowResetConfirm(false)}
-            disabled={isResetting}
-            className="flex-1 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50 font-medium transition-colors text-sm"
-          >
-            Cancel
-          </button>
+        <div className="flex flex-col gap-3 pt-2">
           <button
             type="button"
             onClick={handleForceReset}
             disabled={isResetting}
-            className="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-medium transition-colors text-sm"
+            className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold transition-all active:scale-[0.98] shadow-lg shadow-red-500/25"
           >
             {isResetting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Resetting…
               </span>
-            ) : "Yes, Reset Everything"}
+            ) : (
+              "Yes, Reset Everything"
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowResetConfirm(false)}
+            disabled={isResetting}
+            className="w-full py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 font-bold transition-all active:scale-[0.98]"
+          >
+            Cancel
           </button>
         </div>
       </div>
     );
   }
 
-  // ── Normal setup form ─────────────────────────────────────────────────────
+  // ── Password setup form ──────────────────────────────────────────────────
   return (
     <div className="space-y-5">
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100 mb-1">
-            Welcome to ASZ Nexus ERP
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">
+            Create Password
           </h2>
-          <p className="text-slate-500 text-sm">
-            Create a password to secure your data. You'll use this every time you open the app.
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+            Set a master password to secure your ERP data.
           </p>
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="password" className="block text-sm font-medium text-slate-300">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setLocalErr(""); clearError(); }}
-            placeholder="Min. 4 characters"
-            className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            autoFocus
-            autoComplete="new-password"
-            disabled={isLoading}
-          />
-        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label
+              htmlFor="password"
+              className="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+            >
+              Master Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setLocalErr("");
+              }}
+              placeholder="Min. 4 characters"
+              className="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#00aeef] focus:border-transparent transition-all"
+              autoFocus
+              disabled={isLoading}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <label htmlFor="confirm" className="block text-sm font-medium text-slate-300">
-            Confirm Password
-          </label>
-          <input
-            id="confirm"
-            type="password"
-            value={confirm}
-            onChange={(e) => { setConfirm(e.target.value); setLocalErr(""); clearError(); }}
-            placeholder="Re-enter password"
-            className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            autoComplete="new-password"
-            disabled={isLoading}
-          />
+          <div className="space-y-2">
+            <label
+              htmlFor="confirm"
+              className="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+            >
+              Confirm Password
+            </label>
+            <input
+              id="confirm"
+              type="password"
+              value={confirm}
+              onChange={(e) => {
+                setConfirm(e.target.value);
+                setLocalErr("");
+              }}
+              placeholder="Repeat password"
+              className="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#00aeef] focus:border-transparent transition-all"
+              disabled={isLoading}
+            />
+          </div>
         </div>
 
         {displayError && (
-          <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+          <div className="text-xs font-medium text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-100 dark:border-red-400/20 rounded-xl px-4 py-3 flex items-center gap-2">
+            <svg
+              className="w-4 h-4 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
             {displayError}
-          </p>
+          </div>
         )}
 
         <button
           type="submit"
           disabled={isLoading || !password || !confirm}
-          className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors"
+          className="w-full py-3 rounded-xl text-white font-bold tracking-wide transition-all duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+          style={{
+            background: "linear-gradient(135deg,#00c896 0%,#00aeef 100%)",
+            boxShadow: "0 8px 20px rgba(0,174,239,0.25)",
+          }}
         >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Setting up…
+              Initializing…
             </span>
-          ) : "Continue"}
+          ) : (
+            "Start My Workspace"
+          )}
         </button>
       </form>
 
       {/* Force Reset — recovery option */}
-      <div className="pt-2 border-t border-slate-800">
+      <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
         <button
           type="button"
           onClick={() => setShowResetConfirm(true)}
-          className="w-full py-2 text-xs text-slate-600 hover:text-red-400 transition-colors"
+          className="w-full py-2 text-xs font-medium text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
         >
-          Force Reset (clear all data)
+          Start over? Reset App
         </button>
       </div>
     </div>

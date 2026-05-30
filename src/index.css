@@ -1,22 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700;900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700;900&display=swap");
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  /* ── NUMBER INPUT SPINNERS ─────────────────────── */
+  /* -- NUMBER INPUT SPINNERS -- */
   input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 
-  /* ── GLOBAL PLACEHOLDER STANDARDIZATION ────────── */
+  /* -- GLOBAL PLACEHOLDER STANDARDIZATION -- */
   ::placeholder {
     font-weight: 400 !important;
     letter-spacing: normal !important;
     text-transform: none !important;
     font-style: normal !important;
     opacity: 0.6 !important;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    font-family:
+      "Inter",
+      system-ui,
+      -apple-system,
+      sans-serif !important;
     color: var(--text-muted) !important;
   }
   input::placeholder {
@@ -25,7 +35,11 @@
     text-transform: none !important;
     font-style: normal !important;
     opacity: 0.6 !important;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    font-family:
+      "Inter",
+      system-ui,
+      -apple-system,
+      sans-serif !important;
     color: var(--text-muted) !important;
   }
   textarea::placeholder {
@@ -34,22 +48,33 @@
     text-transform: none !important;
     font-style: normal !important;
     opacity: 0.6 !important;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    font-family:
+      "Inter",
+      system-ui,
+      -apple-system,
+      sans-serif !important;
     color: var(--text-muted) !important;
   }
 
-  /* ── FONT RENDERING ────────────────────────────── */
+  /* -- FONT RENDERING -- */
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    font-family: var(--app-font-family, 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif);
+    font-family: var(
+      --app-font-family,
+      "Inter",
+      "Segoe UI",
+      "Roboto",
+      Arial,
+      sans-serif
+    );
     font-size: var(--font-size-base, 14px);
     color-scheme: light;
   }
 
   :root {
-    --app-font-family: 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif;
+    --app-font-family: "Inter", "Segoe UI", "Roboto", Arial, sans-serif;
     --font-size-base: 14px;
     --table-row-height: 40px;
     --input-height: 38px;
@@ -63,9 +88,7 @@
     --motion-factor: 1;
   }
 
-  /* ══════════════════════════════════════════════════
-     LIGHT MODE — crisp, high-contrast, colorful
-  ══════════════════════════════════════════════════ */
+  /* == LIGHT MODE == */
   html:not(.dark) {
     --page-bg: #f0f4f8;
     --card-bg: #ffffff;
@@ -83,15 +106,15 @@
     --table-header-bg: #f2f6fb;
     --table-border: #dde3ec;
     --modal-overlay: rgba(10, 20, 40, 0.5);
-    --shadow-sm: 0 1px 3px rgba(10, 20, 40, 0.07), 0 4px 14px rgba(10, 20, 40, 0.05);
-    --shadow-md: 0 4px 18px rgba(10, 20, 40, 0.09), 0 2px 6px rgba(10, 20, 40, 0.06);
-    --shadow-lg: 0 12px 36px rgba(10, 20, 40, 0.13), 0 4px 12px rgba(10, 20, 40, 0.08);
+    --shadow-sm:
+      0 1px 3px rgba(10, 20, 40, 0.07), 0 4px 14px rgba(10, 20, 40, 0.05);
+    --shadow-md:
+      0 4px 18px rgba(10, 20, 40, 0.09), 0 2px 6px rgba(10, 20, 40, 0.06);
+    --shadow-lg:
+      0 12px 36px rgba(10, 20, 40, 0.13), 0 4px 12px rgba(10, 20, 40, 0.08);
   }
 
-  /* ══════════════════════════════════════════════════
-     DARK MODE — modern sky-blue/slate, NOT near-black
-     Inspired by Linear, Vercel, and Raycast dark UIs
-  ══════════════════════════════════════════════════ */
+  /* == DARK MODE == */
   html.dark {
     color-scheme: dark;
     /* Page: deep navy-blue, not pure black */
@@ -118,15 +141,24 @@
     /* Overlays & shadows */
     --modal-overlay: rgba(0, 5, 15, 0.72);
     --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(30, 48, 72, 0.6);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(30, 48, 72, 0.5);
-    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(30, 48, 72, 0.4);
+    --shadow-md:
+      0 4px 16px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(30, 48, 72, 0.5);
+    --shadow-lg:
+      0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(30, 48, 72, 0.4);
   }
 
-  /* ── BODY ──────────────────────────────────────── */
+  /* -- BODY -- */
   body {
     background-color: var(--page-bg);
     color: var(--text-primary);
-    font-family: var(--app-font-family, 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif);
+    font-family: var(
+      --app-font-family,
+      "Inter",
+      "Segoe UI",
+      "Roboto",
+      Arial,
+      sans-serif
+    );
     font-size: 1rem;
     transition:
       background-color calc(220ms * var(--motion-factor)) ease,
@@ -138,7 +170,12 @@
     color: #1e3a5f;
   }
 
-  button, a, input, select, textarea, [role='button'] {
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"] {
     transition:
       background-color calc(180ms * var(--motion-factor)) ease,
       color calc(180ms * var(--motion-factor)) ease,
@@ -148,10 +185,21 @@
   }
 
   .font-sans {
-    font-family: var(--app-font-family, 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif) !important;
+    font-family: var(
+      --app-font-family,
+      "Inter",
+      "Segoe UI",
+      "Roboto",
+      Arial,
+      sans-serif
+    ) !important;
   }
 
-  table, [data-financial], .font-mono { font-variant-numeric: tabular-nums; }
+  table,
+  [data-financial],
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
 
   :focus-visible {
     outline: 2px solid #3b82f6;
@@ -159,83 +207,166 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
   }
 
-  /* ── REDUCED MOTION ────────────────────────────── */
-  [data-reduced-motion='true'] *, [data-reduced-motion='true'] *::before, [data-reduced-motion='true'] *::after {
-    animation-duration: 1ms !important; animation-iteration-count: 1 !important;
-    transition-duration: 1ms !important; scroll-behavior: auto !important;
+  /* -- REDUCED MOTION -- */
+  [data-reduced-motion="true"] *,
+  [data-reduced-motion="true"] *::before,
+  [data-reduced-motion="true"] *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
   @media (prefers-reduced-motion: reduce) {
-    html:not([data-reduced-motion='false']) *, html:not([data-reduced-motion='false']) *::before, html:not([data-reduced-motion='false']) *::after {
-      animation-duration: 1ms !important; animation-iteration-count: 1 !important;
-      transition-duration: 1ms !important; scroll-behavior: auto !important;
+    html:not([data-reduced-motion="false"]) *,
+    html:not([data-reduced-motion="false"]) *::before,
+    html:not([data-reduced-motion="false"]) *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
     }
   }
-  @media (forced-colors: active) { * { forced-color-adjust: auto; } }
-  [data-high-contrast='true'] { --card-border: currentColor; --input-border: currentColor; --surface-border: currentColor; }
+  @media (forced-colors: active) {
+    * {
+      forced-color-adjust: auto;
+    }
+  }
+  [data-high-contrast="true"] {
+    --card-border: currentColor;
+    --input-border: currentColor;
+    --surface-border: currentColor;
+  }
 
-  /* ── SCROLLBARS ────────────────────────────────── */
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #c8d3e0; border-radius: 999px; }
-  ::-webkit-scrollbar-thumb:hover { background: #94b4d4; }
-  .dark ::-webkit-scrollbar-thumb { background: #1e3048; }
-  .dark ::-webkit-scrollbar-thumb:hover { background: #2a4060; }
+  /* -- SCROLLBARS -- */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c8d3e0;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94b4d4;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #1e3048;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #2a4060;
+  }
 
-  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1e293b;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
 
-  /* ── DATE / SELECT ─────────────────────────────── */
-  .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) brightness(0.6); }
+  /* -- DATE / SELECT -- */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.6);
+  }
   select {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.25em 1.25em;
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
   }
 
-  /* ── FOCUS RINGS ───────────────────────────────── */
-  html:not(.dark) input:focus, html:not(.dark) select:focus, html:not(.dark) textarea:focus {
+  /* -- FOCUS RINGS -- */
+  html:not(.dark) input:focus,
+  html:not(.dark) select:focus,
+  html:not(.dark) textarea:focus {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   }
-  html.dark input:focus, html.dark select:focus, html.dark textarea:focus {
+  html.dark input:focus,
+  html.dark select:focus,
+  html.dark textarea:focus {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
   }
 
-  /* ══════════════════════════════════════════════════
-     GLOBAL DARK-SLATE CORRECTION
-     Fixes Gen1 components that use the broken pattern:
-     "bg-slate-950 dark:bg-slate-950 bg-slate-100"
-     where the first class wins in light mode.
-  ══════════════════════════════════════════════════ */
-  html:not(.dark) .bg-slate-950 { background-color: var(--surface-bg) !important; }
-  html:not(.dark) .bg-slate-900 { background-color: var(--card-bg) !important; }
-  html:not(.dark) .bg-slate-800 { background-color: var(--surface-bg) !important; }
-  html:not(.dark) .border-slate-800 { border-color: var(--card-border) !important; }
-  html:not(.dark) .border-slate-700 { border-color: var(--card-border) !important; }
+  /* == GLOBAL DARK-SLATE CORRECTION == */
+  html:not(.dark) .bg-slate-950 {
+    background-color: var(--surface-bg) !important;
+  }
+  html:not(.dark) .bg-slate-900 {
+    background-color: var(--card-bg) !important;
+  }
+  html:not(.dark) .bg-slate-800 {
+    background-color: var(--surface-bg) !important;
+  }
+  html:not(.dark) .border-slate-800 {
+    border-color: var(--card-border) !important;
+  }
+  html:not(.dark) .border-slate-700 {
+    border-color: var(--card-border) !important;
+  }
 
   /* In dark mode, remap to the new sky-blue palette */
-  html.dark .bg-slate-950 { background-color: var(--surface-bg) !important; }
-  html.dark .bg-slate-900 { background-color: var(--card-bg) !important; }
-  html.dark .bg-slate-800 { background-color: color-mix(in srgb, var(--card-bg) 70%, var(--card-hover-border) 30%) !important; }
-  html.dark .border-slate-800 { border-color: var(--card-border) !important; }
-  html.dark .border-slate-700 { border-color: var(--card-hover-border) !important; }
+  html.dark .bg-slate-950 {
+    background-color: var(--surface-bg) !important;
+  }
+  html.dark .bg-slate-900 {
+    background-color: var(--card-bg) !important;
+  }
+  html.dark .bg-slate-800 {
+    background-color: color-mix(
+      in srgb,
+      var(--card-bg) 70%,
+      var(--card-hover-border) 30%
+    ) !important;
+  }
+  html.dark .border-slate-800 {
+    border-color: var(--card-border) !important;
+  }
+  html.dark .border-slate-700 {
+    border-color: var(--card-hover-border) !important;
+  }
 
   /* Text corrections for dark mode */
-  html.dark .text-slate-100 { color: var(--text-primary) !important; }
-  html.dark .text-slate-200 { color: var(--text-primary) !important; }
-  html.dark .text-slate-300 { color: var(--text-secondary) !important; }
-  html.dark .text-slate-400 { color: var(--text-muted) !important; }
-  html.dark .text-slate-500 { color: var(--text-muted) !important; }
-  html.dark .divide-slate-800\/60 { border-color: var(--table-border) !important; }
-  html.dark .divide-slate-800\/80 { border-color: var(--table-border) !important; }
+  html.dark .text-slate-100 {
+    color: var(--text-primary) !important;
+  }
+  html.dark .text-slate-200 {
+    color: var(--text-primary) !important;
+  }
+  html.dark .text-slate-300 {
+    color: var(--text-secondary) !important;
+  }
+  html.dark .text-slate-400 {
+    color: var(--text-muted) !important;
+  }
+  html.dark .text-slate-500 {
+    color: var(--text-muted) !important;
+  }
+  html.dark .divide-slate-800\/60 {
+    border-color: var(--table-border) !important;
+  }
+  html.dark .divide-slate-800\/80 {
+    border-color: var(--table-border) !important;
+  }
 
-  /* ══════════════════════════════════════════════════
-     ERP COMPONENT SYSTEM — unified, modern
-  ══════════════════════════════════════════════════ */
+  /* == ERP COMPONENT SYSTEM == */
 
-  /* ── Panel / Card ──────────────────────────────── */
+  /* -- Panel / Card -- */
   .erp-panel {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
@@ -243,14 +374,14 @@
     box-shadow: var(--shadow-sm);
   }
 
-  /* ── Surface (inner section) ───────────────────── */
+  /* -- Surface (inner section) -- */
   .erp-surface {
     background: var(--surface-bg);
     border: 1px solid var(--surface-border);
     border-radius: 0.875rem;
   }
 
-  /* ── Typography ────────────────────────────────── */
+  /* -- Typography -- */
   .erp-title {
     color: var(--text-primary);
     font-size: 1.05rem;
@@ -276,7 +407,9 @@
     font-size: 0.82rem;
     font-weight: 400;
     outline: none;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
   }
   .erp-input:focus {
     border-color: var(--input-focus-border);
@@ -289,14 +422,11 @@
     background-color: var(--surface-bg);
   }
 
-  /* ══════════════════════════════════════════════════
-     FORCE WHITE PAPER PRINT STYLE
-     Ensures invoices/statements stay white in dark mode
-  ══════════════════════════════════════════════════ */
+  /* == FORCE WHITE PAPER PRINT STYLE == */
 
   /*
    * PRINT ISOLATION SYSTEM
-   * ─────────────────────────────────────────────────
+   * --
    * .printable-patti is the "paper" wrapper used by:
    *   - InvoicePreviewModal
    *   - PurchasePreviewModal
@@ -304,25 +434,24 @@
    *
    * Rules:
    *  1. The wrapper itself is always white, light color-scheme.
-   *  2. ALL descendants are forced to light values — no dark bg,
-   *     no dark text, no dark borders — regardless of app theme.
+   *  2. ALL descendants are forced to light values - no dark bg,
+   *     no dark text, no dark borders - regardless of app theme.
    *  3. Explicit colored elements (brand gradients, accent badges,
    *     teal/indigo highlights) are preserved via allow-list below.
    *  4. These rules apply both on-screen (preview) and in print.
    */
 
-  /* ── 1. The paper container ─────────────────────── */
+  /* -- 1. The paper container -- */
   .printable-patti,
   .dark .printable-patti {
     background-color: #ffffff !important;
     color: #0f172a !important;
     color-scheme: light !important;
     border-color: #e2e8f0 !important;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.10) !important;
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1) !important;
     /* Ensure colors print correctly on color printers */
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    color-adjust: exact;
 
     /* Force light mode variables inside the printable paper regardless of theme */
     --page-bg: #ffffff !important;
@@ -342,7 +471,7 @@
     --table-border: #dde3ec !important;
   }
 
-  /* ── 2. Force ALL descendants to light values ────── */
+  /* -- 2. Force ALL descendants to light values -- */
   /*    Covers both plain classes and dark: prefixed classes    */
   .printable-patti *,
   .dark .printable-patti * {
@@ -358,55 +487,83 @@
   .dark .printable-patti .dark\:bg-slate-950,
   .dark .printable-patti .dark\:bg-slate-900,
   .dark .printable-patti .dark\:bg-slate-800,
-  .dark .printable-patti .dark\:bg-slate-700      { background-color: #ffffff !important; }
+  .dark .printable-patti .dark\:bg-slate-700 {
+    background-color: #ffffff !important;
+  }
 
   /* Reset dark text classes */
   .printable-patti .dark\:text-white,
-  .dark .printable-patti .dark\:text-white         { color: #0f172a !important; }
+  .dark .printable-patti .dark\:text-white {
+    color: #0f172a !important;
+  }
 
   .printable-patti .dark\:text-slate-100,
   .printable-patti .dark\:text-slate-200,
   .dark .printable-patti .dark\:text-slate-100,
-  .dark .printable-patti .dark\:text-slate-200     { color: #334155 !important; }
+  .dark .printable-patti .dark\:text-slate-200 {
+    color: #334155 !important;
+  }
 
   .printable-patti .dark\:text-slate-300,
   .printable-patti .dark\:text-slate-400,
   .dark .printable-patti .dark\:text-slate-300,
-  .dark .printable-patti .dark\:text-slate-400     { color: #64748b !important; }
+  .dark .printable-patti .dark\:text-slate-400 {
+    color: #64748b !important;
+  }
 
   /* Reset dark border classes */
   .printable-patti .dark\:border-slate-800,
   .printable-patti .dark\:border-slate-700,
   .dark .printable-patti .dark\:border-slate-800,
-  .dark .printable-patti .dark\:border-slate-700   { border-color: #e2e8f0 !important; }
+  .dark .printable-patti .dark\:border-slate-700 {
+    border-color: #e2e8f0 !important;
+  }
 
-  /* ── 3. Restore correct light-mode background tints ─ */
+  /* -- 3. Restore correct light-mode background tints -- */
   .printable-patti .bg-white,
-  .dark .printable-patti .bg-white                    { background-color: #ffffff !important; }
+  .dark .printable-patti .bg-white {
+    background-color: #ffffff !important;
+  }
 
   .printable-patti .bg-slate-50,
-  .dark .printable-patti .bg-slate-50                 { background-color: #f8fafc !important; }
+  .dark .printable-patti .bg-slate-50 {
+    background-color: #f8fafc !important;
+  }
 
   .printable-patti .bg-slate-100,
-  .dark .printable-patti .bg-slate-100                { background-color: #f1f5f9 !important; }
+  .dark .printable-patti .bg-slate-100 {
+    background-color: #f1f5f9 !important;
+  }
 
   .printable-patti .bg-indigo-50,
-  .dark .printable-patti .bg-indigo-50                { background-color: #eef2ff !important; }
+  .dark .printable-patti .bg-indigo-50 {
+    background-color: #eef2ff !important;
+  }
 
   .printable-patti .bg-emerald-50,
-  .dark .printable-patti .bg-emerald-50               { background-color: #ecfdf5 !important; }
+  .dark .printable-patti .bg-emerald-50 {
+    background-color: #ecfdf5 !important;
+  }
 
   .printable-patti .bg-teal-50,
-  .dark .printable-patti .bg-teal-50                  { background-color: #f0fdfa !important; }
+  .dark .printable-patti .bg-teal-50 {
+    background-color: #f0fdfa !important;
+  }
 
   .printable-patti .bg-rose-50,
-  .dark .printable-patti .bg-rose-50                  { background-color: #fff1f2 !important; }
+  .dark .printable-patti .bg-rose-50 {
+    background-color: #fff1f2 !important;
+  }
 
   .printable-patti .bg-amber-50,
-  .dark .printable-patti .bg-amber-50                 { background-color: #fffbeb !important; }
+  .dark .printable-patti .bg-amber-50 {
+    background-color: #fffbeb !important;
+  }
 
   .printable-patti .bg-amber-100,
-  .dark .printable-patti .bg-amber-100                { background-color: #fef3c7 !important; }
+  .dark .printable-patti .bg-amber-100 {
+    background-color: #fef3c7 !important;
+  }
 
   /* Dark bg classes that must become white in print context */
   .printable-patti .bg-slate-800,
@@ -414,139 +571,208 @@
   .printable-patti .bg-slate-950,
   .dark .printable-patti .bg-slate-800,
   .dark .printable-patti .bg-slate-900,
-  .dark .printable-patti .bg-slate-950                { background-color: #0f172a !important; }
+  .dark .printable-patti .bg-slate-950 {
+    background-color: #0f172a !important;
+  }
 
-  /* ── 4. Text colors ─────────────────────────────── */
+  /* -- 4. Text colors -- */
   .printable-patti .text-slate-950,
   .printable-patti .text-slate-900,
   .printable-patti .text-slate-800,
   .dark .printable-patti .text-slate-950,
   .dark .printable-patti .text-slate-900,
-  .dark .printable-patti .text-slate-800              { color: #0f172a !important; }
+  .dark .printable-patti .text-slate-800 {
+    color: #0f172a !important;
+  }
 
   .printable-patti .text-slate-700,
   .printable-patti .text-slate-600,
   .dark .printable-patti .text-slate-700,
-  .dark .printable-patti .text-slate-600              { color: #334155 !important; }
+  .dark .printable-patti .text-slate-600 {
+    color: #334155 !important;
+  }
 
   .printable-patti .text-slate-500,
   .printable-patti .text-slate-400,
   .dark .printable-patti .text-slate-500,
-  .dark .printable-patti .text-slate-400              { color: #64748b !important; }
+  .dark .printable-patti .text-slate-400 {
+    color: #64748b !important;
+  }
 
   .printable-patti .text-slate-300,
   .printable-patti .text-slate-200,
   .dark .printable-patti .text-slate-300,
-  .dark .printable-patti .text-slate-200              { color: #cbd5e1 !important; }
+  .dark .printable-patti .text-slate-200 {
+    color: #cbd5e1 !important;
+  }
 
   /* Accent text — preserve brand colors */
   .printable-patti .text-indigo-600,
   .printable-patti .text-indigo-700,
   .dark .printable-patti .text-indigo-600,
-  .dark .printable-patti .text-indigo-700             { color: #4f46e5 !important; }
+  .dark .printable-patti .text-indigo-700 {
+    color: #4f46e5 !important;
+  }
 
   .printable-patti .text-indigo-400,
-  .dark .printable-patti .text-indigo-400             { color: #818cf8 !important; }
+  .dark .printable-patti .text-indigo-400 {
+    color: #818cf8 !important;
+  }
 
   .printable-patti .text-emerald-600,
   .printable-patti .text-emerald-700,
   .dark .printable-patti .text-emerald-600,
-  .dark .printable-patti .text-emerald-700            { color: #059669 !important; }
+  .dark .printable-patti .text-emerald-700 {
+    color: #059669 !important;
+  }
 
   .printable-patti .text-emerald-400,
-  .dark .printable-patti .text-emerald-400            { color: #34d399 !important; }
+  .dark .printable-patti .text-emerald-400 {
+    color: #34d399 !important;
+  }
 
   .printable-patti .text-teal-700,
   .printable-patti .text-teal-900,
   .dark .printable-patti .text-teal-700,
-  .dark .printable-patti .text-teal-900               { color: #0f766e !important; }
+  .dark .printable-patti .text-teal-900 {
+    color: #0f766e !important;
+  }
 
   .printable-patti .text-teal-500,
-  .dark .printable-patti .text-teal-500               { color: #14b8a6 !important; }
+  .dark .printable-patti .text-teal-500 {
+    color: #14b8a6 !important;
+  }
 
   .printable-patti .text-rose-600,
   .printable-patti .text-rose-700,
   .dark .printable-patti .text-rose-600,
-  .dark .printable-patti .text-rose-700               { color: #e11d48 !important; }
+  .dark .printable-patti .text-rose-700 {
+    color: #e11d48 !important;
+  }
 
   .printable-patti .text-amber-700,
   .printable-patti .text-amber-900,
   .dark .printable-patti .text-amber-700,
-  .dark .printable-patti .text-amber-900              { color: #b45309 !important; }
+  .dark .printable-patti .text-amber-900 {
+    color: #b45309 !important;
+  }
 
   .printable-patti .text-amber-600,
-  .dark .printable-patti .text-amber-600              { color: #d97706 !important; }
+  .dark .printable-patti .text-amber-600 {
+    color: #d97706 !important;
+  }
 
   /* White text on colored backgrounds must stay white */
   .printable-patti .text-white,
-  .dark .printable-patti .text-white                  { color: #ffffff !important; }
+  .dark .printable-patti .text-white {
+    color: #ffffff !important;
+  }
 
-  /* ── 5. Border colors ───────────────────────────── */
+  /* -- 5. Border colors -- */
   .printable-patti .border-slate-100,
-  .dark .printable-patti .border-slate-100            { border-color: #f1f5f9 !important; }
+  .dark .printable-patti .border-slate-100 {
+    border-color: #f1f5f9 !important;
+  }
 
   .printable-patti .border-slate-200,
-  .dark .printable-patti .border-slate-200            { border-color: #e2e8f0 !important; }
+  .dark .printable-patti .border-slate-200 {
+    border-color: #e2e8f0 !important;
+  }
 
   .printable-patti .border-slate-300,
-  .dark .printable-patti .border-slate-300            { border-color: #cbd5e1 !important; }
+  .dark .printable-patti .border-slate-300 {
+    border-color: #cbd5e1 !important;
+  }
 
   .printable-patti .border-slate-900,
-  .dark .printable-patti .border-slate-900            { border-color: #0f172a !important; }
+  .dark .printable-patti .border-slate-900 {
+    border-color: #0f172a !important;
+  }
 
   .printable-patti .border-teal-700,
-  .dark .printable-patti .border-teal-700             { border-color: #0f766e !important; }
+  .dark .printable-patti .border-teal-700 {
+    border-color: #0f766e !important;
+  }
 
   .printable-patti .border-indigo-100,
-  .dark .printable-patti .border-indigo-100           { border-color: #e0e7ff !important; }
+  .dark .printable-patti .border-indigo-100 {
+    border-color: #e0e7ff !important;
+  }
 
   .printable-patti .border-amber-100,
-  .dark .printable-patti .border-amber-100            { border-color: #fde68a !important; }
+  .dark .printable-patti .border-amber-100 {
+    border-color: #fde68a !important;
+  }
 
-  /* ── 6. Table resets ────────────────────────────── */
+  /* -- 6. Table resets -- */
   .printable-patti table,
-  .dark .printable-patti table                        { background-color: #ffffff !important; }
+  .dark .printable-patti table {
+    background-color: #ffffff !important;
+  }
 
   /* Only reset thead rows that DON'T have an inline style (colored headers use inline style) */
   .printable-patti thead tr:not([style]),
-  .dark .printable-patti thead tr:not([style])        { background-color: #f8fafc !important; }
+  .dark .printable-patti thead tr:not([style]) {
+    background-color: #f8fafc !important;
+  }
 
   /* Dark thead (purchase bill uses bg-slate-900 on thead) — only if no inline style */
   .printable-patti thead tr.bg-slate-900:not([style]),
-  .dark .printable-patti thead tr.bg-slate-900:not([style]) { background-color: #0f172a !important; }
+  .dark .printable-patti thead tr.bg-slate-900:not([style]) {
+    background-color: #0f172a !important;
+  }
 
   .printable-patti tbody tr,
-  .dark .printable-patti tbody tr                     { background-color: #ffffff !important; border-bottom-color: #f1f5f9 !important; }
+  .dark .printable-patti tbody tr {
+    background-color: #ffffff !important;
+    border-bottom-color: #f1f5f9 !important;
+  }
 
   .printable-patti tbody tr.bg-slate-50,
-  .dark .printable-patti tbody tr.bg-slate-50         { background-color: #f8fafc !important; }
+  .dark .printable-patti tbody tr.bg-slate-50 {
+    background-color: #f8fafc !important;
+  }
 
-  /* ── 7. Divide / ring / shadow utilities ────────── */
+  /* -- 7. Divide / ring / shadow utilities -- */
   .printable-patti [class*="divide-slate"],
-  .dark .printable-patti [class*="divide-slate"]      { --tw-divide-opacity: 1 !important; }
+  .dark .printable-patti [class*="divide-slate"] {
+    --tw-divide-opacity: 1 !important;
+  }
 
   .printable-patti [class*="ring-"],
-  .dark .printable-patti [class*="ring-"]             { box-shadow: none !important; }
+  .dark .printable-patti [class*="ring-"] {
+    box-shadow: none !important;
+  }
 
-  /* ── 8. Gradient allow-list ─────────────────────── */
+  /* -- 8. Gradient allow-list -- */
   /*    Elements with inline style="background: ..." are untouched  */
   /*    (the :not([style*="background"]) rule above handles this)   */
   /*    Tailwind gradient classes that must render correctly:        */
   .printable-patti .from-indigo-600,
-  .dark .printable-patti .from-indigo-600             { --tw-gradient-from: #4f46e5 !important; }
+  .dark .printable-patti .from-indigo-600 {
+    --tw-gradient-from: #4f46e5 !important;
+  }
 
   .printable-patti .to-violet-600,
-  .dark .printable-patti .to-violet-600               { --tw-gradient-to: #7c3aed !important; }
+  .dark .printable-patti .to-violet-600 {
+    --tw-gradient-to: #7c3aed !important;
+  }
 
   .printable-patti .from-teal-600,
-  .dark .printable-patti .from-teal-600               { --tw-gradient-from: #0d9488 !important; }
+  .dark .printable-patti .from-teal-600 {
+    --tw-gradient-from: #0d9488 !important;
+  }
 
   .printable-patti .to-teal-600,
-  .dark .printable-patti .to-teal-600                 { --tw-gradient-to: #0d9488 !important; }
+  .dark .printable-patti .to-teal-600 {
+    --tw-gradient-to: #0d9488 !important;
+  }
 
-  /* ── 9. Misc utility resets ─────────────────────── */
+  /* -- 9. Misc utility resets -- */
   .printable-patti .backdrop-blur-md,
-  .dark .printable-patti .backdrop-blur-md            { backdrop-filter: none !important; }
+  .dark .printable-patti .backdrop-blur-md {
+    backdrop-filter: none !important;
+  }
 
   .printable-patti .shadow-2xl,
   .printable-patti .shadow-xl,
@@ -555,37 +781,29 @@
   .dark .printable-patti .shadow-2xl,
   .dark .printable-patti .shadow-xl,
   .dark .printable-patti .shadow-lg,
-  .dark .printable-patti .shadow-sm                   { box-shadow: none !important; }
+  .dark .printable-patti .shadow-sm {
+    box-shadow: none !important;
+  }
 
   /* Restore shadow on elements that explicitly need it for paper depth */
   .printable-patti .shadow-inner,
-  .dark .printable-patti .shadow-inner                { box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06) !important; }
+  .dark .printable-patti .shadow-inner {
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
+  }
 
-  /* ══════════════════════════════════════════════════
-     PRINT SYSTEM — body.erp-printing strategy
-     ─────────────────────────────────────────────────
-     When printing:
-       body gets class "erp-printing"
-       the invoice paper gets attribute data-print-target
+  /* == PRINT SYSTEM == */
 
-     @media print rules:
-       - Hide everything on body
-       - Show ONLY [data-print-target]
-       - Force color printing
-       - Single A4 page, no extra margins
-  ══════════════════════════════════════════════════ */
-
-  /* ── 1. The paper container — always white on screen ── */
+  /* -- 1. The paper container - always white on screen -- */
   .printable-patti {
     background-color: #ffffff !important;
     color: #0f172a !important;
     color-scheme: light !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  /* ── 2. Force light values on all descendants ── */
+  /* -- 2. Force light values on all descendants -- */
   .printable-patti *,
   .dark .printable-patti * {
     color-scheme: light !important;
@@ -599,45 +817,73 @@
   .dark .printable-patti .dark\:bg-slate-950,
   .dark .printable-patti .dark\:bg-slate-900,
   .dark .printable-patti .dark\:bg-slate-800,
-  .dark .printable-patti .dark\:bg-slate-700      { background-color: #ffffff !important; }
+  .dark .printable-patti .dark\:bg-slate-700 {
+    background-color: #ffffff !important;
+  }
 
   /* Reset dark text classes */
   .printable-patti .dark\:text-white,
-  .dark .printable-patti .dark\:text-white         { color: #0f172a !important; }
+  .dark .printable-patti .dark\:text-white {
+    color: #0f172a !important;
+  }
   .printable-patti .dark\:text-slate-100,
   .printable-patti .dark\:text-slate-200,
   .dark .printable-patti .dark\:text-slate-100,
-  .dark .printable-patti .dark\:text-slate-200     { color: #334155 !important; }
+  .dark .printable-patti .dark\:text-slate-200 {
+    color: #334155 !important;
+  }
   .printable-patti .dark\:text-slate-300,
   .printable-patti .dark\:text-slate-400,
   .dark .printable-patti .dark\:text-slate-300,
-  .dark .printable-patti .dark\:text-slate-400     { color: #64748b !important; }
+  .dark .printable-patti .dark\:text-slate-400 {
+    color: #64748b !important;
+  }
 
   /* Reset dark border classes */
   .printable-patti .dark\:border-slate-800,
   .printable-patti .dark\:border-slate-700,
   .dark .printable-patti .dark\:border-slate-800,
-  .dark .printable-patti .dark\:border-slate-700   { border-color: #e2e8f0 !important; }
+  .dark .printable-patti .dark\:border-slate-700 {
+    border-color: #e2e8f0 !important;
+  }
 
-  /* ── 3. Light-mode background tints ── */
+  /* -- 3. Light-mode background tints -- */
   .printable-patti .bg-white,
-  .dark .printable-patti .bg-white                    { background-color: #ffffff !important; }
+  .dark .printable-patti .bg-white {
+    background-color: #ffffff !important;
+  }
   .printable-patti .bg-slate-50,
-  .dark .printable-patti .bg-slate-50                 { background-color: #f8fafc !important; }
+  .dark .printable-patti .bg-slate-50 {
+    background-color: #f8fafc !important;
+  }
   .printable-patti .bg-slate-100,
-  .dark .printable-patti .bg-slate-100                { background-color: #f1f5f9 !important; }
+  .dark .printable-patti .bg-slate-100 {
+    background-color: #f1f5f9 !important;
+  }
   .printable-patti .bg-indigo-50,
-  .dark .printable-patti .bg-indigo-50                { background-color: #eef2ff !important; }
+  .dark .printable-patti .bg-indigo-50 {
+    background-color: #eef2ff !important;
+  }
   .printable-patti .bg-emerald-50,
-  .dark .printable-patti .bg-emerald-50               { background-color: #ecfdf5 !important; }
+  .dark .printable-patti .bg-emerald-50 {
+    background-color: #ecfdf5 !important;
+  }
   .printable-patti .bg-teal-50,
-  .dark .printable-patti .bg-teal-50                  { background-color: #f0fdfa !important; }
+  .dark .printable-patti .bg-teal-50 {
+    background-color: #f0fdfa !important;
+  }
   .printable-patti .bg-rose-50,
-  .dark .printable-patti .bg-rose-50                  { background-color: #fff1f2 !important; }
+  .dark .printable-patti .bg-rose-50 {
+    background-color: #fff1f2 !important;
+  }
   .printable-patti .bg-amber-50,
-  .dark .printable-patti .bg-amber-50                 { background-color: #fffbeb !important; }
+  .dark .printable-patti .bg-amber-50 {
+    background-color: #fffbeb !important;
+  }
   .printable-patti .bg-amber-100,
-  .dark .printable-patti .bg-amber-100                { background-color: #fef3c7 !important; }
+  .dark .printable-patti .bg-amber-100 {
+    background-color: #fef3c7 !important;
+  }
 
   /* Dark bg → keep dark (intentional dark sections like table headers) */
   .printable-patti .bg-slate-800,
@@ -645,83 +891,132 @@
   .printable-patti .bg-slate-950,
   .dark .printable-patti .bg-slate-800,
   .dark .printable-patti .bg-slate-900,
-  .dark .printable-patti .bg-slate-950                { background-color: #0f172a !important; }
+  .dark .printable-patti .bg-slate-950 {
+    background-color: #0f172a !important;
+  }
 
-  /* ── 4. Text colors ── */
+  /* -- 4. Text colors -- */
   .printable-patti .text-slate-950,
   .printable-patti .text-slate-900,
   .printable-patti .text-slate-800,
   .dark .printable-patti .text-slate-950,
   .dark .printable-patti .text-slate-900,
-  .dark .printable-patti .text-slate-800              { color: #0f172a !important; }
+  .dark .printable-patti .text-slate-800 {
+    color: #0f172a !important;
+  }
   .printable-patti .text-slate-700,
   .printable-patti .text-slate-600,
   .dark .printable-patti .text-slate-700,
-  .dark .printable-patti .text-slate-600              { color: #334155 !important; }
+  .dark .printable-patti .text-slate-600 {
+    color: #334155 !important;
+  }
   .printable-patti .text-slate-500,
   .printable-patti .text-slate-400,
   .dark .printable-patti .text-slate-500,
-  .dark .printable-patti .text-slate-400              { color: #64748b !important; }
+  .dark .printable-patti .text-slate-400 {
+    color: #64748b !important;
+  }
   .printable-patti .text-slate-300,
   .printable-patti .text-slate-200,
   .dark .printable-patti .text-slate-300,
-  .dark .printable-patti .text-slate-200              { color: #cbd5e1 !important; }
+  .dark .printable-patti .text-slate-200 {
+    color: #cbd5e1 !important;
+  }
 
   /* Accent text — preserve brand colors */
   .printable-patti .text-indigo-600,
   .printable-patti .text-indigo-700,
   .dark .printable-patti .text-indigo-600,
-  .dark .printable-patti .text-indigo-700             { color: #4f46e5 !important; }
+  .dark .printable-patti .text-indigo-700 {
+    color: #4f46e5 !important;
+  }
   .printable-patti .text-emerald-600,
   .printable-patti .text-emerald-700,
   .dark .printable-patti .text-emerald-600,
-  .dark .printable-patti .text-emerald-700            { color: #059669 !important; }
+  .dark .printable-patti .text-emerald-700 {
+    color: #059669 !important;
+  }
   .printable-patti .text-teal-700,
   .printable-patti .text-teal-900,
   .dark .printable-patti .text-teal-700,
-  .dark .printable-patti .text-teal-900               { color: #0f766e !important; }
+  .dark .printable-patti .text-teal-900 {
+    color: #0f766e !important;
+  }
   .printable-patti .text-rose-600,
   .printable-patti .text-rose-700,
   .dark .printable-patti .text-rose-600,
-  .dark .printable-patti .text-rose-700               { color: #e11d48 !important; }
+  .dark .printable-patti .text-rose-700 {
+    color: #e11d48 !important;
+  }
   .printable-patti .text-amber-700,
   .printable-patti .text-amber-900,
   .dark .printable-patti .text-amber-700,
-  .dark .printable-patti .text-amber-900              { color: #b45309 !important; }
+  .dark .printable-patti .text-amber-900 {
+    color: #b45309 !important;
+  }
   .printable-patti .text-amber-600,
-  .dark .printable-patti .text-amber-600              { color: #d97706 !important; }
+  .dark .printable-patti .text-amber-600 {
+    color: #d97706 !important;
+  }
   .printable-patti .text-white,
-  .dark .printable-patti .text-white                  { color: #ffffff !important; }
+  .dark .printable-patti .text-white {
+    color: #ffffff !important;
+  }
 
-  /* ── 5. Border colors ── */
+  /* -- 5. Border colors -- */
   .printable-patti .border-slate-100,
-  .dark .printable-patti .border-slate-100            { border-color: #f1f5f9 !important; }
+  .dark .printable-patti .border-slate-100 {
+    border-color: #f1f5f9 !important;
+  }
   .printable-patti .border-slate-200,
-  .dark .printable-patti .border-slate-200            { border-color: #e2e8f0 !important; }
+  .dark .printable-patti .border-slate-200 {
+    border-color: #e2e8f0 !important;
+  }
   .printable-patti .border-slate-300,
-  .dark .printable-patti .border-slate-300            { border-color: #cbd5e1 !important; }
+  .dark .printable-patti .border-slate-300 {
+    border-color: #cbd5e1 !important;
+  }
   .printable-patti .border-slate-900,
-  .dark .printable-patti .border-slate-900            { border-color: #0f172a !important; }
+  .dark .printable-patti .border-slate-900 {
+    border-color: #0f172a !important;
+  }
   .printable-patti .border-teal-700,
-  .dark .printable-patti .border-teal-700             { border-color: #0f766e !important; }
+  .dark .printable-patti .border-teal-700 {
+    border-color: #0f766e !important;
+  }
   .printable-patti .border-indigo-100,
-  .dark .printable-patti .border-indigo-100           { border-color: #e0e7ff !important; }
+  .dark .printable-patti .border-indigo-100 {
+    border-color: #e0e7ff !important;
+  }
   .printable-patti .border-amber-100,
-  .dark .printable-patti .border-amber-100            { border-color: #fde68a !important; }
+  .dark .printable-patti .border-amber-100 {
+    border-color: #fde68a !important;
+  }
 
-  /* ── 6. Table resets ── */
+  /* -- 6. Table resets -- */
   .printable-patti table,
-  .dark .printable-patti table                        { background-color: #ffffff !important; }
+  .dark .printable-patti table {
+    background-color: #ffffff !important;
+  }
   .printable-patti thead tr:not([style]),
-  .dark .printable-patti thead tr:not([style])        { background-color: #f8fafc !important; }
+  .dark .printable-patti thead tr:not([style]) {
+    background-color: #f8fafc !important;
+  }
   .printable-patti tbody tr,
-  .dark .printable-patti tbody tr                     { background-color: #ffffff !important; border-bottom-color: #f1f5f9 !important; }
+  .dark .printable-patti tbody tr {
+    background-color: #ffffff !important;
+    border-bottom-color: #f1f5f9 !important;
+  }
   .printable-patti tbody tr.bg-slate-50,
-  .dark .printable-patti tbody tr.bg-slate-50         { background-color: #f8fafc !important; }
+  .dark .printable-patti tbody tr.bg-slate-50 {
+    background-color: #f8fafc !important;
+  }
 
-  /* ── 7. Misc ── */
+  /* -- 7. Misc -- */
   .printable-patti [class*="ring-"],
-  .dark .printable-patti [class*="ring-"]             { box-shadow: none !important; }
+  .dark .printable-patti [class*="ring-"] {
+    box-shadow: none !important;
+  }
   .printable-patti .shadow-2xl,
   .printable-patti .shadow-xl,
   .printable-patti .shadow-lg,
@@ -729,11 +1024,11 @@
   .dark .printable-patti .shadow-2xl,
   .dark .printable-patti .shadow-xl,
   .dark .printable-patti .shadow-lg,
-  .dark .printable-patti .shadow-sm                   { box-shadow: none !important; }
+  .dark .printable-patti .shadow-sm {
+    box-shadow: none !important;
+  }
 
-  /* ══════════════════════════════════════════════════
-     @media print — the actual print rules
-  ══════════════════════════════════════════════════ */
+  /* == @media print - the actual print rules == */
   @media print {
     @page {
       size: A4 portrait;
@@ -744,12 +1039,15 @@
     * {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-      color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
 
-    /* ── Advanced `:has()` Layout Collapse System ── */
+    /* -- Advanced :has() Layout Collapse System -- */
     /* Hide all elements that do not contain the print target and are not descendants */
-    body.erp-printing *:not(:has([data-print-target])):not([data-print-target]):not([data-print-target] *) {
+    body.erp-printing
+      *:not(:has([data-print-target])):not([data-print-target]):not(
+        [data-print-target] *
+      ) {
       display: none !important;
     }
 
@@ -829,9 +1127,15 @@
     }
 
     /* Table page break control */
-    body.erp-printing [data-print-target] table { page-break-inside: auto; }
-    body.erp-printing [data-print-target] tr    { page-break-inside: avoid; }
-    body.erp-printing [data-print-target] thead { display: table-header-group; }
+    body.erp-printing [data-print-target] table {
+      page-break-inside: auto;
+    }
+    body.erp-printing [data-print-target] tr {
+      page-break-inside: avoid;
+    }
+    body.erp-printing [data-print-target] thead {
+      display: table-header-group;
+    }
 
     /* Remove animations */
     body.erp-printing [data-print-target] * {
@@ -863,7 +1167,9 @@
     box-shadow: 0 8px 20px rgba(0, 174, 239, 0.38);
     filter: brightness(1.06);
   }
-  .erp-btn-primary:active { transform: translateY(0); }
+  .erp-btn-primary:active {
+    transform: translateY(0);
+  }
 
   /* ── Secondary Button ──────────────────────────── */
   .erp-btn-secondary {
@@ -900,11 +1206,15 @@
     table-layout: fixed; /* Professional standard for alignment consistency */
   }
   .erp-table thead th {
-    position: sticky; top: 0; z-index: 2;
+    position: sticky;
+    top: 0;
+    z-index: 2;
     background: var(--table-header-bg);
     color: var(--text-secondary);
-    font-size: 0.68rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.07em;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
     border-bottom: 1px solid var(--table-border);
     padding: 0.82rem 0.9rem;
     vertical-align: middle;
@@ -918,62 +1228,143 @@
   }
 
   /* Global Alignment Standards */
-  .erp-table th.col-text, .erp-table td.col-text { text-align: left; }
-  .erp-table th.col-num, .erp-table td.col-num { text-align: right; font-variant-numeric: tabular-nums; }
-  .erp-table th.col-actions, .erp-table td.col-actions { text-align: center; }
+  .erp-table th.col-text,
+  .erp-table td.col-text {
+    text-align: left;
+  }
+  .erp-table th.col-num,
+  .erp-table td.col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .erp-table th.col-actions,
+  .erp-table td.col-actions {
+    text-align: center;
+  }
 
   .erp-table tbody tr:nth-child(even) {
     background: color-mix(in srgb, var(--surface-bg) 60%, transparent);
   }
-  .erp-table tbody tr:hover { background: var(--table-row-hover); }
+  .erp-table tbody tr:hover {
+    background: var(--table-row-hover);
+  }
 
   /* ══════════════════════════════════════════════════
      LIGHT MODE OVERRIDES — bg-white shadow, table rows
   ══════════════════════════════════════════════════ */
-  html:not(.dark) .bg-white { box-shadow: var(--shadow-sm); }
-  html:not(.dark) .bg-white .bg-white { box-shadow: none; }
-  html:not(.dark) table thead tr { background-color: var(--table-header-bg) !important; }
-  html:not(.dark) table tbody tr:hover { background-color: var(--table-row-hover) !important; }
+  html:not(.dark) .bg-white {
+    box-shadow: var(--shadow-sm);
+  }
+  html:not(.dark) .bg-white .bg-white {
+    box-shadow: none;
+  }
+  html:not(.dark) table thead tr {
+    background-color: var(--table-header-bg) !important;
+  }
+  html:not(.dark) table tbody tr:hover {
+    background-color: var(--table-row-hover) !important;
+  }
 
   /* ══════════════════════════════════════════════════
      DARK MODE — table/list hover rows
   ══════════════════════════════════════════════════ */
-  html.dark table tbody tr:hover { background-color: var(--table-row-hover) !important; }
-  html.dark .hover\:bg-slate-800\/40:hover { background-color: var(--table-row-hover) !important; }
-  html.dark .hover\:bg-slate-800\/30:hover { background-color: var(--table-row-hover) !important; }
-  html.dark .focus-within\:bg-slate-800\/60:focus-within { background-color: var(--table-row-hover) !important; }
-  html.dark .dark\:hover\:bg-slate-800\/30:hover { background-color: var(--table-row-hover) !important; }
-  html.dark .dark\:hover\:bg-slate-800\/40:hover { background-color: var(--table-row-hover) !important; }
+  html.dark table tbody tr:hover {
+    background-color: var(--table-row-hover) !important;
+  }
+  html.dark .hover\:bg-slate-800\/40:hover {
+    background-color: var(--table-row-hover) !important;
+  }
+  html.dark .hover\:bg-slate-800\/30:hover {
+    background-color: var(--table-row-hover) !important;
+  }
+  html.dark .focus-within\:bg-slate-800\/60:focus-within {
+    background-color: var(--table-row-hover) !important;
+  }
+  html.dark .dark\:hover\:bg-slate-800\/30:hover {
+    background-color: var(--table-row-hover) !important;
+  }
+  html.dark .dark\:hover\:bg-slate-800\/40:hover {
+    background-color: var(--table-row-hover) !important;
+  }
 
   /* ── TopFilterBar dark mode ────────────────────── */
-  html.dark .bg-white\/90 { background-color: var(--card-bg) !important; }
-  html.dark .border-\[\#e2e8f0\] { border-color: var(--card-border) !important; }
-  html.dark .text-\[\#0f172a\] { color: var(--text-primary) !important; }
-  html.dark .text-\[\#64748b\] { color: var(--text-muted) !important; }
-  html.dark .text-\[\#94a3b8\] { color: var(--text-muted) !important; }
-  html.dark .bg-white { background-color: var(--card-bg) !important; }
-  html.dark .border-\[\#dbe4ef\] { border-color: var(--input-border) !important; }
-  html.dark .hover\:bg-\[\#f8fafc\]:hover { background-color: var(--table-row-hover) !important; }
-  html.dark .bg-\[\#f8fafc\] { background-color: var(--surface-bg) !important; }
-  html.dark .bg-\[\#f1f5f9\] { background-color: var(--surface-bg) !important; }
-  html.dark .border-\[\#edf2f7\] { border-color: var(--table-border) !important; }
-  html.dark .text-\[\#475569\] { color: var(--text-secondary) !important; }
-  html.dark .text-\[\#334155\] { color: var(--text-secondary) !important; }
-  html.dark .text-\[\#0369a1\] { color: #60b8f0 !important; }
-  html.dark .text-\[\#0f766e\] { color: #34d399 !important; }
-  html.dark .bg-\[\#f8fafc\]\/90 { background-color: var(--surface-bg) !important; }
+  html.dark .bg-white\/90 {
+    background-color: var(--card-bg) !important;
+  }
+  html.dark .border-\[\#e2e8f0\] {
+    border-color: var(--card-border) !important;
+  }
+  html.dark .text-\[\#0f172a\] {
+    color: var(--text-primary) !important;
+  }
+  html.dark .text-\[\#64748b\] {
+    color: var(--text-muted) !important;
+  }
+  html.dark .text-\[\#94a3b8\] {
+    color: var(--text-muted) !important;
+  }
+  html.dark .bg-white {
+    background-color: var(--card-bg) !important;
+  }
+  html.dark .border-\[\#dbe4ef\] {
+    border-color: var(--input-border) !important;
+  }
+  html.dark .hover\:bg-\[\#f8fafc\]:hover {
+    background-color: var(--table-row-hover) !important;
+  }
+  html.dark .bg-\[\#f8fafc\] {
+    background-color: var(--surface-bg) !important;
+  }
+  html.dark .bg-\[\#f1f5f9\] {
+    background-color: var(--surface-bg) !important;
+  }
+  html.dark .border-\[\#edf2f7\] {
+    border-color: var(--table-border) !important;
+  }
+  html.dark .text-\[\#475569\] {
+    color: var(--text-secondary) !important;
+  }
+  html.dark .text-\[\#334155\] {
+    color: var(--text-secondary) !important;
+  }
+  html.dark .text-\[\#0369a1\] {
+    color: #60b8f0 !important;
+  }
+  html.dark .text-\[\#0f766e\] {
+    color: #34d399 !important;
+  }
+  html.dark .bg-\[\#f8fafc\]\/90 {
+    background-color: var(--surface-bg) !important;
+  }
 
   /* ── Inventory / SupplierModule hex text ───────── */
-  html.dark .text-\[\#0f172a\] { color: var(--text-primary) !important; }
-  html.dark .text-\[\#00aeef\] { color: #60b8f0 !important; }
-  html.dark .text-\[\#00c896\] { color: #34d399 !important; }
-  html.dark .bg-\[rgba\(0\,174\,239\,0\.06\)\] { background-color: rgba(96, 184, 240, 0.08) !important; }
-  html.dark .bg-\[rgba\(0\,200\,150\,0\.08\)\] { background-color: rgba(52, 211, 153, 0.08) !important; }
-  html.dark .bg-\[rgba\(0\,200\,150\,0\.12\)\] { background-color: rgba(52, 211, 153, 0.12) !important; }
+  html.dark .text-\[\#0f172a\] {
+    color: var(--text-primary) !important;
+  }
+  html.dark .text-\[\#00aeef\] {
+    color: #60b8f0 !important;
+  }
+  html.dark .text-\[\#00c896\] {
+    color: #34d399 !important;
+  }
+  html.dark .bg-\[rgba\(0\,174\,239\,0\.06\)\] {
+    background-color: rgba(96, 184, 240, 0.08) !important;
+  }
+  html.dark .bg-\[rgba\(0\,200\,150\,0\.08\)\] {
+    background-color: rgba(52, 211, 153, 0.08) !important;
+  }
+  html.dark .bg-\[rgba\(0\,200\,150\,0\.12\)\] {
+    background-color: rgba(52, 211, 153, 0.12) !important;
+  }
 
   /* ── AuthLayout dark bg stays intentionally dark ── */
-  html.dark .bg-slate-950.min-h-screen { background-color: #060d18 !important; }
-  html.dark .bg-slate-900.border.border-slate-800.rounded-2xl { background-color: var(--card-bg) !important; border-color: var(--card-border) !important; }
+  html.dark .bg-slate-950.min-h-screen {
+    background-color: #060d18 !important;
+  }
+  html.dark .bg-slate-900.border.border-slate-800.rounded-2xl {
+    background-color: var(--card-bg) !important;
+    border-color: var(--card-border) !important;
+  }
 
   /* ══════════════════════════════════════════════════
      COMPANY WIZARD — always light, never dark
@@ -990,27 +1381,65 @@
   }
   html.dark [data-wizard-light] .bg-white {
     background-color: #ffffff !important;
-    box-shadow: 0 1px 3px rgba(10,20,40,0.07), 0 4px 14px rgba(10,20,40,0.05) !important;
+    box-shadow:
+      0 1px 3px rgba(10, 20, 40, 0.07),
+      0 4px 14px rgba(10, 20, 40, 0.05) !important;
     color: #0d1b2e !important;
   }
-  html.dark [data-wizard-light] .bg-slate-50 { background-color: #f8fafc !important; }
-  html.dark [data-wizard-light] .bg-white\/90 { background-color: rgba(255,255,255,0.9) !important; }
-  html.dark [data-wizard-light] .border-slate-200 { border-color: #e2e8f0 !important; }
-  html.dark [data-wizard-light] .border-slate-200\/80 { border-color: rgba(226,232,240,0.8) !important; }
-  html.dark [data-wizard-light] .border-slate-100 { border-color: #f1f5f9 !important; }
-  html.dark [data-wizard-light] .text-slate-900 { color: #0f172a !important; }
-  html.dark [data-wizard-light] .text-slate-700 { color: #334155 !important; }
-  html.dark [data-wizard-light] .text-slate-600 { color: #475569 !important; }
-  html.dark [data-wizard-light] .text-slate-500 { color: #64748b !important; }
-  html.dark [data-wizard-light] .text-slate-400 { color: #94a3b8 !important; }
-  html.dark [data-wizard-light] .text-slate-300 { color: #cbd5e1 !important; }
-  html.dark [data-wizard-light] .text-slate-200 { color: #e2e8f0 !important; }
-  html.dark [data-wizard-light] .text-slate-100 { color: #f1f5f9 !important; }
-  html.dark [data-wizard-light] .bg-slate-100 { background-color: #f1f5f9 !important; }
-  html.dark [data-wizard-light] .bg-slate-200 { background-color: #e2e8f0 !important; }
-  html.dark [data-wizard-light] .hover\:bg-slate-100:hover { background-color: #f1f5f9 !important; }
-  html.dark [data-wizard-light] .hover\:bg-slate-200\/80:hover { background-color: rgba(226,232,240,0.8) !important; }
-  html.dark [data-wizard-light] .hover\:bg-slate-50:hover { background-color: #f8fafc !important; }
+  html.dark [data-wizard-light] .bg-slate-50 {
+    background-color: #f8fafc !important;
+  }
+  html.dark [data-wizard-light] .bg-white\/90 {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+  }
+  html.dark [data-wizard-light] .border-slate-200 {
+    border-color: #e2e8f0 !important;
+  }
+  html.dark [data-wizard-light] .border-slate-200\/80 {
+    border-color: rgba(226, 232, 240, 0.8) !important;
+  }
+  html.dark [data-wizard-light] .border-slate-100 {
+    border-color: #f1f5f9 !important;
+  }
+  html.dark [data-wizard-light] .text-slate-900 {
+    color: #0f172a !important;
+  }
+  html.dark [data-wizard-light] .text-slate-700 {
+    color: #334155 !important;
+  }
+  html.dark [data-wizard-light] .text-slate-600 {
+    color: #475569 !important;
+  }
+  html.dark [data-wizard-light] .text-slate-500 {
+    color: #64748b !important;
+  }
+  html.dark [data-wizard-light] .text-slate-400 {
+    color: #94a3b8 !important;
+  }
+  html.dark [data-wizard-light] .text-slate-300 {
+    color: #cbd5e1 !important;
+  }
+  html.dark [data-wizard-light] .text-slate-200 {
+    color: #e2e8f0 !important;
+  }
+  html.dark [data-wizard-light] .text-slate-100 {
+    color: #f1f5f9 !important;
+  }
+  html.dark [data-wizard-light] .bg-slate-100 {
+    background-color: #f1f5f9 !important;
+  }
+  html.dark [data-wizard-light] .bg-slate-200 {
+    background-color: #e2e8f0 !important;
+  }
+  html.dark [data-wizard-light] .hover\:bg-slate-100:hover {
+    background-color: #f1f5f9 !important;
+  }
+  html.dark [data-wizard-light] .hover\:bg-slate-200\/80:hover {
+    background-color: rgba(226, 232, 240, 0.8) !important;
+  }
+  html.dark [data-wizard-light] .hover\:bg-slate-50:hover {
+    background-color: #f8fafc !important;
+  }
   html.dark [data-wizard-light] input,
   html.dark [data-wizard-light] select,
   html.dark [data-wizard-light] textarea {
@@ -1019,35 +1448,79 @@
     border-color: #e2e8f0 !important;
   }
   html.dark [data-wizard-light] input::placeholder,
-  html.dark [data-wizard-light] textarea::placeholder { color: #94a3b8 !important; }
+  html.dark [data-wizard-light] textarea::placeholder {
+    color: #94a3b8 !important;
+  }
   html.dark [data-wizard-light] input:focus,
   html.dark [data-wizard-light] select:focus,
   html.dark [data-wizard-light] textarea:focus {
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.15) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
   }
-  html.dark [data-wizard-light] .bg-slate-50\/50 { background-color: rgba(248,250,252,0.5) !important; }
+  html.dark [data-wizard-light] .bg-slate-50\/50 {
+    background-color: rgba(248, 250, 252, 0.5) !important;
+  }
 }
 
 @layer utilities {
   /* ── Standard Padding ────────────────────────────── */
-  .p-6 { padding: 1.5rem; }
-  .p-5 { padding: 1.25rem; }
-  .p-4 { padding: 1rem; }
-  .p-3 { padding: 0.75rem; }
-  .p-2 { padding: 0.5rem; }
-  .p-1\.5 { padding: 0.375rem; }
-  .p-1 { padding: 0.25rem; }
-  .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
-  .py-3\.5 { padding-top: 0.875rem; padding-bottom: 0.875rem; }
-  .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-  .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
-  .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-  .px-4 { padding-left: 1rem; padding-right: 1rem; }
-  .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .p-6 {
+    padding: 1.5rem;
+  }
+  .p-5 {
+    padding: 1.25rem;
+  }
+  .p-4 {
+    padding: 1rem;
+  }
+  .p-3 {
+    padding: 0.75rem;
+  }
+  .p-2 {
+    padding: 0.5rem;
+  }
+  .p-1\.5 {
+    padding: 0.375rem;
+  }
+  .p-1 {
+    padding: 0.25rem;
+  }
+  .py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  .py-3\.5 {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+  .py-3 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  .py-2\.5 {
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+  }
+  .py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
 
-  input:not([type='checkbox']):not([type='radio']):not([type='color']),
-  select, textarea { min-height: var(--input-height); }
-  table tbody tr { min-height: var(--table-row-height); }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  select,
+  textarea {
+    min-height: var(--input-height);
+  }
+  table tbody tr {
+    min-height: var(--table-row-height);
+  }
 
   /* ── Accent remap — REMOVED ───────────────────────────────────────────────
      All var(--primary) background, border, gradient, and focus-ring remaps
@@ -1060,7 +1533,7 @@
   }
 
   /* ── Print Styles & Single-Page Layout Optimizations ──────────────── */
-  
+
   /* Spacing optimizations for printable paper and print preview - forces 1 page */
   .printable-patti .p-10,
   .printable-patti .sm\:p-14,
@@ -1069,23 +1542,23 @@
   .printable-patti .sm\:p-12 {
     padding: 1.25rem !important;
   }
-  
+
   .printable-patti .mt-12 {
     margin-top: 0.75rem !important;
   }
-  
+
   .printable-patti .mt-10 {
     margin-top: 0.75rem !important;
   }
-  
+
   .printable-patti .mt-8 {
     margin-top: 0.5rem !important;
   }
-  
+
   .printable-patti .mt-16 {
     margin-top: 1rem !important;
   }
-  
+
   .printable-patti .pt-10 {
     padding-top: 0.5rem !important;
   }
@@ -1093,11 +1566,11 @@
   .printable-patti .pb-6 {
     padding-bottom: 0.5rem !important;
   }
-  
+
   .printable-patti .mb-6 {
     margin-bottom: 0.5rem !important;
   }
-  
+
   .printable-patti .mb-8 {
     margin-bottom: 0.5rem !important;
   }
@@ -1120,12 +1593,14 @@
     padding-right: 0.5rem !important;
   }
 
-  .printable-patti .h-14, .printable-patti .w-14 {
+  .printable-patti .h-14,
+  .printable-patti .w-14 {
     height: 2.75rem !important;
     width: 2.75rem !important;
   }
 
-  .printable-patti .h-16, .printable-patti .w-16 {
+  .printable-patti .h-16,
+  .printable-patti .w-16 {
     height: 3.25rem !important;
     width: 3.25rem !important;
   }
@@ -1133,36 +1608,56 @@
   /* ── 8. Table formatting: Premium, High-Contrast slate headers & Legible Data ── */
   .printable-patti table th,
   .printable-patti .erp-table thead th {
-    background: #0f172a !important;   /* Professional deep slate background */
-    color: #ffffff !important;        /* Pure white text for high-contrast readability */
-    font-size: 0.78rem !important;    /* Highly legible 11px font size (from 0.65rem) */
+    background: #0f172a !important; /* Professional deep slate background */
+    color: #ffffff !important; /* Pure white text for high-contrast readability */
+    font-size: 0.78rem !important; /* Highly legible 11px font size (from 0.65rem) */
     font-weight: 800 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
     padding: 0.75rem 0.6rem !important;
     border: none !important;
   }
-  
+
   .printable-patti table td,
   .printable-patti .erp-table tbody td {
-    color: #0f172a !important;        /* Deep charcoal for comfortable reading */
-    font-size: 0.84rem !important;    /* Highly visible 12px text size (from 0.72rem) */
-    font-weight: 600 !important;      /* Crisp weight for maximum visual clarity */
+    color: #0f172a !important; /* Deep charcoal for comfortable reading */
+    font-size: 0.84rem !important; /* Highly visible 12px text size (from 0.72rem) */
+    font-weight: 600 !important; /* Crisp weight for maximum visual clarity */
     padding: 0.45rem 0.6rem !important;
   }
 
   /* Re-correct dark theme slate corrections inside printable paper both on-screen and in print */
-  .dark .printable-patti .bg-slate-950 { background-color: #f7f9fc !important; }
-  .dark .printable-patti .bg-slate-900 { background-color: #ffffff !important; }
-  .dark .printable-patti .bg-slate-800 { background-color: #f7f9fc !important; }
-  .dark .printable-patti .border-slate-800 { border-color: #dde3ec !important; }
-  .dark .printable-patti .border-slate-700 { border-color: #dde3ec !important; }
+  .dark .printable-patti .bg-slate-950 {
+    background-color: #f7f9fc !important;
+  }
+  .dark .printable-patti .bg-slate-900 {
+    background-color: #ffffff !important;
+  }
+  .dark .printable-patti .bg-slate-800 {
+    background-color: #f7f9fc !important;
+  }
+  .dark .printable-patti .border-slate-800 {
+    border-color: #dde3ec !important;
+  }
+  .dark .printable-patti .border-slate-700 {
+    border-color: #dde3ec !important;
+  }
 
-  .dark .printable-patti .text-slate-100 { color: #0d1b2e !important; }
-  .dark .printable-patti .text-slate-200 { color: #0d1b2e !important; }
-  .dark .printable-patti .text-slate-300 { color: #3d5166 !important; }
-  .dark .printable-patti .text-slate-400 { color: #5e7490 !important; }
-  .dark .printable-patti .text-slate-500 { color: #5e7490 !important; }
+  .dark .printable-patti .text-slate-100 {
+    color: #0d1b2e !important;
+  }
+  .dark .printable-patti .text-slate-200 {
+    color: #0d1b2e !important;
+  }
+  .dark .printable-patti .text-slate-300 {
+    color: #3d5166 !important;
+  }
+  .dark .printable-patti .text-slate-400 {
+    color: #5e7490 !important;
+  }
+  .dark .printable-patti .text-slate-500 {
+    color: #5e7490 !important;
+  }
 
   /* 
    * FORCE DESKTOP COLUMNS & GRIDS ON A4 / PRINT
@@ -1191,58 +1686,64 @@
   }
 
   @media print {
-    *, *::before, *::after { 
-      -webkit-print-color-adjust: exact !important; 
-      print-color-adjust: exact !important; 
-      color-adjust: exact !important;
+    *,
+    *::before,
+    *::after {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
-    
+
     /* Force light color-scheme so dark-mode OS/browser settings don't bleed into print */
-    html, body { 
-      color-scheme: light !important; 
-      width: 210mm !important; 
-      margin: 0 !important; 
-      padding: 0 !important; 
-      background: white !important; 
-      color: #0d1b2e !important; 
-      font-size: 10pt !important; 
-      line-height: 1.35 !important; 
+    html,
+    body {
+      color-scheme: light !important;
+      width: 210mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+      color: #0d1b2e !important;
+      font-size: 10pt !important;
+      line-height: 1.35 !important;
     }
 
     /* Collapse screen-only elements from layout completely */
-    body.erp-printing *:not(:has([data-print-target])):not([data-print-target]):not([data-print-target] *) {
+    body.erp-printing
+      *:not(:has([data-print-target])):not([data-print-target]):not(
+        [data-print-target] *
+      ) {
       display: none !important;
     }
 
-    body > div > div > header, 
-    body > div > div > main, 
-    body > div > div > footer, 
-    .no-print, 
-    nav, 
-    button:not(.print-keep) { 
-      display: none !important; 
+    body > div > div > header,
+    body > div > div > main,
+    body > div > div > footer,
+    .no-print,
+    nav,
+    button:not(.print-keep) {
+      display: none !important;
     }
 
     /* Reset target container spacing and layout for natural page break and paper alignment */
-    .printable-patti { 
-      display: block !important; 
-      position: relative !important; 
-      left: auto !important; 
-      top: auto !important; 
-      width: 100% !important; 
-      height: auto !important; 
-      margin: 0 !important; 
-      padding: 0 !important; 
-      overflow: visible !important; 
-      background: white !important; 
-      color: #0d1b2e !important; 
-      box-shadow: none !important; 
-      border: none !important; 
-      border-radius: 0 !important; 
+    .printable-patti {
+      display: block !important;
+      position: relative !important;
+      left: auto !important;
+      top: auto !important;
+      width: 100% !important;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      background: white !important;
+      color: #0d1b2e !important;
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
     }
-    
-    .printable-patti * { 
-      color-scheme: light !important; 
+
+    .printable-patti * {
+      color-scheme: light !important;
     }
 
     .printable-patti .printable-patti,
@@ -1256,52 +1757,216 @@
       box-shadow: none !important;
     }
 
-    .printable-patti > div { 
-      padding: 4mm 6mm !important; 
-      max-width: 100% !important; 
+    .printable-patti > div {
+      padding: 4mm 6mm !important;
+      max-width: 100% !important;
     }
-    
-    table { page-break-inside: auto; border-collapse: collapse !important; }
-    tr { page-break-inside: avoid; page-break-after: auto; }
-    thead { display: table-header-group; }
-    tfoot { display: table-footer-group; }
-    .no-break, .grid { page-break-inside: avoid !important; break-inside: avoid !important; }
-    
-    .fixed.inset-0 { position: static !important; background: transparent !important; backdrop-filter: none !important; }
-    .fixed.inset-0 > div { position: static !important; max-height: none !important; overflow: visible !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
-    
-    @page { 
-      size: A4 portrait; 
-      margin: 4mm 6mm; 
+
+    table {
+      page-break-inside: auto;
+      border-collapse: collapse !important;
+    }
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    thead {
+      display: table-header-group;
+    }
+    tfoot {
+      display: table-footer-group;
+    }
+    .no-break,
+    .grid {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .fixed.inset-0 {
+      position: static !important;
+      background: transparent !important;
+      backdrop-filter: none !important;
+    }
+    .fixed.inset-0 > div {
+      position: static !important;
+      max-height: none !important;
+      overflow: visible !important;
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 4mm 6mm;
     }
   }
 }
 
 /* ─── ANIMATIONS ─────────────────────────────────── */
-@keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes slideDown { from { transform: translateY(-8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scaleIn { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes toastSlideIn { from { transform: translateX(100%) scale(0.85); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
-@keyframes toastSlideOut { from { transform: translateX(0) scale(1); opacity: 1; } to { transform: translateX(120%) scale(0.85); opacity: 0; } }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-@keyframes slideRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-@keyframes dialogIn { from { transform: scale(0.95) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-@keyframes dialogOut { from { transform: scale(1) translateY(0); opacity: 1; } to { transform: scale(0.95) translateY(8px); opacity: 0; } }
-@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes slideDown {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scaleIn {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(100%) scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes toastSlideOut {
+  from {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%) scale(0.85);
+    opacity: 0;
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+@keyframes slideRight {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes dialogIn {
+  from {
+    transform: scale(0.95) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes dialogOut {
+  from {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95) translateY(8px);
+    opacity: 0;
+  }
+}
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 
-.animate-spin-slow { animation: spinSlow 12s linear infinite; }
-.animate-slide-right { animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-.animate-slide-up { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-.animate-slide-down { animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-.animate-fade-in { animation: fadeIn 0.2s ease-out; }
-.animate-scale-in { animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-.animate-toast-in { animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-.animate-toast-out { animation: toastSlideOut 0.3s cubic-bezier(0.5, 0, 1, 0.5) forwards; }
-.animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
-.animate-shimmer { background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2s infinite; }
-.animate-dialog-in { animation: dialogIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-.animate-dialog-out { animation: dialogOut 0.15s ease-in forwards; }
-.animate-fade-out { animation: fadeOut 0.15s ease-in forwards; }
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+.animate-slide-right {
+  animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-slide-down {
+  animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-toast-in {
+  animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-toast-out {
+  animation: toastSlideOut 0.3s cubic-bezier(0.5, 0, 1, 0.5) forwards;
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+.animate-dialog-in {
+  animation: dialogIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-dialog-out {
+  animation: dialogOut 0.15s ease-in forwards;
+}
+.animate-fade-out {
+  animation: fadeOut 0.15s ease-in forwards;
+}

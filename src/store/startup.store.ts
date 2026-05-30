@@ -202,23 +202,38 @@ async function _doStartupWork(set: SetFn): Promise<void> {
     console.warn("[Startup] DB init failed:", error);
   }
 
-  // ── Step 1: Settings (foundation for everything else) ─────────────────────
-  set({ message: "Restoring preferences..." });
-  try {
-    await useSettingsStore.getState().loadFromDb();
-    logStartup("Settings restored");
-  } catch (e) {
-    console.warn("[Startup] Settings load failed:", e);
-  }
+  // ── Step 1–2: Settings + Company in parallel (saves ~200ms) ──────────────
+  // Both depend on DB being ready, so we run them together after DB init.
+  const step1Message = "Restoring preferences...";
+  const step2Message = "Verifying company data...";
+  set({ message: step1Message });
 
-  // ── Step 2: Company state ─────────────────────────────────────────────────
-  set({ message: "Verifying company data..." });
-  try {
-    useCompanyStore.getState().bootstrap();
-    await useCompanyStore.getState().bootstrapFromDb();
-    logStartup("Company state reconciled");
-  } catch (e) {
-    console.warn("[Startup] Company bootstrap failed:", e);
+  const [settingsResult, companyResult] = await Promise.allSettled([
+    (async () => {
+      try {
+        await useSettingsStore.getState().loadFromDb();
+        logStartup("Settings restored");
+      } catch (e) {
+        console.warn("[Startup] Settings load failed:", e);
+      }
+    })(),
+    (async () => {
+      try {
+        useCompanyStore.getState().bootstrap();
+        await useCompanyStore.getState().bootstrapFromDb();
+        logStartup("Company state reconciled");
+      } catch (e) {
+        console.warn("[Startup] Company bootstrap failed:", e);
+      }
+    })(),
+  ]);
+
+  // Log any failures from parallel operations
+  if (settingsResult.status === "rejected") {
+    console.warn("[Startup] Settings promise rejected:", settingsResult.reason);
+  }
+  if (companyResult.status === "rejected") {
+    console.warn("[Startup] Company promise rejected:", companyResult.reason);
   }
 
   // ── Step 3: Auth restoration ──────────────────────────────────────────────

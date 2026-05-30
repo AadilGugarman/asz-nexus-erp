@@ -3,6 +3,7 @@
 // PermissionDenied is scaffolded for future auth use.
 #![allow(dead_code)]
 
+use keyring::Error as KeyringError;
 use serde::Serialize;
 use thiserror::Error;
 
@@ -32,6 +33,12 @@ pub enum AppError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+}
+
+impl From<KeyringError> for AppError {
+    fn from(err: KeyringError) -> Self {
+        AppError::Internal(format!("Secure storage error: {err}"))
+    }
 }
 
 /// The wire format sent to the frontend on error.

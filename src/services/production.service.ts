@@ -7,7 +7,7 @@
  *   native memory trim request when app becomes hidden/minimized.
  */
 
-import { APP_CONFIG } from '@/config';
+import { APP_CONFIG } from "@/config";
 
 let listenersAttached = false;
 let hydratedEmitted = false;
@@ -27,18 +27,29 @@ async function emitHydratedEvent(): Promise<void> {
   hydratedEmitted = true;
 
   // Always emit a browser event for local observability/tools.
-  window.dispatchEvent(new CustomEvent('app_fully_hydrated'));
+  window.dispatchEvent(new CustomEvent("app_fully_hydrated"));
 
   if (!APP_CONFIG.isTauri) return;
 
   try {
-    const { emit } = await import('@tauri-apps/api/event' as never as string) as {
+    const tauriInternals = (window as any).__TAURI_INTERNALS__;
+    if (tauriInternals?.invoke) {
+      await tauriInternals.invoke("plugin:event|emit", {
+        event: "app_fully_hydrated",
+        payload: { ts: Date.now() },
+      });
+      return;
+    }
+
+    const { emit } = (await import(
+      "@tauri-apps/api/event" as never as string
+    )) as {
       emit: (event: string, payload?: Record<string, unknown>) => Promise<void>;
     };
-    await emit('app_fully_hydrated', { ts: Date.now() });
+    await emit("app_fully_hydrated", { ts: Date.now() });
   } catch (err) {
     // Non-fatal by design.
-    log('failed to emit Tauri hydrated event', err);
+    log("failed to emit Tauri hydrated event", err);
   }
 }
 
@@ -46,21 +57,29 @@ async function requestNativeMemoryTrim(reason: string): Promise<void> {
   if (!APP_CONFIG.isTauri || nativeTrimUnsupported) return;
 
   try {
-    const { invoke } = await import('@tauri-apps/api/core' as never as string) as {
+    const tauriInternals = (window as any).__TAURI_INTERNALS__;
+    if (tauriInternals?.invoke) {
+      await tauriInternals.invoke("app_trim_memory", { payload: { reason } });
+      return;
+    }
+
+    const { invoke } = (await import(
+      "@tauri-apps/api/core" as never as string
+    )) as {
       invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
     };
 
     // Best-effort optional command. If backend has no implementation,
     // we mark unsupported and silently stop retrying.
-    await invoke('app_trim_memory', { payload: { reason } });
+    await invoke("app_trim_memory", { payload: { reason } });
   } catch (err) {
     nativeTrimUnsupported = true;
-    log('native memory trim not available (safe no-op)', err);
+    log("native memory trim not available (safe no-op)", err);
   }
 }
 
 async function maybeTrimOnBackground(reason: string): Promise<void> {
-  if (document.visibilityState === 'hidden') {
+  if (document.visibilityState === "hidden") {
     await requestNativeMemoryTrim(reason);
     return;
   }
@@ -68,14 +87,14 @@ async function maybeTrimOnBackground(reason: string): Promise<void> {
   if (!APP_CONFIG.isTauri) return;
 
   try {
-    const { ipc } = await import('@/ipc');
+    const { ipc } = await import("@/ipc");
     const state = await ipc.win.getState();
     if (state.is_minimized || !state.is_visible) {
       await requestNativeMemoryTrim(reason);
     }
   } catch (err) {
     // Non-fatal; window state may be unavailable during very early startup.
-    log('window state unavailable for memory trim check', err);
+    log("window state unavailable for memory trim check", err);
   }
 }
 
@@ -92,13 +111,13 @@ export function initProductionStartup(): void {
   if (listenersAttached) return;
   listenersAttached = true;
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      void maybeTrimOnBackground('document_hidden');
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      void maybeTrimOnBackground("document_hidden");
     }
   });
 
-  window.addEventListener('blur', () => {
-    void maybeTrimOnBackground('window_blur');
+  window.addEventListener("blur", () => {
+    void maybeTrimOnBackground("window_blur");
   });
 }

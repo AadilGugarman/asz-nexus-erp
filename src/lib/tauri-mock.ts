@@ -13,7 +13,6 @@
 
 // ── @tauri-apps/api/core ──────────────────────────────────────────────────────
 export async function invoke(_cmd: string, _args?: unknown): Promise<unknown> {
-  console.warn('[tauri-mock] invoke() called outside Tauri runtime');
   return undefined;
 }
 
@@ -38,22 +37,27 @@ export async function once(
 const Database = {
   load: async (_url: string) => ({
     execute: async (_sql: string, _params: unknown[]) => {},
-    select:  async (_sql: string, _params: unknown[]) => [] as Record<string, unknown>[],
-    close:   async () => {},
+    select: async (_sql: string, _params: unknown[]) =>
+      [] as Record<string, unknown>[],
+    close: async () => {},
   }),
 };
 export default Database;
 
 // ── @tauri-apps/plugin-dialog ─────────────────────────────────────────────────
-export async function save(_opts?: unknown): Promise<string | null> { return null; }
-export async function open(_opts?: unknown): Promise<string | string[] | null> { return null; }
+export async function save(_opts?: unknown): Promise<string | null> {
+  return null;
+}
+export async function open(_opts?: unknown): Promise<string | string[] | null> {
+  return null;
+}
 
 // ── @tauri-apps/api/window ───────────────────────────────────────────────────
 export function getCurrentWindow() {
   return {
-    show: async () => { console.warn('[tauri-mock] window.show() called'); },
-    setFocus: async () => { console.warn('[tauri-mock] window.setFocus() called'); },
-    hide: async () => { console.warn('[tauri-mock] window.hide() called'); },
+    show: async () => {},
+    setFocus: async () => {},
+    hide: async () => {},
     minimize: async () => {},
     maximize: async () => {},
     unmaximize: async () => {},

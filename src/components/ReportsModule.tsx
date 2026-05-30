@@ -689,7 +689,7 @@ export const ReportsModule: React.FC = () => {
             <C className={`border-l-4 ${outstandingData.net >= 0 ? 'border-l-emerald-500' : 'border-l-rose-500'}`}>
               <Lbl>Net Position (Receivable − Payable)</Lbl>
               <Big color={outstandingData.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>₹ {outstandingData.net.toLocaleString('en-IN')}</Big>
-              <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-bold">{outstandingData.net >= 0 ? '✅ Net Positive — Healthy' : '⚠️ Net Negative — Cash Required'}</div>
+              <div className="text-[10px] dark:text-slate-500 text-slate-400 mt-1 font-bold">{outstandingData.net >= 0 ? '�... Net Positive — Healthy' : '⚠️ Net Negative — Cash Required'}</div>
             </C>
           </div>
 

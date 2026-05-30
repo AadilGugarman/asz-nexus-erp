@@ -9,7 +9,7 @@
  */
 
 import { useContext } from "react";
-import { AppContext, type AppContextType } from "./AppContext";
+import { AppContext, type AppContextType } from "@/context/AppContext";
 
 export const useApp = () => {
   const context = useContext(AppContext);

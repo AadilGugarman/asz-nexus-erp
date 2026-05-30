@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 
-export type SortDirection = 'asc' | 'desc';
+export type SortDirection = "asc" | "desc";
 
 export interface DataTableController<TSortKey extends string> {
   page: number;
@@ -46,18 +46,19 @@ export interface UseDataTableResult<TData, TSortKey extends string> {
   goNext: () => void;
 }
 
-const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+const clamp = (value: number, min: number, max: number): number =>
+  Math.max(min, Math.min(max, value));
 
 export const useDataTable = <TData, TSortKey extends string>(
-  options: UseDataTableOptions<TData, TSortKey>
+  options: UseDataTableOptions<TData, TSortKey>,
 ): UseDataTableResult<TData, TSortKey> => {
   const {
     data,
     initialSortBy,
-    initialSortDir = 'desc',
+    initialSortDir = "desc",
     initialPageSize = 10,
     pageSizeOptions = [10, 20, 50, 100],
-    searchTerm = '',
+    searchTerm = "",
     searchFn,
     filters = [],
     sortComparators,
@@ -68,7 +69,8 @@ export const useDataTable = <TData, TSortKey extends string>(
   const [internalPage, setInternalPage] = useState(1);
   const [internalPageSize, setInternalPageSize] = useState(initialPageSize);
   const [internalSortBy, setInternalSortBy] = useState<TSortKey>(initialSortBy);
-  const [internalSortDir, setInternalSortDir] = useState<SortDirection>(initialSortDir);
+  const [internalSortDir, setInternalSortDir] =
+    useState<SortDirection>(initialSortDir);
 
   const page = stateController?.page ?? internalPage;
   const pageSize = stateController?.pageSize ?? internalPageSize;
@@ -131,9 +133,16 @@ export const useDataTable = <TData, TSortKey extends string>(
 
   const rows = useMemo(() => {
     const comparator = sortComparators[sortBy];
-    const multiplier = sortDir === 'asc' ? 1 : -1;
+    const multiplier = sortDir === "asc" ? 1 : -1;
 
-    return [...filteredRows].sort((a, b) => comparator(a, b) * multiplier);
+    return [...filteredRows].sort((a, b) => {
+      try {
+        const result = comparator(a, b);
+        return Number.isFinite(result) ? result * multiplier : 0;
+      } catch {
+        return 0;
+      }
+    });
   }, [filteredRows, sortBy, sortComparators, sortDir]);
 
   const totalRecords = rows.length;
@@ -159,12 +168,12 @@ export const useDataTable = <TData, TSortKey extends string>(
 
   const toggleSort = (key: TSortKey) => {
     if (sortBy === key) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
       return;
     }
 
     setSortBy(key);
-    setSortDir('desc');
+    setSortDir("desc");
   };
 
   const canGoPrev = safePage > 1;

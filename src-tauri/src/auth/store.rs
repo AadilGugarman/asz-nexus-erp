@@ -2,40 +2,47 @@
 // Secure credential persistence.
 //
 // Storage strategy for a Tauri desktop app:
-//   - Credentials (password hash, refresh token jti, JWT secret) are stored
-//     in a JSON file inside the app's data directory.
-//   - The file is readable only by the OS user who owns the app data dir.
-//   - On Windows this is %APPDATA%\asz-nexus-erp\, protected by NTFS ACLs.
-//   - The JWT signing secret is a random 64-byte key generated once on first
-//     run and stored alongside the credentials. It never leaves the machine.
+//   - Sensitive auth secrets are stored in the OS secure credential store.
+//   - Non-sensitive metadata is stored as JSON in the app data directory.
+//   - On Windows this uses Credential Manager, on macOS Keychain, and on
+//     supported Linux desktops the native secret service.
 //
-// For higher security on supported platforms, this can be upgraded to use
-// the OS keychain (Windows Credential Manager, macOS Keychain, libsecret)
-// via the `keyring` crate — the interface here is designed to make that swap
-// a one-file change.
+// This change keeps the runtime auth data per-user and avoids writing
+// password hashes, refresh tokens, JWT secrets, and similar secrets to disk.
 
+use keyring::Entry;
 use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use crate::error::{AppError, AppResult};
 
+const KEYRING_SERVICE: &str = "asz-nexus-erp";
+const KEYRING_USER: &str = "auth-store";
+
 // ── Stored credential record ──────────────────────────────────────────────────
 
 /// Everything persisted to disk for auth.
+///
+/// Sensitive fields are intentionally skipped during JSON serialization so
+/// they remain protected in the OS secure credential store.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AuthStore {
     /// Argon2id PHC hash of the user's PIN/password.
+    #[serde(skip_serializing, default)]
     pub password_hash: Option<String>,
 
-    /// The currently valid refresh token string, persisted securely.
+    /// The currently valid refresh token string.
+    #[serde(skip_serializing, default)]
     pub refresh_token: Option<String>,
 
     /// The jti of the currently valid refresh token.
     /// When a refresh rotates the token, this is updated atomically.
     /// On logout it is cleared.
+    #[serde(skip_serializing, default)]
     pub refresh_jti: Option<String>,
 
     /// Per-install random 64-byte JWT signing secret, base64-encoded.
     /// Generated once on first run, never changes.
+    #[serde(skip_serializing, default)]
     pub jwt_secret_b64: Option<String>,
 
     /// Whether initial setup has been completed.
@@ -52,6 +59,41 @@ pub struct AuthStore {
     pub last_failed_login_at: Option<i64>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct SecretStore {
+    pub password_hash: Option<String>,
+    pub refresh_token: Option<String>,
+    pub refresh_jti: Option<String>,
+    pub jwt_secret_b64: Option<String>,
+}
+
+fn secret_entry() -> Entry {
+    Entry::new(KEYRING_SERVICE, KEYRING_USER)
+}
+
+fn load_secret_store() -> AppResult<SecretStore> {
+    let entry = secret_entry();
+    let raw = match entry.get_password() {
+        Ok(value) => value,
+        Err(e) => {
+            if matches!(e, keyring::Error::NoEntry) {
+                return Ok(SecretStore::default());
+            }
+            return Err(AppError::Internal(format!("Secure storage error: {e}")));
+        }
+    };
+    serde_json::from_str(&raw).map_err(|e| AppError::Serialization(e))
+}
+
+fn save_secret_store(store: &SecretStore) -> AppResult<()> {
+    let entry = secret_entry();
+    let json = serde_json::to_string(store)
+        .map_err(|e| AppError::Serialization(e))?;
+    entry.set_password(&json)
+        .map_err(|e| AppError::Internal(format!("Secure storage error: {e}")))?;
+    Ok(())
+}
+
 // ── File path ─────────────────────────────────────────────────────────────────
 
 fn store_path(app_data_dir: &Path) -> PathBuf {
@@ -64,16 +106,22 @@ fn store_path(app_data_dir: &Path) -> PathBuf {
 /// file doesn't exist yet (first run).
 pub fn load(app_data_dir: &Path) -> AppResult<AuthStore> {
     let path = store_path(app_data_dir);
+    let mut store = if !path.exists() {
+        AuthStore::default()
+    } else {
+        let raw = std::fs::read_to_string(&path)
+            .map_err(|e| AppError::Io(e))?;
+        serde_json::from_str(&raw)
+            .map_err(|e| AppError::Serialization(e))?
+    };
 
-    if !path.exists() {
-        return Ok(AuthStore::default());
-    }
+    let secret_store = load_secret_store()?;
+    store.password_hash = store.password_hash.or(secret_store.password_hash);
+    store.refresh_token = store.refresh_token.or(secret_store.refresh_token);
+    store.refresh_jti = store.refresh_jti.or(secret_store.refresh_jti);
+    store.jwt_secret_b64 = store.jwt_secret_b64.or(secret_store.jwt_secret_b64);
 
-    let raw = std::fs::read_to_string(&path)
-        .map_err(|e| AppError::Io(e))?;
-
-    serde_json::from_str(&raw)
-        .map_err(|e| AppError::Serialization(e))
+    Ok(store)
 }
 
 /// Persist the auth store to disk atomically (write to .tmp, then rename).
@@ -81,10 +129,20 @@ pub fn save(app_data_dir: &Path, store: &AuthStore) -> AppResult<()> {
     std::fs::create_dir_all(app_data_dir)
         .map_err(|e| AppError::Io(e))?;
 
-    let path = store_path(app_data_dir);
-    let tmp  = path.with_extension("json.tmp");
+    let metadata = AuthStore {
+        password_hash: None,
+        refresh_token: None,
+        refresh_jti: None,
+        jwt_secret_b64: None,
+        setup_done: store.setup_done,
+        failed_login_attempts: store.failed_login_attempts,
+        last_failed_login_at: store.last_failed_login_at,
+    };
 
-    let json = serde_json::to_string_pretty(store)
+    let path = store_path(app_data_dir);
+    let tmp = path.with_extension("json.tmp");
+
+    let json = serde_json::to_string_pretty(&metadata)
         .map_err(|e| AppError::Serialization(e))?;
 
     std::fs::write(&tmp, json)
@@ -92,6 +150,14 @@ pub fn save(app_data_dir: &Path, store: &AuthStore) -> AppResult<()> {
 
     std::fs::rename(&tmp, &path)
         .map_err(|e| AppError::Io(e))?;
+
+    let secret_store = SecretStore {
+        password_hash: store.password_hash.clone(),
+        refresh_token: store.refresh_token.clone(),
+        refresh_jti: store.refresh_jti.clone(),
+        jwt_secret_b64: store.jwt_secret_b64.clone(),
+    };
+    save_secret_store(&secret_store)?;
 
     Ok(())
 }
