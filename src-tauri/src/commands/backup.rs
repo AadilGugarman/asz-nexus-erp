@@ -11,10 +11,9 @@
 // Filename format: backup_{Label}_{YYYYMMDD_HHMMSS_mmm}.db
 
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use chrono::Utc;
-use rusqlite::{backup as sqlite_backup, Connection, OpenFlags};
+use rusqlite::{Connection, OpenFlags};
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 
@@ -154,29 +153,51 @@ fn entry_from_path(path: &Path) -> Option<BackupEntry> {
     })
 }
 
-/// Restore a backup file into `dst_conn` using the SQLite online backup API.
-/// Does NOT close the pool — safe for a single-user desktop app.
-fn run_backup_api(src_path: &Path, dst: &mut Connection) -> AppResult<()> {
-    let src = Connection::open_with_flags(
-        src_path,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )
-    .map_err(|e| AppError::Database(format!("Cannot open source db: {e}")))?;
+/// Overwrite the main database file on disk with a backup file.
+/// Uses a safe rename-and-copy strategy that is WAL-safe and works on Windows.
+fn restore_db_file(src_path: &Path, db_path: &Path) -> AppResult<()> {
+    let wal_path = db_path.with_extension("db-wal");
+    let shm_path = db_path.with_extension("db-shm");
 
-    fn backup_progress(p: sqlite_backup::Progress) {
-        log::debug!(
-            "[backup] {} / {} pages copied",
-            p.pagecount - p.remaining,
-            p.pagecount
-        );
+    let old_db_path = db_path.with_extension("db.old");
+    let old_wal_path = wal_path.with_extension("db-wal.old");
+    let old_shm_path = shm_path.with_extension("db-shm.old");
+
+    // Clean up any previous .old files
+    let _ = std::fs::remove_file(&old_db_path);
+    let _ = std::fs::remove_file(&old_wal_path);
+    let _ = std::fs::remove_file(&old_shm_path);
+
+    // Rename current DB and auxiliary files to .old
+    std::fs::rename(db_path, &old_db_path)
+        .map_err(|e| AppError::Database(format!("Failed to rename database file: {e}")))?;
+
+    if wal_path.exists() {
+        let _ = std::fs::rename(&wal_path, &old_wal_path);
+    }
+    if shm_path.exists() {
+        let _ = std::fs::rename(&shm_path, &old_shm_path);
     }
 
-    let backup = sqlite_backup::Backup::new(&src, dst)
-        .map_err(|e| AppError::Database(format!("Backup init error: {e}")))?;
+    // Copy backup to main DB path
+    if let Err(e) = std::fs::copy(src_path, db_path) {
+        // Emergency recover: rename old files back
+        let _ = std::fs::rename(&old_db_path, db_path);
+        if old_wal_path.exists() {
+            let _ = std::fs::rename(&old_wal_path, &wal_path);
+        }
+        if old_shm_path.exists() {
+            let _ = std::fs::rename(&old_shm_path, &shm_path);
+        }
+        return Err(AppError::Database(format!("Failed to copy backup file: {e}")));
+    }
 
-    backup
-        .run_to_completion(256, Duration::from_millis(50), Some(backup_progress))
-        .map_err(|e| AppError::Database(format!("Backup run error: {e}")))
+    // Best-effort cleanup
+    let _ = std::fs::remove_file(&old_db_path);
+    let _ = std::fs::remove_file(&old_wal_path);
+    let _ = std::fs::remove_file(&old_shm_path);
+
+    Ok(())
 }
 
 // ── Public commands ───────────────────────────────────────────────────────────
@@ -367,16 +388,13 @@ pub async fn backup_restore(
 
     log::info!("[backup] Pre-restore snapshot: {rollback_filename}");
 
-    // Step 3 — Restore via online backup API
-    let restore_outcome: AppResult<()> = {
-        let mut dst_conn = get_conn(&state.db)?;
-        run_backup_api(&backup_path, &mut *dst_conn)
-    };
+    // Step 3 — Restore via File-Level Overwrite (WAL-safe & Windows-compatible)
+    let db_path = main_db_path(&app)?;
+    let restore_outcome = restore_db_file(&backup_path, &db_path);
 
     match restore_outcome {
         Ok(()) => {
             // Step 4 — Post-restore integrity check
-            let db_path = main_db_path(&app)?;
             if validate_db_file(&db_path) {
                 log::info!("[backup] Restore successful from {filename}");
                 Ok(IpcResponse::ok(RestoreResult {
@@ -387,7 +405,7 @@ pub async fn backup_restore(
             } else {
                 // Integrity check failed after restore — rollback
                 log::error!("[backup] Integrity check failed after restore; rolling back");
-                attempt_rollback(&state, &rollback_path);
+                attempt_rollback(&app, &rollback_path);
                 Err(AppError::Internal(
                     "Restore produced an invalid database; previous state has been recovered."
                         .to_string(),
@@ -396,7 +414,7 @@ pub async fn backup_restore(
         }
         Err(e) => {
             log::error!("[backup] Restore operation failed: {e}; attempting rollback");
-            attempt_rollback(&state, &rollback_path);
+            attempt_rollback(&app, &rollback_path);
             Err(e)
         }
     }
@@ -453,20 +471,20 @@ fn sanitize_filename(name: &str) -> AppResult<String> {
 }
 
 /// Best-effort emergency rollback: copy `rollback_path` back into the live DB.
-fn attempt_rollback(state: &AppState, rollback_path: &Path) {
+fn attempt_rollback(app: &tauri::AppHandle, rollback_path: &Path) {
     if !rollback_path.exists() {
         log::error!("[backup] Rollback file not found: {:?}", rollback_path);
         return;
     }
 
-    match get_conn(&state.db) {
-        Ok(mut dst) => {
-            match run_backup_api(rollback_path, &mut *dst) {
+    match main_db_path(app) {
+        Ok(db_path) => {
+            match restore_db_file(rollback_path, &db_path) {
                 Ok(()) => log::info!("[backup] Emergency rollback succeeded"),
                 Err(e) => log::error!("[backup] Emergency rollback failed: {e}"),
             }
         }
-        Err(e) => log::error!("[backup] Cannot get connection for rollback: {e}"),
+        Err(e) => log::error!("[backup] Cannot resolve main DB path for rollback: {e}"),
     }
 }
 

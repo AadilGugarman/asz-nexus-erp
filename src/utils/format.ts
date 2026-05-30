@@ -101,8 +101,8 @@ export function sumCurrency(values: number[]): number {
 
 /**
  * Determine the pricing type for a fruit.
- * Mango is priced per KG (Weight �- Rate/KG).
- * All other fruits are priced per Caret/Crate (Carets �- Rate/Caret).
+ * Mango is priced per KG (Weight - Rate/KG).
+ * All other fruits are priced per Caret/Crate (Carets - Rate/Caret).
  *
  * Pass the fruit's stored pricingType first (from master data or item),
  * then fall back to name-based detection.
@@ -117,8 +117,8 @@ export function getFruitPricingType(
 
 /**
  * Calculate the line-item amount based on pricing type.
- * - 'kg'    → Math.round(weight �- rate)
- * - 'caret' → Math.round(carets �- rate)
+ * - 'kg'    → Math.round(weight - rate)
+ * - 'caret' → Math.round(carets - rate)
  */
 export function calcItemAmount(
   pricingType: "kg" | "caret",

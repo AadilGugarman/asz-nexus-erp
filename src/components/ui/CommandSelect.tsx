@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+  AlertCircle,
   Check,
   Search,
   Plus,
@@ -523,7 +524,7 @@ export const CommandSelect: React.FC<CommandSelectProps> = ({
             >
               {filteredOptions.length === 0 && !showCreateOption ? (
                 <div className="py-8 text-center">
-                  <div className="text-2xl mb-2 opacity-30">�-�</div>
+                  <AlertCircle className="mx-auto mb-2 w-8 h-8 opacity-30 text-slate-400 dark:text-slate-500" />
                   <div className="text-xs text-slate-500 dark:text-slate-400">
                     No results{query ? ` for "${query}"` : ""}
                   </div>

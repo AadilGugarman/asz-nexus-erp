@@ -295,7 +295,7 @@ export const CaretModule: React.FC = () => {
                 {selectedCustomer.name}
               </h3>
               <p className="text-xs font-bold text-slate-500 mt-1">
-                {selectedCustomer.city} �. {selectedCustomer.phone}
+                {selectedCustomer.city} • {selectedCustomer.phone}
               </p>
             </div>
             <div className="text-right">
@@ -560,7 +560,7 @@ export const CaretModule: React.FC = () => {
                   <table className="erp-table text-left text-xs sm:text-sm font-sans">
                     <thead>
                       <tr>
-                        <th className="py-3.5 px-4 w-[120px] col-text">
+                        <th className="py-3.5 px-4 col-date col-text">
                           <button
                             type="button"
                             onClick={() => ledgerTable.toggleSort("date")}
@@ -569,14 +569,16 @@ export const CaretModule: React.FC = () => {
                             Date <ArrowUpDown className="w-3.5 h-3.5" />
                           </button>
                         </th>
-                        <th className="py-3.5 px-3 w-[100px] col-text">Type</th>
-                        <th className="py-3.5 px-3 col-text min-w-[180px]">
+                        <th className="py-3.5 px-3 col-type col-compact">
+                          Type
+                        </th>
+                        <th className="py-3.5 px-3 col-large col-text">
                           Fruit / Description
                         </th>
-                        <th className="py-3.5 px-3 w-[140px] col-text">
+                        <th className="py-3.5 px-3 col-medium col-text">
                           Bill / Note
                         </th>
-                        <th className="py-3.5 px-3 col-num text-rose-600 w-[100px]">
+                        <th className="py-3.5 px-3 col-num col-small text-rose-600">
                           <button
                             type="button"
                             onClick={() => ledgerTable.toggleSort("caretQty")}
@@ -585,10 +587,10 @@ export const CaretModule: React.FC = () => {
                             Given <ArrowUpDown className="w-3.5 h-3.5" />
                           </button>
                         </th>
-                        <th className="py-3.5 px-3 col-num text-emerald-600 w-[100px]">
+                        <th className="py-3.5 px-3 col-num col-small text-emerald-600">
                           Return
                         </th>
-                        <th className="py-3.5 px-4 col-num font-black text-cyan-600 dark:text-cyan-400 w-[140px]">
+                        <th className="py-3.5 px-4 col-num col-amount font-black text-cyan-600 dark:text-cyan-400">
                           <button
                             type="button"
                             onClick={() =>
@@ -599,9 +601,7 @@ export const CaretModule: React.FC = () => {
                             Balance <ArrowUpDown className="w-3.5 h-3.5" />
                           </button>
                         </th>
-                        <th className="py-3.5 px-4 col-actions w-[100px]">
-                          Action
-                        </th>
+                        <th className="py-3.5 px-4 col-actions">Action</th>
                       </tr>
                     </thead>
                     <tbody className="font-mono">

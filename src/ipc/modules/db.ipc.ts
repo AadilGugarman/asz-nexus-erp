@@ -44,4 +44,15 @@ export const dbIpc = {
       },
     );
   },
+
+  /**
+   * Reset Database: Wipes all business data, backups, and settings but keeps the auth credentials.
+   */
+  resetDatabase(): Promise<boolean> {
+    return ipcInvoke<boolean>(
+      CMD.db.resetDatabase,
+      undefined,
+      false,
+    );
+  },
 };

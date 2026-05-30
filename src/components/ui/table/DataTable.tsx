@@ -1,5 +1,5 @@
-import React from 'react';
-import { cn } from '@/utils/cn';
+import React from "react";
+import { cn } from "@/utils/cn";
 
 interface DataTableProps {
   toolbar?: React.ReactNode;
@@ -17,9 +17,21 @@ export const DataTable: React.FC<DataTableProps> = ({
   children,
 }) => {
   return (
-    <div className={cn('erp-table-wrap rounded-2xl flex flex-col', className)}>
+    <div
+      className={cn(
+        "erp-table-wrap rounded-2xl flex flex-col min-w-0",
+        className,
+      )}
+    >
       {toolbar}
-      <div className={cn('overflow-x-auto custom-scrollbar', scrollClassName)}>{children}</div>
+      <div
+        className={cn(
+          "overflow-x-hidden custom-scrollbar min-w-0",
+          scrollClassName,
+        )}
+      >
+        {children}
+      </div>
       {footer}
     </div>
   );

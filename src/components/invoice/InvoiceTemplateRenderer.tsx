@@ -179,9 +179,20 @@ const ModernHeader: React.FC<{
     settings.enableInvoiceLogo && settings.invoiceLogo
       ? settings.invoiceLogo
       : company.logo;
-  const contacts = [company.phone, company.phone2, company.phone3].filter(
-    Boolean,
-  );
+
+  const formatContact = (val: string | undefined, defaultVal: string) => {
+    if (!val) return defaultVal;
+    if (val.includes(":")) return val;
+    const defaultName = defaultVal.split(":")[0].trim();
+    return `${defaultName} : ${val}`;
+  };
+
+  const contact1 = formatContact(company.phone, "Talha Bhai : 9408255209");
+  const contact2 = formatContact(company.phone2, "Mahir Bhai : 7600696765");
+  const contact3 = formatContact(company.phone3, "M.Shafi bhai : 9824163102");
+
+  const contacts = [contact1, contact2, contact3].filter(Boolean);
+
   const initials =
     settings.watermarkText?.trim() ||
     getInitials(company.name) ||
@@ -218,43 +229,37 @@ const ModernHeader: React.FC<{
             <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">
               {company.name}
             </h1>
-            {company.tagline && (
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] mt-1">
-                {company.tagline}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2.5 text-[10.5px] font-semibold text-slate-500">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] mt-1">
+              {company.tagline || "Fruit Merchant and Commission Agent"}
+            </p>
+            <div className="flex flex-wrap gap-2 mt-3.5 text-[10.5px]">
               {company.address && (
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                <span className="flex items-center gap-1.5 bg-rose-50/80 text-rose-800 border border-rose-100/50 rounded-xl px-3 py-1 font-bold">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                   {company.address}
                 </span>
               )}
               {company.gstin && (
-                <span className="flex items-center gap-1.5">
-                  <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
-                  GSTIN:{" "}
-                  <span className="font-mono font-black text-slate-700">
-                    {company.gstin}
-                  </span>
+                <span className="flex items-center gap-1.5 bg-blue-50/80 text-blue-800 border border-blue-100/50 rounded-xl px-3 py-1 font-black font-mono">
+                  <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  GSTIN: {company.gstin}
                 </span>
               )}
               {company.email && (
-                <span className="flex items-center gap-1.5">
-                  <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                <span className="flex items-center gap-1.5 bg-violet-50/80 text-violet-800 border border-violet-100/50 rounded-xl px-3 py-1 font-bold">
+                  <Mail className="w-3.5 h-3.5 text-violet-500 shrink-0" />
                   {company.email}
                 </span>
               )}
             </div>
-            {/* Contact numbers row */}
             {contacts.length > 0 && (
-              <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
+              <div className="flex flex-wrap gap-1.5 mt-2.5 text-[9.5px] items-center">
                 {contacts.map((c, i) => (
                   <span
                     key={i}
-                    className="flex items-center gap-1 text-[10.5px] font-bold text-slate-500"
+                    className="flex items-center gap-1 font-black rounded-lg px-2 py-0.5 border border-emerald-100/60 bg-emerald-50 text-emerald-800 whitespace-nowrap"
                   >
-                    <Phone className="w-3 h-3 text-slate-400" />
+                    <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                     {c}
                   </span>
                 ))}
@@ -266,9 +271,11 @@ const ModernHeader: React.FC<{
         {/* Right: Invoice metadata badge */}
         <div className="shrink-0 text-right">
           <div
-            className="inline-block px-5 py-3.5 rounded-2xl border-2 text-right relative overflow-hidden"
+            className="inline-block px-5 py-3.5 rounded-2xl border-2 border-solid text-right relative overflow-hidden print:border-2 print:border-solid"
             style={{
-              borderColor: accent + "40",
+              borderColor: accent,
+              borderStyle: "solid",
+              borderWidth: "2px",
               backgroundColor: accent + "08",
             }}
           >
@@ -282,7 +289,7 @@ const ModernHeader: React.FC<{
             )}
             <div className="relative z-10">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">
-                Tax Invoice
+                Invoice
               </p>
               <p className="text-xl font-black text-slate-900 font-mono tracking-tight">
                 {invoice.invoiceNo}
@@ -308,33 +315,33 @@ const ModernItemTable: React.FC<{ invoice: Invoice; accent: string }> = ({
   accent,
 }) => {
   return (
-    <div className="mt-8 overflow-hidden rounded-3xl border border-slate-100 shadow-sm">
-      <table className="w-full border-collapse text-[11px] sm:text-[12px] erp-table">
+    <div className="mt-8 print:mt-4 overflow-hidden rounded-3xl border border-slate-100 shadow-sm">
+      <table className="w-full border-collapse text-[13px] sm:text-[14px] erp-table">
         <thead>
           <tr
             style={{
               background: `linear-gradient(135deg, ${accent} 0%, ${accent}dd 100%)`,
             }}
           >
-            <th className="py-4 px-2 col-text text-center font-black uppercase tracking-wider w-16 text-white">
+            <th className="py-4.5 px-4 col-text text-center font-black uppercase tracking-wider w-16 text-white whitespace-nowrap">
               SR No.
             </th>
-            <th className="py-4 px-2 col-text font-black uppercase tracking-wider text-white">
+            <th className="py-4.5 px-4 col-text font-black uppercase tracking-wider text-white whitespace-nowrap">
               Description
             </th>
-            <th className="py-4 px-2 col-text font-black uppercase tracking-wider text-white">
+            <th className="py-4.5 px-4 col-text font-black uppercase tracking-wider text-white whitespace-nowrap">
               Variety
             </th>
-            <th className="py-4 px-2 col-num font-black uppercase tracking-wider w-20 text-white">
+            <th className="py-4.5 px-4 col-num font-black uppercase tracking-wider w-20 text-white whitespace-nowrap">
               Carets
             </th>
-            <th className="py-4 px-2 col-num font-black uppercase tracking-wider w-24 text-white">
+            <th className="py-4.5 px-4 col-num font-black uppercase tracking-wider w-24 text-white whitespace-nowrap">
               Weight
             </th>
-            <th className="py-4 px-2 col-num font-black uppercase tracking-wider w-24 text-white">
+            <th className="py-4.5 px-4 col-num font-black uppercase tracking-wider w-24 text-white whitespace-nowrap">
               Rate
             </th>
-            <th className="py-4 px-6 col-num font-black uppercase tracking-wider w-32 text-white">
+            <th className="py-4.5 px-6 col-num font-black uppercase tracking-wider w-32 text-white whitespace-nowrap">
               Amount
             </th>
           </tr>
@@ -350,29 +357,29 @@ const ModernItemTable: React.FC<{ invoice: Invoice; accent: string }> = ({
                 key={item.id}
                 style={idx % 2 === 1 ? { backgroundColor: `${accent}08` } : {}}
               >
-                <td className="py-4 px-2 col-text text-center text-slate-400 font-mono">
+                <td className="py-5 px-4 col-text text-center text-slate-500 font-mono font-black text-[13.5px] whitespace-nowrap">
                   {idx + 1}
                 </td>
-                <td className="py-4 px-2 col-text font-black text-slate-900">
+                <td className="py-5 px-4 col-text font-black text-slate-900 text-[14.5px] whitespace-nowrap">
                   {item.fruit}
                 </td>
-                <td className="py-4 px-2 col-text text-slate-600 font-bold uppercase tracking-tight">
+                <td className="py-5 px-4 col-text text-slate-700 font-bold uppercase tracking-tight text-[13px] whitespace-nowrap">
                   {item.lotVariety}
                 </td>
-                <td className="py-4 px-2 col-num font-mono font-black text-slate-700">
+                <td className="py-5 px-4 col-num font-mono font-black text-slate-800 text-[14px] whitespace-nowrap">
                   {item.caret}
                 </td>
-                <td className="py-4 px-2 col-num font-mono font-black text-slate-700">
-                  {item.weight}{" "}
-                  <span className="text-[9px] text-slate-400">KG</span>
+                <td className="py-5 px-4 col-num font-mono font-black text-slate-800 text-[14px] whitespace-nowrap">
+                  {item.weight.toFixed(2)}{" "}
+                  <span className="text-[10px] text-slate-400 font-bold">KG</span>
                 </td>
-                <td className="py-4 px-2 col-num font-mono text-slate-600 font-bold">
+                <td className="py-5 px-4 col-num font-mono text-slate-700 font-bold text-[13.5px] whitespace-nowrap">
                   {currency(item.rate)}
-                  <span className="text-[9px] text-slate-400 ml-0.5">
+                  <span className="text-[10px] text-slate-400 ml-0.5 font-bold">
                     {isByKg ? "/KG" : "/Crt"}
                   </span>
                 </td>
-                <td className="py-4 px-6 col-num font-mono font-black text-slate-900 text-[13px]">
+                <td className="py-5 px-6 col-num font-mono font-black text-slate-950 text-[15px] whitespace-nowrap">
                   {currency(item.amount)}
                 </td>
               </tr>
@@ -405,7 +412,7 @@ const ModernTotals: React.FC<{
   );
 
   return (
-    <div className="mt-10 flex flex-col md:flex-row justify-between gap-8">
+    <div className="mt-10 print:mt-4 flex flex-col md:flex-row justify-between gap-8 print:gap-4">
       {/* LEFT: Ledger Statement Summary */}
       <div className="flex-1 max-w-xs">
         <div className="rounded-2xl border border-slate-200 overflow-hidden">
@@ -419,31 +426,30 @@ const ModernTotals: React.FC<{
 
           <div className="px-5 py-4 space-y-3 bg-white">
             {/* Previous Balance */}
-            <div className="flex justify-between items-center text-[12px] font-bold text-slate-500">
+            <div className="bg-amber-50/60 border border-amber-100/60 rounded-2xl px-4 py-2.5 flex justify-between items-center text-[12px] font-bold text-slate-600">
               <span className="uppercase tracking-wider">Previous Balance</span>
-              <span className="font-mono font-black text-slate-700">
+              <span className="font-mono font-black text-[14.5px] text-amber-700">
                 {currency(invoice.previousBalance)}
               </span>
             </div>
 
             {/* Current Invoice */}
-            <div className="flex justify-between items-center text-[12px] font-bold text-slate-500">
+            <div className="bg-blue-50/60 border border-blue-100/60 rounded-2xl px-4 py-2.5 flex justify-between items-center text-[12px] font-bold text-slate-600">
               <span className="uppercase tracking-wider">
                 + Current Invoice
               </span>
-              <span className="font-mono font-black text-slate-700">
+              <span className="font-mono font-black text-[14.5px] text-blue-700">
                 {currency(invoice.todayAmount)}
               </span>
             </div>
 
             {/* Running Balance */}
-            <div className="pt-2.5 border-t border-slate-200 flex justify-between items-center text-[12px] font-black">
-              <span className="uppercase tracking-wider text-slate-900">
+            <div className={`${runningBalance >= 0 ? "bg-rose-50/60 border border-rose-100/60 text-rose-600" : "bg-emerald-50/60 border border-emerald-100/60 text-emerald-600"} rounded-2xl px-4 py-2.5 flex justify-between items-center text-[12px] font-black`}>
+              <span className="uppercase tracking-wider text-slate-800">
                 Running Balance
               </span>
               <span
-                className="font-mono font-black text-[12px]"
-                style={{ color: accent }}
+                className="font-mono font-black text-[16.5px]"
               >
                 {currency(runningBalance)}
               </span>
@@ -590,15 +596,11 @@ const ThermalTemplate: React.FC<{
 
   return (
     <div className="mx-auto w-full bg-white text-black font-mono p-0 text-[13px] leading-tight border-2 border-black rounded-none shadow-none select-none">
-      {/* 1. Header Contacts Section */}
-      <div className="flex justify-between text-[11.5px] font-bold p-2 pb-0">
-        <div>
-          <p>{contactLeft1}</p>
-          {contactLeft2 && <p>{contactLeft2}</p>}
-        </div>
-        <div className="text-right">
-          <p>{contactRight}</p>
-        </div>
+      {/* 1. Header Contacts Section - Forced to 1 single row */}
+      <div className="flex justify-between text-[11px] font-extrabold p-2 pb-1 whitespace-nowrap border-b border-black">
+        <span>{contactLeft1}</span>
+        {contactLeft2 && <span className="border-l border-black pl-2">{contactLeft2.split(":")[1]?.trim() || contactLeft2}</span>}
+        {contactRight && <span className="border-l border-black pl-2">{contactRight.split(":")[1]?.trim() || contactRight}</span>}
       </div>
 
       {/* 2. Brand Identity */}
@@ -633,22 +635,22 @@ const ThermalTemplate: React.FC<{
 
       {/* 4. Table of Items */}
       <div className="px-0">
-        <table className="w-full border-collapse text-[12px] border-b border-black">
+        <table className="w-full border-collapse text-[13px] border-b border-black">
           <thead>
             <tr className="border-b border-black font-extrabold">
-              <th className="py-1 px-1 text-center w-[40%] border-r border-black font-extrabold">
+              <th className="py-2 px-1 text-center w-[40%] border-r border-black font-extrabold whitespace-nowrap">
                 Item
               </th>
-              <th className="py-1 px-1 text-center w-[12%] border-r border-black font-extrabold">
+              <th className="py-2 px-1 text-center w-[12%] border-r border-black font-extrabold whitespace-nowrap">
                 Pkgs
               </th>
-              <th className="py-1 px-1 text-center w-[16%] border-r border-black font-extrabold">
+              <th className="py-2 px-1 text-center w-[16%] border-r border-black font-extrabold whitespace-nowrap">
                 Weight
               </th>
-              <th className="py-1 px-1 text-center w-[15%] border-r border-black font-extrabold">
+              <th className="py-2 px-1 text-center w-[15%] border-r border-black font-extrabold whitespace-nowrap">
                 Rate
               </th>
-              <th className="py-1 px-1 text-center w-[17%] font-extrabold">
+              <th className="py-2 px-1 text-center w-[17%] font-extrabold whitespace-nowrap">
                 Amount
               </th>
             </tr>
@@ -663,20 +665,20 @@ const ThermalTemplate: React.FC<{
                 ? `${item.fruit}-${item.lotVariety}`
                 : item.fruit;
               return (
-                <tr key={item.id} className="align-top font-bold">
-                  <td className="py-0.5 px-1 text-left border-r border-black truncate max-w-[150px]">
+                <tr key={item.id} className="align-top font-bold text-[13px]">
+                  <td className="py-1.5 px-1 text-left border-r border-black truncate max-w-[150px] whitespace-nowrap">
                     {itemDesc}
                   </td>
-                  <td className="py-0.5 px-1 text-right border-r border-black">
+                  <td className="py-1.5 px-1 text-right border-r border-black font-mono font-black">
                     {item.caret}
                   </td>
-                  <td className="py-0.5 px-1 text-right border-r border-black">
+                  <td className="py-1.5 px-1 text-right border-r border-black font-mono font-black">
                     {item.weight.toFixed(2)}
                   </td>
-                  <td className="py-0.5 px-1 text-right border-r border-black">
+                  <td className="py-1.5 px-1 text-right border-r border-black font-mono">
                     {item.rate.toFixed(2)}
                   </td>
-                  <td className="py-0.5 px-1 text-right">
+                  <td className="py-1.5 px-1 text-right font-mono font-black text-[13.5px]">
                     {item.amount.toFixed(2)}
                   </td>
                 </tr>
@@ -685,26 +687,26 @@ const ThermalTemplate: React.FC<{
 
             {/* Empty rows to match reference image vertical empty space */}
             {Array.from({ length: emptyRowsCount }).map((_, idx) => (
-              <tr key={`empty-${idx}`} className="h-6 align-top">
-                <td className="py-0.5 px-1 border-r border-black"></td>
-                <td className="py-0.5 px-1 border-r border-black"></td>
-                <td className="py-0.5 px-1 border-r border-black"></td>
-                <td className="py-0.5 px-1 border-r border-black"></td>
-                <td className="py-0.5 px-1"></td>
+              <tr key={`empty-${idx}`} className="h-7 align-top">
+                <td className="py-1.5 px-2 border-r border-black"></td>
+                <td className="py-1.5 px-2 border-r border-black"></td>
+                <td className="py-1.5 px-2 border-r border-black"></td>
+                <td className="py-1.5 px-2 border-r border-black"></td>
+                <td className="py-1.5 px-2"></td>
               </tr>
             ))}
 
             {/* Table totals row */}
-            <tr className="border-t border-black font-extrabold align-top">
-              <td className="py-1 px-1 border-r border-black"></td>
-              <td className="py-1 px-1 text-right border-r border-black">
+            <tr className="border-t border-black font-extrabold align-top text-[13px]">
+              <td className="py-1.5 px-2 border-r border-black"></td>
+              <td className="py-1.5 px-2 text-right border-r border-black font-mono font-black">
                 {totalCarets}
               </td>
-              <td className="py-1 px-1 text-right border-r border-black">
+              <td className="py-1.5 px-2 text-right border-r border-black font-mono font-black">
                 {totalWeight.toFixed(2)}
               </td>
-              <td className="py-1 px-1 border-r border-black"></td>
-              <td className="py-1 px-1 text-right">{subtotal.toFixed(2)}</td>
+              <td className="py-1.5 px-2 border-r border-black"></td>
+              <td className="py-1.5 px-2 text-right font-mono font-black">{subtotal.toFixed(2)}</td>
             </tr>
           </tbody>
         </table>
@@ -714,7 +716,7 @@ const ThermalTemplate: React.FC<{
       <div className="flex border-b border-black">
         {/* Left Side: Previous Balance */}
         <div className="w-[55%] flex flex-col justify-end p-2 pb-1.5 font-extrabold text-[12px]">
-          <div>Pre. Bal : {formattedPrevBalance}</div>
+          <div>Pre. Bal : <span className="text-[13.5px] font-black text-amber-700">{formattedPrevBalance}</span></div>
         </div>
         {/* Right Side: Charges Box */}
         <div className="w-[45%] border-l border-black flex flex-col text-[12px] font-bold">
@@ -740,11 +742,13 @@ const ThermalTemplate: React.FC<{
       {/* 6. Net Bal & Total Row */}
       <div className="flex border-b border-black font-extrabold text-[12.5px] items-center">
         <div className="w-[18%] py-1.5 px-2 text-left">Net Bal</div>
-        <div className="w-[37%] py-1.5 px-2 text-right border-r border-black">
-          {formattedNetBalance}
+        <div className="w-[37%] py-1.5 px-2 text-right border-r border-black font-black text-[14px]">
+          <span className={runningBalance >= 0 ? "text-rose-600" : "text-emerald-600"}>
+            {formattedNetBalance}
+          </span>
         </div>
         <div className="w-[18%] py-1.5 px-2 text-left">Total</div>
-        <div className="w-[27%] py-1.5 px-2 text-right">
+        <div className="w-[27%] py-1.5 px-2 text-right font-black text-[14.5px] text-blue-700">
           {invoice.todayAmount.toFixed(2)}
         </div>
       </div>
@@ -794,6 +798,9 @@ export const InvoiceTemplateRenderer: React.FC<
       notes: "",
     };
   }
+  const totalBalance = roundCurrency(invoice.previousBalance + invoice.todayAmount);
+  const upiAmount = totalBalance > 0 ? totalBalance : 0;
+
   const template = normalizeInvoiceTemplate(invoiceSettings.templateStyle);
   const accent = invoiceSettings.brandColor || "#4f46e5";
 
@@ -805,169 +812,172 @@ export const InvoiceTemplateRenderer: React.FC<
         settings={invoiceSettings}
       />
     );
-  }
-
-  return (
+  }  return (
     <div
-      className={`relative bg-white text-slate-900 border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-2xl ${className} group/invoice`}
+      className={`relative bg-white text-slate-900 border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-2xl ${className} group/invoice min-h-[297mm] print:min-h-0 print:h-[278mm] print:border-0 print:rounded-none flex flex-col`}
     >
       {/* Print Overlay - ensures white background on print */}
       <div className="absolute inset-0 bg-white pointer-events-none z-[-1] print:block hidden" />
 
       <InvoiceWatermark settings={invoiceSettings} company={company} />
 
-      <div className="relative z-10 p-10 sm:p-14">
-        <ModernHeader
-          invoice={invoice}
-          company={company}
-          settings={invoiceSettings}
-          accent={accent}
-        />
+      <div className="relative z-10 p-10 sm:p-14 print:p-8 flex-1 flex flex-col justify-between">
+        <div className="flex-1">
+          <ModernHeader
+            invoice={invoice}
+            company={company}
+            settings={invoiceSettings}
+            accent={accent}
+          />
 
-        <div className="mt-12 flex flex-col sm:flex-row justify-between items-start gap-10">
-          <div className="flex-1">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">
-              Billed To - Customer
-            </p>
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-[1.25rem] bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner shrink-0">
-                <User className="w-7 h-7" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-2xl font-black text-slate-900 leading-none tracking-tight">
-                  {invoice.customerName}
-                </h3>
-                {customer && (
-                  <div className="text-[12px] font-bold text-slate-600 space-y-2 mt-3.5">
-                    {customer.billingAddress && (
-                      <p className="flex items-start gap-2 leading-tight">
-                        <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-800">
-                          {customer.billingAddress}
-                        </span>
-                      </p>
-                    )}
-                    {customer.phone && (
-                      <p className="flex items-center gap-2 leading-tight">
-                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>{customer.phone}</span>
-                      </p>
-                    )}
-                    {customer.gstin && (
-                      <p className="flex items-center gap-2 leading-tight">
-                        <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>
-                          GSTIN:{" "}
-                          <span className="font-mono font-black text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200/60">
-                            {customer.gstin}
+          <div className="mt-12 print:mt-6 flex flex-col sm:flex-row justify-between items-start gap-10 print:gap-6">
+            <div className="flex-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">
+                Billed To - Customer
+              </p>
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-[1.25rem] bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner shrink-0">
+                  <User className="w-7 h-7" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-2xl font-black text-slate-900 leading-none tracking-tight">
+                    {invoice.customerName}
+                  </h3>
+                  {customer && (
+                    <div className="text-[12px] font-bold text-slate-600 space-y-2 mt-3.5">
+                      {customer.billingAddress && (
+                        <p className="flex items-start gap-2 leading-tight">
+                          <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                          <span className="text-slate-800">
+                            {customer.billingAddress}
                           </span>
-                        </span>
-                      </p>
-                    )}
-                  </div>
-                )}
+                        </p>
+                      )}
+                      {customer.phone && (
+                        <p className="flex items-center gap-2 leading-tight">
+                          <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span>{customer.phone}</span>
+                        </p>
+                      )}
+                      {customer.gstin && (
+                        <p className="flex items-center gap-2 leading-tight">
+                          <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span>
+                            GSTIN:{" "}
+                            <span className="font-mono font-black text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200/60">
+                              {customer.gstin}
+                            </span>
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="text-left sm:text-right min-w-[200px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">
+                Billing Status
+              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 font-black text-[11px] uppercase tracking-widest">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                Credit Account
               </div>
             </div>
           </div>
-          <div className="text-left sm:text-right min-w-[200px]">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">
-              Billing Status
-            </p>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 font-black text-[11px] uppercase tracking-widest">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              Credit Account
+
+          <ModernItemTable invoice={invoice} accent={accent} />
+
+          <ModernTotals
+            invoice={invoice}
+            settings={invoiceSettings}
+            accent={accent}
+          />
+
+          {/* Footer */}
+          <div className="mt-16 print:mt-6 pt-10 print:pt-4 border-t-2 border-slate-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-end">
+              <div className="space-y-6">
+                <div>
+                  <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">
+                    Terms & Conditions
+                  </h5>
+                  <p className="text-[10px] text-slate-500 leading-relaxed max-w-sm italic font-medium">
+                    {invoiceSettings.termsText ||
+                      "Subject to APMC market yard rules. Goods once sold will not be taken back. Payment expected within 15 days."}
+                  </p>
+                </div>
+                {invoiceSettings.showBankDetails && (
+                  <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 inline-block">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                        Bank Transfer Info
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[10px] font-bold">
+                      <span className="text-slate-400 uppercase">Bank</span>
+                      <span className="text-slate-900">{company.bankName}</span>
+                      <span className="text-slate-400 uppercase">A/C No</span>
+                      <span className="text-slate-900 font-mono">
+                        {company.accountNo}
+                      </span>
+                      <span className="text-slate-400 uppercase">IFSC</span>
+                      <span className="text-slate-900 font-mono">
+                        {company.ifsc}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col items-end gap-4">
+                {/* UPI QR Code */}
+                {invoiceSettings.showUPI && company.upiId && (
+                  <div className="flex flex-col items-center gap-1.5 text-center">
+                    {invoiceSettings.enableQR ? (
+                      <div className="p-2 border border-slate-100 rounded-xl bg-white shadow-sm hover:scale-[1.03] transition-transform duration-300">
+                        <QRCode
+                          value={`upi://pay?pa=${encodeURIComponent(company.upiId)}&pn=${encodeURIComponent(company.name)}${upiAmount > 0 ? `&am=${upiAmount}` : ""}&cu=INR`}
+                          size={76}
+                          bgColor="#ffffff"
+                          fgColor="#0f172a"
+                          level="M"
+                        />
+                      </div>
+                    ) : null}
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                      Scan to Pay
+                    </p>
+                    <p className="text-[8px] font-mono text-slate-400">
+                      {company.upiId}
+                    </p>
+                  </div>
+                )}
+                {/* Signature */}
+                <div className="flex flex-col items-end">
+                  <div className="w-56 h-16 border-b-2 border-slate-100 mb-3 flex items-center justify-center text-slate-200 font-black uppercase text-[10px] tracking-widest">
+                    Digital Signature
+                  </div>
+                  <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
+                    Authorized Signatory
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-1">
+                    For {company.name}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <ModernItemTable invoice={invoice} accent={accent} />
-
-        <ModernTotals
-          invoice={invoice}
-          settings={invoiceSettings}
-          accent={accent}
-        />
-
-        {/* Footer */}
-        <div className="mt-16 pt-10 border-t-2 border-slate-50">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-end">
-            <div className="space-y-6">
-              <div>
-                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">
-                  Terms & Conditions
-                </h5>
-                <p className="text-[10px] text-slate-500 leading-relaxed max-w-sm italic font-medium">
-                  {invoiceSettings.termsText ||
-                    "Subject to APMC market yard rules. Goods once sold will not be taken back. Payment expected within 15 days."}
-                </p>
-              </div>
-              {invoiceSettings.showBankDetails && (
-                <div className="p-5 rounded-3xl bg-slate-50 border border-slate-100 inline-block">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
-                      Bank Transfer Info
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[10px] font-bold">
-                    <span className="text-slate-400 uppercase">Bank</span>
-                    <span className="text-slate-900">{company.bankName}</span>
-                    <span className="text-slate-400 uppercase">A/C No</span>
-                    <span className="text-slate-900 font-mono">
-                      {company.accountNo}
-                    </span>
-                    <span className="text-slate-400 uppercase">IFSC</span>
-                    <span className="text-slate-900 font-mono">
-                      {company.ifsc}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-4">
-              {/* UPI QR Code */}
-              {invoiceSettings.showUPI && company.upiId && (
-                <div className="flex flex-col items-center gap-1.5">
-                  {invoiceSettings.enableQR ? (
-                    <div className="p-2 border border-slate-100 rounded-xl bg-white">
-                      <QRCode
-                        value={`upi://pay?pa=${encodeURIComponent(company.upiId)}&pn=${encodeURIComponent(company.name)}&am=${invoice.todayAmount}&cu=INR`}
-                        size={72}
-                        bgColor="#ffffff"
-                        fgColor="#0f172a"
-                        level="M"
-                      />
-                    </div>
-                  ) : null}
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    Scan to Pay
-                  </p>
-                  <p className="text-[9px] font-mono text-slate-500">
-                    {company.upiId}
-                  </p>
-                </div>
-              )}
-              {/* Signature */}
-              <div className="flex flex-col items-end">
-                <div className="w-56 h-16 border-b-2 border-slate-100 mb-3 flex items-center justify-center text-slate-200 font-black uppercase text-[10px] tracking-widest">
-                  Digital Signature
-                </div>
-                <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
-                  Authorized Signatory
-                </p>
-                <p className="text-[10px] font-bold text-slate-400 mt-1">
-                  For {company.name}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-16 text-center">
-            <p className="text-[10px] font-black text-slate-200 uppercase tracking-[0.5em] select-none">
-              Computer Generated Invoice — {company.name}
-            </p>
-          </div>
+        {/* Dynamic bottom computer generated invoice text pushed strictly to A4 bottom boundary */}
+        <div className="pt-10 print:pt-4 text-center mt-auto">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] select-none">
+            Computer Generated Invoice — {company.name}
+          </p>
         </div>
       </div>
     </div>
   );
 };
+

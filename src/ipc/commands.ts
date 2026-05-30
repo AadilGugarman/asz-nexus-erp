@@ -30,6 +30,7 @@ export const CMD = {
   db: {
     getStats: "db_get_stats",
     resetCompanyData: "db_reset_company_data",
+    resetDatabase: "db_reset_database",
   },
 
   employee: {

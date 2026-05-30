@@ -1203,7 +1203,14 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.82rem;
-    table-layout: fixed; /* Professional standard for alignment consistency */
+    table-layout: fixed;
+  }
+  .erp-table thead th,
+  .erp-table tbody td {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .erp-table thead th {
     position: sticky;
@@ -1211,35 +1218,82 @@
     z-index: 2;
     background: var(--table-header-bg);
     color: var(--text-secondary);
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.08em;
     border-bottom: 1px solid var(--table-border);
-    padding: 0.82rem 0.9rem;
+    padding: 0.75rem 0.9rem;
     vertical-align: middle;
   }
+  .erp-table thead th button {
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .erp-table td > *,
+  .erp-table th > * {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
   .erp-table tbody td {
-    padding: 0.82rem 0.9rem;
+    padding: 0.75rem 0.9rem;
     border-bottom: 1px solid var(--table-border);
     color: var(--text-primary);
     vertical-align: middle;
-    height: var(--table-row-height);
+    white-space: nowrap;
   }
 
   /* Global Alignment Standards */
   .erp-table th.col-text,
   .erp-table td.col-text {
     text-align: left;
+    max-width: 16rem;
+    min-width: 0;
+  }
+  .erp-table th.col-date,
+  .erp-table td.col-date,
+  .erp-table th.col-type,
+  .erp-table td.col-type {
+    max-width: 10rem;
+    min-width: 0;
+  }
+  .erp-table th.col-compact,
+  .erp-table td.col-compact {
+    max-width: 10rem;
+    min-width: 0;
+  }
+  .erp-table th.col-medium,
+  .erp-table td.col-medium {
+    max-width: 12rem;
+    min-width: 0;
+  }
+  .erp-table th.col-large,
+  .erp-table td.col-large {
+    max-width: 18rem;
+    min-width: 0;
   }
   .erp-table th.col-num,
   .erp-table td.col-num {
     text-align: right;
     font-variant-numeric: tabular-nums;
+    max-width: 10rem;
+    min-width: 0;
+  }
+  .erp-table th.col-amount,
+  .erp-table td.col-amount,
+  .erp-table th.col-balance,
+  .erp-table td.col-balance {
+    max-width: 10rem;
+    min-width: 0;
   }
   .erp-table th.col-actions,
   .erp-table td.col-actions {
     text-align: center;
+    max-width: 10rem;
+    min-width: 0;
   }
 
   .erp-table tbody tr:nth-child(even) {
@@ -1247,6 +1301,21 @@
   }
   .erp-table tbody tr:hover {
     background: var(--table-row-hover);
+  }
+
+  .erp-table td > *,
+  .erp-table th > * {
+    min-width: 0;
+  }
+
+  .erp-table td.truncate,
+  .erp-table th.truncate,
+  .erp-table span.truncate,
+  .erp-table div.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
   }
 
   /* ══════════════════════════════════════════════════

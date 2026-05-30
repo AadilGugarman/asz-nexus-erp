@@ -1195,7 +1195,7 @@ export const PartiesModule: React.FC = () => {
           isOpen={showStatement}
           onClose={() => setShowStatement(false)}
           title={`${p.type === "CUSTOMER" ? "Customer" : "Supplier"} Account Statement`}
-          subtitle={`${p.name} �. ${p.city}`}
+          subtitle={`${p.name} • ${p.city}`}
         >
           <div className="space-y-6">
             {/* Party Info */}
@@ -1638,7 +1638,16 @@ export const PartiesModule: React.FC = () => {
                     contentVisibility: "auto",
                     containIntrinsicSize: "0 120px",
                   }}
-                  className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md dark:hover:border-slate-700 hover:border-slate-300 transition-all group overflow-hidden"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setDetailParty(p)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setDetailParty(p);
+                    }
+                  }}
+                  className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm hover:shadow-md dark:hover:border-slate-700 hover:border-slate-300 transition-all group overflow-hidden cursor-pointer"
                 >
                   <div className="p-4">
                     <div className="flex items-start justify-between">
@@ -1660,14 +1669,20 @@ export const PartiesModule: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition-all">
                         <button
-                          onClick={() => openEdit(p)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(p);
+                          }}
                           className="p-1.5 dark:text-slate-500 text-slate-400 hover:text-indigo-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer"
                           title="Edit"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDeleteParty(p)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteParty(p);
+                          }}
                           className="p-1.5 dark:text-slate-500 text-slate-400 hover:text-rose-500 dark:hover:bg-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer"
                           title="Delete"
                         >
@@ -1759,7 +1774,7 @@ export const PartiesModule: React.FC = () => {
                       Party <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-text w-[100px]">
+                  <th className="py-3 px-3 col-type col-compact">
                     <button
                       type="button"
                       onClick={() => partiesTable.toggleSort("type")}
@@ -1768,7 +1783,7 @@ export const PartiesModule: React.FC = () => {
                       Type <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-text w-[140px]">
+                  <th className="py-3 px-3 col-type col-compact">
                     <button
                       type="button"
                       onClick={() => partiesTable.toggleSort("phone")}
@@ -1777,7 +1792,7 @@ export const PartiesModule: React.FC = () => {
                       Phone <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-text w-[120px]">
+                  <th className="py-3 px-3 col-text col-medium">
                     <button
                       type="button"
                       onClick={() => partiesTable.toggleSort("city")}
@@ -1786,7 +1801,7 @@ export const PartiesModule: React.FC = () => {
                       City <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-num w-[120px]">
+                  <th className="py-3 px-3 col-num col-balance">
                     <button
                       type="button"
                       onClick={() => partiesTable.toggleSort("balance")}
@@ -1795,20 +1810,29 @@ export const PartiesModule: React.FC = () => {
                       Balance <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-4 col-actions w-[120px]">Actions</th>
+                  <th className="py-3 px-4 col-actions">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
                 {partiesTable.pageRows.map((p) => (
                   <tr
                     key={p.id + p.type}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setDetailParty(p)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setDetailParty(p);
+                      }
+                    }}
                     style={
                       {
                         contentVisibility: "auto",
                         containIntrinsicSize: "0 52px",
                       } as React.CSSProperties
                     }
-                    className="dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors group"
+                    className="dark:hover:bg-slate-800/40 hover:bg-slate-50 transition-colors group cursor-pointer"
                   >
                     <td className="py-3.5 px-4 col-text">
                       <div className="flex items-center space-x-3">
@@ -1840,21 +1864,30 @@ export const PartiesModule: React.FC = () => {
                     <td className="py-3.5 px-4 col-actions">
                       <div className="flex items-center justify-center gap-1">
                         <button
-                          onClick={() => setDetailParty(p)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetailParty(p);
+                          }}
                           className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:bg-indigo-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-indigo-500/20 cursor-pointer"
                           title="View Details"
                         >
                           <Building2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => openEdit(p)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(p);
+                          }}
                           className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:bg-amber-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-amber-500/20 cursor-pointer"
                           title="Edit"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDeleteParty(p)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteParty(p);
+                          }}
                           className="w-8 h-8 flex items-center justify-center rounded-lg dark:text-slate-400 text-slate-500 hover:bg-rose-500 hover:text-white transition-all duration-200 shadow-sm hover:shadow-rose-500/20 cursor-pointer"
                           title="Delete"
                         >

@@ -407,12 +407,31 @@ pub async fn auth_reset_app(
     // any subsequent DB access will fail, which is fine because the frontend
     // reloads immediately after this call.
 
-    for path in &[&db_path, &db_wal_path, &db_shm_path] {
+    // Windows safety: Rename files first to clear the file paths, then delete
+    let timestamp = chrono::Utc::now().timestamp_millis();
+    let paths = vec![db_path, db_wal_path, db_shm_path];
+    for path in paths {
         if path.exists() {
-            // Ignore errors — WAL/SHM may already be gone or locked briefly
-            let _ = std::fs::remove_file(path);
+            let deleted_path = path.with_extension(format!("{timestamp}.deleted"));
+            if let Ok(_) = std::fs::rename(&path, &deleted_path) {
+                let _ = std::fs::remove_file(deleted_path);
+            }
         }
     }
+
+    // Clear all backup files inside backups folder
+    let backups_dir = app_data_dir.join("backups");
+    if backups_dir.exists() {
+        if let Ok(entries) = std::fs::read_dir(&backups_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+        }
+    }
+
 
     // 3. Clear the in-memory session
     state.session.clear();

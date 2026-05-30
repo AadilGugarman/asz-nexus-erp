@@ -272,8 +272,22 @@ export const SettingsModule: React.FC = () => {
     backupService.applyAutoBackupPreference(autoBackup, backupFreq);
   }, [autoBackup, backupFreq]);
 
+  // Load/refresh the backup list when the backup section mounts or is selected
+  React.useEffect(() => {
+    if (activeSection === "BACKUP") {
+      void backupService.loadBackups();
+    }
+  }, [activeSection]);
+
   const handleBackupFreqChange = (value: string) => {
-    setBackupFreq(value as BackupFrequency);
+    const freq = value as BackupFrequency;
+    setBackupFreq(freq);
+    if (autoBackup) {
+      toast.success(
+        "Backup Frequency Updated",
+        `Automatic backups will now run on a ${freq} schedule.`,
+      );
+    }
   };
 
   const lastBackup = backupHistory.length > 0 ? backupHistory[0] : null;
@@ -291,13 +305,78 @@ export const SettingsModule: React.FC = () => {
     void backupService.restoreBackup(bk.filename);
     setRestoreConfirm(null);
   };
-  const handleDangerReset = () => {
-    resetAllData();
-    setConfirmResetDialog(false);
-    toast.warning(
-      "Database Reset",
-      "All data erased. App restored to factory defaults.",
-    );
+  const handleDangerReset = async () => {
+    try {
+      const { ipc } = await import("@/ipc");
+      await ipc.db.resetDatabase();
+      setConfirmResetDialog(false);
+      toast.success(
+        "Database Reset Successful",
+        "Wiped all data, backups, and settings.",
+      );
+
+      // Clear frontend client caches so startup/Zustand re-initializes on a clean slate
+      try {
+        localStorage.clear();
+      } catch {}
+      try {
+        sessionStorage.clear();
+      } catch {}
+
+      // Reset startup store phase to force a complete re-bootstrap
+      const {
+        useStartupStore,
+        _resetInitFlag,
+        useSettingsStore,
+        useCompanyStore,
+      } = await import("@/store");
+
+      useStartupStore.setState({
+        phase: "idle",
+        uiReady: false,
+        initialized: false,
+        isDbReady: false,
+        isAppReady: false,
+        isHydrated: false,
+        isBootstrapped: false,
+        isRoutingReady: false,
+        error: null,
+        message: "Preparing application...",
+      });
+      _resetInitFlag();
+
+      useSettingsStore.setState({
+        companies: [],
+        activeCompanyId: null,
+        isLoaded: false,
+      });
+      useCompanyStore.setState({
+        hasCompany: false,
+        activeCompanyId: null,
+        initialized: false,
+      });
+
+      // Force a full window reload so the SQLite connection pool is re-established
+      try {
+        window.location.replace(
+          window.location.origin + window.location.pathname,
+        );
+        setTimeout(() => {
+          try {
+            window.location.reload();
+          } catch {}
+        }, 100);
+      } catch {
+        try {
+          window.location.reload();
+        } catch {}
+      }
+    } catch (err) {
+      toast.error(
+        "Reset Database Failed",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
   };
 
   const resetApp = useAuthStore((s) => s.resetApp);
@@ -314,6 +393,28 @@ export const SettingsModule: React.FC = () => {
   const [wizardEditCompanyId, setWizardEditCompanyId] = useState<string | null>(
     null,
   );
+
+  // Prevent background scrolling when any modal/overlay is open
+  useEffect(() => {
+    const anyModalOpen =
+      confirmResetDialog ||
+      confirmFactoryReset ||
+      !!restoreConfirm ||
+      showCreateWizard ||
+      showEditWizard;
+    if (anyModalOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+    return () => document.body.classList.remove("overflow-hidden");
+  }, [
+    confirmResetDialog,
+    confirmFactoryReset,
+    restoreConfirm,
+    showCreateWizard,
+    showEditWizard,
+  ]);
 
   const openCreateCompany = () => {
     setShowCreateWizard(true);
@@ -348,11 +449,6 @@ export const SettingsModule: React.FC = () => {
   const [selectedFruitId, setSelectedFruitId] = useState(fruits[0]?.id || "");
   const [newVariety, setNewVariety] = useState("");
   const [newFruitName, setNewFruitName] = useState("");
-  const [newSupName, setNewSupName] = useState("");
-  const [newSupCode, setNewSupCode] = useState("");
-  const [newSupCity, setNewSupCity] = useState("");
-  const [newCustName, setNewCustName] = useState("");
-  const [newCustCity, setNewCustCity] = useState("");
 
   // ── local editable copies for controlled inputs ──
   const [inv, setInv] = useState(settings.invoice);
@@ -1365,65 +1461,103 @@ export const SettingsModule: React.FC = () => {
                     Invoice Numbering
                   </span>
                 </div>
-                <div className="p-6 space-y-5">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <Inp
-                      label="Sales Prefix"
-                      value={inv.salesPrefix}
-                      onChange={(v) =>
-                        setInv((p) => ({ ...p, salesPrefix: v }))
-                      }
-                      mono
-                    />
-                    <Inp
-                      label="Next Sales No."
-                      type="number"
-                      value={inv.salesNextNo}
-                      onChange={(v) =>
-                        setInv((p) => ({ ...p, salesNextNo: parseInt(v) || 0 }))
-                      }
-                      mono
-                    />
-                    <Inp
-                      label="Purchase Prefix"
-                      value={inv.purchasePrefix}
-                      onChange={(v) =>
-                        setInv((p) => ({ ...p, purchasePrefix: v }))
-                      }
-                      mono
-                    />
-                    <Inp
-                      label="Next Purchase No."
-                      type="number"
-                      value={inv.purchaseNextNo}
-                      onChange={(v) =>
-                        setInv((p) => ({
-                          ...p,
-                          purchaseNextNo: parseInt(v) || 0,
-                        }))
-                      }
-                      mono
-                    />
-                    <Inp
-                      label="Arrival Prefix"
-                      value={inv.arrivalPrefix}
-                      onChange={(v) =>
-                        setInv((p) => ({ ...p, arrivalPrefix: v }))
-                      }
-                      mono
-                    />
-                    <Inp
-                      label="Next Arrival No."
-                      type="number"
-                      value={inv.arrivalNextNo}
-                      onChange={(v) =>
-                        setInv((p) => ({
-                          ...p,
-                          arrivalNextNo: parseInt(v) || 0,
-                        }))
-                      }
-                      mono
-                    />
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Sales Group */}
+                    <div className="space-y-4 p-4 rounded-xl dark:bg-slate-950/40 bg-slate-50/50 border dark:border-slate-800/50 border-slate-200/50">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <div className="w-1 h-3 bg-cyan-500 rounded-full" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] dark:text-slate-500 text-slate-400">
+                          Sales Invoices
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Inp
+                          label="Prefix"
+                          value={inv.salesPrefix}
+                          onChange={(v) =>
+                            setInv((p) => ({ ...p, salesPrefix: v }))
+                          }
+                          mono
+                        />
+                        <Inp
+                          label="Next No."
+                          type="number"
+                          value={inv.salesNextNo}
+                          onChange={(v) =>
+                            setInv((p) => ({
+                              ...p,
+                              salesNextNo: parseInt(v) || 0,
+                            }))
+                          }
+                          mono
+                        />
+                      </div>
+                    </div>
+
+                    {/* Purchase Group */}
+                    <div className="space-y-4 p-4 rounded-xl dark:bg-slate-950/40 bg-slate-50/50 border dark:border-slate-800/50 border-slate-200/50">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] dark:text-slate-500 text-slate-400">
+                          Purchase Bills
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Inp
+                          label="Prefix"
+                          value={inv.purchasePrefix}
+                          onChange={(v) =>
+                            setInv((p) => ({ ...p, purchasePrefix: v }))
+                          }
+                          mono
+                        />
+                        <Inp
+                          label="Next No."
+                          type="number"
+                          value={inv.purchaseNextNo}
+                          onChange={(v) =>
+                            setInv((p) => ({
+                              ...p,
+                              purchaseNextNo: parseInt(v) || 0,
+                            }))
+                          }
+                          mono
+                        />
+                      </div>
+                    </div>
+
+                    {/* Arrival Group */}
+                    <div className="space-y-4 p-4 rounded-xl dark:bg-slate-950/40 bg-slate-50/50 border dark:border-slate-800/50 border-slate-200/50">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <div className="w-1 h-3 bg-emerald-500 rounded-full" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] dark:text-slate-500 text-slate-400">
+                          Arrival Slips
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Inp
+                          label="Prefix"
+                          value={inv.arrivalPrefix}
+                          onChange={(v) =>
+                            setInv((p) => ({ ...p, arrivalPrefix: v }))
+                          }
+                          mono
+                        />
+                        <Inp
+                          label="Next No."
+                          type="number"
+                          value={inv.arrivalNextNo}
+                          onChange={(v) =>
+                            setInv((p) => ({
+                              ...p,
+                              arrivalNextNo: parseInt(v) || 0,
+                            }))
+                          }
+                          mono
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1978,135 +2112,7 @@ export const SettingsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quick Add Supplier & Customer */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* Supplier */}
-                <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                    <Star className="w-4 h-4 text-emerald-500" />
-                    <span className="text-xs font-bold dark:text-white text-slate-900">
-                      Quick Add Supplier
-                    </span>
-                    <span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-1.5 py-0.5 rounded font-bold ml-auto">
-                      {suppliers.length}
-                    </span>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <Inp
-                      label="Supplier Name *"
-                      value={newSupName}
-                      onChange={setNewSupName}
-                      placeholder="e.g. Ramesh Agro Traders"
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <Inp
-                        label="Code *"
-                        value={newSupCode}
-                        onChange={(v) => setNewSupCode(v.toUpperCase())}
-                        placeholder="RAT-01"
-                        mono
-                      />
-                      <Inp
-                        label="City"
-                        value={newSupCity}
-                        onChange={setNewSupCity}
-                        placeholder="Valsad"
-                      />
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (!newSupName.trim() || !newSupCode.trim()) {
-                          toast.error("Required", "Name & code are required.");
-                          return;
-                        }
-                        addSupplier({
-                          name: newSupName.trim(),
-                          code: newSupCode.trim(),
-                          city: newSupCity || "Local",
-                          phone: "",
-                          email: "",
-                          gstin: "",
-                          state: "",
-                          billingAddress: "",
-                          shippingAddress: "",
-                          previousBalance: 0,
-                          creditLimit: 0,
-                          notes: "",
-                        });
-                        toast.success(
-                          "Supplier Added",
-                          `${newSupName.trim()} registered.`,
-                        );
-                        setNewSupName("");
-                        setNewSupCode("");
-                        setNewSupCity("");
-                      }}
-                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs cursor-pointer transition-colors shadow-sm flex items-center justify-center space-x-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Save Supplier</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Customer */}
-                <div className="dark:bg-slate-900 bg-white rounded-xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-5 py-3 dark:bg-slate-950 bg-slate-50 border-b dark:border-slate-800 border-slate-200 flex items-center space-x-2">
-                    <Star className="w-4 h-4 text-indigo-500" />
-                    <span className="text-xs font-bold dark:text-white text-slate-900">
-                      Quick Add Customer
-                    </span>
-                    <span className="text-[10px] font-mono dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 px-1.5 py-0.5 rounded font-bold ml-auto">
-                      {customers.length}
-                    </span>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <Inp
-                      label="Customer / Buyer Name *"
-                      value={newCustName}
-                      onChange={setNewCustName}
-                      placeholder="e.g. Metro Fresh Mart"
-                    />
-                    <Inp
-                      label="City"
-                      value={newCustCity}
-                      onChange={setNewCustCity}
-                      placeholder="Mumbai"
-                    />
-                    <button
-                      onClick={() => {
-                        if (!newCustName.trim()) {
-                          toast.error("Required", "Customer name is required.");
-                          return;
-                        }
-                        addCustomer({
-                          name: newCustName.trim(),
-                          city: newCustCity || "Local",
-                          phone: "",
-                          email: "",
-                          gstin: "",
-                          state: "",
-                          billingAddress: "",
-                          shippingAddress: "",
-                          previousBalance: 0,
-                          creditLimit: 0,
-                          notes: "",
-                        });
-                        toast.success(
-                          "Customer Added",
-                          `${newCustName.trim()} registered.`,
-                        );
-                        setNewCustName("");
-                        setNewCustCity("");
-                      }}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs cursor-pointer transition-colors shadow-sm flex items-center justify-center space-x-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Save Customer</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {/* Quick add supplier/customer removed per request */}
             </div>
           )}
 
@@ -2134,7 +2140,20 @@ export const SettingsModule: React.FC = () => {
                     label="Enable Automatic Backups"
                     desc="Automatically create backups on a schedule"
                     checked={autoBackup}
-                    onChange={setAutoBackup}
+                    onChange={(v) => {
+                      setAutoBackup(v);
+                      if (v) {
+                        toast.success(
+                          "Automatic Backups Enabled",
+                          `Backups scheduled to run ${backupFreq} in the background.`,
+                        );
+                      } else {
+                        toast.info(
+                          "Automatic Backups Disabled",
+                          "Background backup schedule has been stopped.",
+                        );
+                      }
+                    }}
                   />
                   {autoBackup && (
                     <div className="pl-2 ml-1 border-l-2 dark:border-cyan-500/30 border-cyan-300 space-y-4 pt-3 animate-slide-down">
@@ -2528,7 +2547,7 @@ export const SettingsModule: React.FC = () => {
 
           {/* Reset Confirmation Dialog */}
           {confirmResetDialog && (
-            <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
               <div className="dark:bg-slate-900 bg-white border-2 dark:border-rose-500/40 border-rose-300 rounded-2xl max-w-sm w-full shadow-2xl p-6 space-y-4 animate-scale-in">
                 <div className="flex items-center space-x-3">
                   <div className="p-3 bg-rose-500/10 text-rose-500 rounded-xl">
@@ -2568,7 +2587,7 @@ export const SettingsModule: React.FC = () => {
 
           {/* Factory Reset Confirmation Dialog */}
           {confirmFactoryReset && (
-            <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
               <div className="dark:bg-slate-900 bg-white border-2 dark:border-rose-500/40 border-rose-300 rounded-2xl max-w-sm w-full shadow-2xl p-6 space-y-4 animate-scale-in">
                 <div className="flex items-center space-x-3">
                   <div className="p-3 bg-rose-500/10 text-rose-500 rounded-xl">
@@ -2608,7 +2627,7 @@ export const SettingsModule: React.FC = () => {
 
           {/* Restore Confirmation Dialog */}
           {restoreConfirm && (
-            <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
               <div className="dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 rounded-2xl max-w-sm w-full shadow-2xl p-6 space-y-4 animate-scale-in">
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
@@ -2927,7 +2946,7 @@ export const SettingsModule: React.FC = () => {
       {/* CREATE COMPANY WIZARD MODAL */}
       {showCreateWizard && (
         <div
-          className="fixed inset-0 z-99999 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowCreateWizard(false);
           }}
@@ -2946,7 +2965,7 @@ export const SettingsModule: React.FC = () => {
       {/* EDIT COMPANY WIZARD MODAL */}
       {showEditWizard && wizardEditCompanyId && (
         <div
-          className="fixed inset-0 z-99999 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowEditWizard(false);

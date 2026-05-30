@@ -118,6 +118,7 @@ pub fn run() {
                 // ── Database ─────────────────────────────────────────────────
                 commands::db::db_get_stats,
                 commands::db::db_reset_company_data,
+                commands::db::db_reset_database,
                 // ── Backup ───────────────────────────────────────────────────
                 commands::backup::backup_create,
                 commands::backup::backup_list,

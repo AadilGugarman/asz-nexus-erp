@@ -892,7 +892,7 @@ export const PaymentsModule: React.FC = () => {
             <table className="erp-table text-left text-xs sm:text-sm">
               <thead>
                 <tr>
-                  <th className="py-3 px-4 col-text w-[120px]">
+                  <th className="py-3 px-4 col-date col-text">
                     <button
                       type="button"
                       onClick={() => paymentsTable.toggleSort("date")}
@@ -901,8 +901,8 @@ export const PaymentsModule: React.FC = () => {
                       Date <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-text w-[120px]">Direction</th>
-                  <th className="py-3 px-3 col-text min-w-[180px]">
+                  <th className="py-3 px-3 col-type col-text">Direction</th>
+                  <th className="py-3 px-3 col-large col-text">
                     <button
                       type="button"
                       onClick={() => paymentsTable.toggleSort("partyName")}
@@ -911,7 +911,7 @@ export const PaymentsModule: React.FC = () => {
                       Party Name <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-num font-black dark:text-amber-400 text-amber-700 w-[140px]">
+                  <th className="py-3 px-3 col-num col-amount font-black dark:text-amber-400 text-amber-700">
                     <button
                       type="button"
                       onClick={() => paymentsTable.toggleSort("amount")}
@@ -920,14 +920,14 @@ export const PaymentsModule: React.FC = () => {
                       Amount <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3 px-3 col-text w-[120px]">Mode</th>
-                  <th className="py-3 px-3 col-text w-[140px]">
+                  <th className="py-3 px-3 col-type col-text">Mode</th>
+                  <th className="py-3 px-3 col-medium col-text">
                     Reference No.
                   </th>
-                  <th className="py-3 px-3 col-text w-[180px]">
+                  <th className="py-3 px-3 col-large col-text">
                     Notes / Remarks
                   </th>
-                  <th className="py-3 px-4 col-actions sticky right-0 bg-(--table-header-bg) z-3 w-[120px]">
+                  <th className="py-3 px-4 col-actions sticky right-0 bg-(--table-header-bg) z-3">
                     Actions
                   </th>
                 </tr>

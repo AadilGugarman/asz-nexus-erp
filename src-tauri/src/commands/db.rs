@@ -2,6 +2,7 @@
 // Database status and demo seed commands.
 
 use serde::{Deserialize, Serialize};
+use tauri::Manager;
 use crate::db::connection::get_conn;
 use crate::ipc::IpcResponse;
 use crate::error::AppResult;
@@ -101,3 +102,52 @@ fn delete_company_data(conn: &mut rusqlite::Connection, cid: &str) -> AppResult<
     tx.commit()?;
     Ok(counts)
 }
+
+/// DANGEROUS: Wipes the entire SQLite database file (+ WAL/SHM) and deletes all backup files,
+/// but PRESERVES the auth credentials in auth.json.
+/// Reloads the frontend immediately so the connection pool re-initializes on next startup.
+#[tauri::command]
+pub async fn db_reset_database(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<IpcResponse<bool>> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| crate::error::AppError::Internal(format!("Cannot resolve app data dir: {e}")))?;
+
+    let db_path     = app_data_dir.join("asz_nexus_erp.db");
+    let db_wal_path = app_data_dir.join("asz_nexus_erp.db-wal");
+    let db_shm_path = app_data_dir.join("asz_nexus_erp.db-shm");
+
+    // Force checkpoint + truncate WAL before deleting
+    if let Ok(conn) = state.db.get() {
+        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+    }
+
+    // Windows safety: Rename files first to clear the file paths, then delete
+    let timestamp = chrono::Utc::now().timestamp_millis();
+    let paths = vec![db_path, db_wal_path, db_shm_path];
+    for path in paths {
+        if path.exists() {
+            let deleted_path = path.with_extension(format!("{timestamp}.deleted"));
+            if let Ok(_) = std::fs::rename(&path, &deleted_path) {
+                let _ = std::fs::remove_file(deleted_path);
+            }
+        }
+    }
+
+    // Clear all backup files inside backups folder
+    let backups_dir = app_data_dir.join("backups");
+    if backups_dir.exists() {
+        if let Ok(entries) = std::fs::read_dir(&backups_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+        }
+    }
+
+    Ok(IpcResponse::ok(true))
+}
+

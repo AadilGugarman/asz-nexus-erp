@@ -1244,7 +1244,7 @@ export const SalesBillingModule: React.FC = () => {
                 <tr
                   className={`${hdr} dark:text-slate-400 text-slate-600 text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10`}
                 >
-                  <th className="py-3.5 px-4 col-text w-[120px]">
+                  <th className="py-3.5 px-4 col-date col-text">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("invoiceNo")}
@@ -1253,7 +1253,7 @@ export const SalesBillingModule: React.FC = () => {
                       Invoice / Date <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 col-text min-w-[180px]">
+                  <th className="py-3.5 px-3 col-large col-text">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("customerName")}
@@ -1262,7 +1262,7 @@ export const SalesBillingModule: React.FC = () => {
                       Customer <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 col-text w-[100px]">
+                  <th className="py-3.5 px-3 col-type col-compact">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("vehicleNo")}
@@ -1271,7 +1271,7 @@ export const SalesBillingModule: React.FC = () => {
                       Vehicle <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 col-num w-[100px]">
+                  <th className="py-3.5 px-3 col-num col-small">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("totalCarets")}
@@ -1280,7 +1280,7 @@ export const SalesBillingModule: React.FC = () => {
                       Carets <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 col-num w-[100px]">
+                  <th className="py-3.5 px-3 col-num col-small">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("totalWeight")}
@@ -1289,7 +1289,7 @@ export const SalesBillingModule: React.FC = () => {
                       Weight <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 col-num w-[120px] font-black text-indigo-600 dark:text-indigo-400">
+                  <th className="py-3.5 px-3 col-num col-amount font-black text-indigo-600 dark:text-indigo-400">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("todayAmount")}
@@ -1298,7 +1298,7 @@ export const SalesBillingModule: React.FC = () => {
                       Total <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-3 col-num w-[120px] font-black dark:text-slate-200 text-slate-900">
+                  <th className="py-3.5 px-3 col-num col-amount font-black dark:text-slate-200 text-slate-900">
                     <button
                       type="button"
                       onClick={() => table.toggleSort("remainingBalance")}
@@ -1307,7 +1307,7 @@ export const SalesBillingModule: React.FC = () => {
                       Balance <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="py-3.5 px-4 col-actions w-[140px]">Actions</th>
+                  <th className="py-3.5 px-4 col-actions">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y dark:divide-slate-800/60 divide-slate-100">
